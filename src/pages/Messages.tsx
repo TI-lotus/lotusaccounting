@@ -6,7 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 
-const conversations = [
+import { useViewMode } from "@/contexts/ViewModeContext";
+
+const officeConversations = [
   { id: 1, name: "Sarah Johnson", role: "Accountant", message: "The quarterly report is ready for review", time: "2m ago", unread: true, online: true },
   { id: 2, name: "Mike Chen", role: "CFO", message: "Can we discuss the budget forecast?", time: "1h ago", unread: true, online: true },
   { id: 3, name: "System", role: "Notification", message: "Invoice #1234 has been paid", time: "3h ago", unread: true, online: false },
@@ -15,6 +17,11 @@ const conversations = [
   { id: 6, name: "Roberto Santos", role: "Auditor", message: "Finished reviewing the Q3 statements", time: "2 days ago", unread: false, online: true },
   { id: 7, name: "Ana Costa", role: "Tax Specialist", message: "Tax deadline reminder sent to clients", time: "3 days ago", unread: false, online: false },
   { id: 8, name: "Carlos Mendes", role: "Partner", message: "Meeting scheduled for next week", time: "4 days ago", unread: false, online: false },
+];
+
+const clientConversations = [
+  { id: 101, name: "Lotus Contabilidade", role: "Seu Contador", message: "Seus documentos fiscais foram processados com sucesso", time: "1h ago", unread: true, online: true },
+  { id: 102, name: "Claison Kepler", role: "Gerente de Conta", message: "Olá! Vi que você tem uma nova fatura pendente", time: "3h ago", unread: true, online: true },
 ];
 
 const messageThreads: Record<number, Array<{ id: number; sender: string; content: string; time: string; isMe: boolean }>> = {
@@ -40,12 +47,31 @@ const messageThreads: Record<number, Array<{ id: number; sender: string; content
   ],
 };
 
+const clientMessageThreads: Record<number, Array<{ id: number; sender: string; content: string; time: string; isMe: boolean }>> = {
+  101: [
+    { id: 1, sender: "Lotus Contabilidade", content: "Olá! Seus documentos fiscais de janeiro foram processados com sucesso.", time: "1h ago", isMe: false },
+    { id: 2, sender: "Me", content: "Obrigado! Posso baixar os relatórios?", time: "1h ago", isMe: true },
+    { id: 3, sender: "Lotus Contabilidade", content: "Sim, todos os documentos estão disponíveis na aba Documentos. Qualquer dúvida, estamos aqui!", time: "55m ago", isMe: false },
+  ],
+  102: [
+    { id: 1, sender: "Claison Kepler", content: "Olá! Vi que você tem uma nova fatura pendente de aprovação.", time: "3h ago", isMe: false },
+    { id: 2, sender: "Me", content: "Sim, vou verificar agora. Qual é o valor?", time: "2h ago", isMe: true },
+    { id: 3, sender: "Claison Kepler", content: "A fatura #INV-2024-0089 é de R$ 1.250,00 referente aos serviços de janeiro.", time: "2h ago", isMe: false },
+    { id: 4, sender: "Me", content: "Perfeito, vou aprovar.", time: "1h ago", isMe: true },
+    { id: 5, sender: "Claison Kepler", content: "Ótimo! Qualquer dúvida sobre suas tarefas pendentes, me avise.", time: "1h ago", isMe: false },
+  ],
+};
+
 const Messages = () => {
-  const [selectedConversation, setSelectedConversation] = useState(1);
+  const { viewMode } = useViewMode();
+  const conversations = viewMode === "office" ? officeConversations : clientConversations;
+  const allMessageThreads = viewMode === "office" ? messageThreads : clientMessageThreads;
+  
+  const [selectedConversation, setSelectedConversation] = useState(conversations[0]?.id || 1);
   const [newMessage, setNewMessage] = useState("");
 
   const currentConversation = conversations.find(c => c.id === selectedConversation);
-  const currentMessages = messageThreads[selectedConversation] || [];
+  const currentMessages = allMessageThreads[selectedConversation] || [];
 
   const handleSendMessage = () => {
     if (newMessage.trim()) {
