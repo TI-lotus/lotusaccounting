@@ -6,7 +6,7 @@
 
 @layer base {
   :root {
-    /* Refined Silver/White/Black Theme */
+    /* Refined Silver/White/Black Theme with Gilver accent */
     --background: 0 0% 98%;
     --foreground: 0 0% 9%;
 
@@ -27,7 +27,8 @@
     --muted: 0 0% 94%;
     --muted-foreground: 0 0% 45%;
 
-    --accent: 0 0% 92%;
+    /* Accent: Gilver #E7D5C5 */
+    --accent: 28 38% 84%;
     --accent-foreground: 0 0% 15%;
 
     --destructive: 0 72% 51%;
@@ -35,9 +36,14 @@
 
     --border: 0 0% 90%;
     --input: 0 0% 90%;
-    --ring: 0 0% 20%;
+    --ring: 28 38% 70%;
 
     --radius: 0.625rem;
+
+    /* Gilver palette */
+    --gilver: 28 38% 84%;
+    --gilver-dark: 28 30% 70%;
+    --gilver-light: 28 45% 92%;
 
     /* Custom variables */
     --silver: 0 0% 75%;
@@ -49,17 +55,17 @@
     --sidebar-foreground: 0 0% 20%;
     --sidebar-primary: 0 0% 9%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 96%;
+    --sidebar-accent: 28 38% 90%;
     --sidebar-accent-foreground: 0 0% 15%;
     --sidebar-border: 0 0% 92%;
-    --sidebar-ring: 0 0% 20%;
+    --sidebar-ring: 28 38% 70%;
 
-    /* Chart colors - Monochrome */
+    /* Chart colors - Warm monochrome with gilver */
     --chart-1: 0 0% 15%;
-    --chart-2: 0 0% 35%;
-    --chart-3: 0 0% 55%;
-    --chart-4: 0 0% 70%;
-    --chart-5: 0 0% 85%;
+    --chart-2: 28 30% 50%;
+    --chart-3: 28 38% 70%;
+    --chart-4: 0 0% 60%;
+    --chart-5: 28 38% 84%;
   }
 
   .dark {
@@ -81,15 +87,21 @@
     --muted: 0 0% 15%;
     --muted-foreground: 0 0% 60%;
 
-    --accent: 0 0% 18%;
-    --accent-foreground: 0 0% 90%;
+    /* Accent: Gilver (darker for dark mode) */
+    --accent: 28 25% 25%;
+    --accent-foreground: 28 38% 90%;
 
     --destructive: 0 62% 50%;
     --destructive-foreground: 0 0% 100%;
 
     --border: 0 0% 18%;
     --input: 0 0% 18%;
-    --ring: 0 0% 80%;
+    --ring: 28 30% 50%;
+
+    /* Gilver palette - darker for dark mode */
+    --gilver: 28 25% 35%;
+    --gilver-dark: 28 20% 25%;
+    --gilver-light: 28 30% 45%;
 
     --silver: 0 0% 45%;
     --silver-light: 0 0% 25%;
@@ -97,12 +109,12 @@
 
     --sidebar-background: 0 0% 7%;
     --sidebar-foreground: 0 0% 90%;
-    --sidebar-primary: 0 0% 95%;
+    --sidebar-primary: 28 38% 84%;
     --sidebar-primary-foreground: 0 0% 9%;
-    --sidebar-accent: 0 0% 15%;
-    --sidebar-accent-foreground: 0 0% 85%;
+    --sidebar-accent: 28 20% 18%;
+    --sidebar-accent-foreground: 28 38% 85%;
     --sidebar-border: 0 0% 15%;
-    --sidebar-ring: 0 0% 80%;
+    --sidebar-ring: 28 30% 50%;
   }
 }
 

@@ -50,10 +50,10 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        lotus: {
-          DEFAULT: "hsl(var(--primary))",
-          glow: "hsl(var(--lotus-glow))",
-          soft: "hsl(var(--lotus-soft))",
+        gilver: {
+          DEFAULT: "hsl(var(--gilver))",
+          dark: "hsl(var(--gilver-dark))",
+          light: "hsl(var(--gilver-light))",
         },
         chart: {
           1: "hsl(var(--chart-1))",

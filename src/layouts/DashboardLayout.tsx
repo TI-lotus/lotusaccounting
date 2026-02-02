@@ -19,7 +19,7 @@ export const DashboardLayout = ({ children, className }: DashboardLayoutProps) =
           {children}
         </main>
       </div>
-      <AIAgentButton onClick={() => console.log("AI Agent clicked")} />
+      <AIAgentButton />
     </div>
   );
 };

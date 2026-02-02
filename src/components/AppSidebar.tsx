@@ -104,7 +104,12 @@ export const AppSidebar = () => {
     >
       {/* Header */}
       <div className="h-16 flex items-center justify-between px-4 border-b border-sidebar-border">
-        <LotusLogo size="sm" showText={!collapsed} />
+        <div className={cn(
+          "transition-all duration-300 overflow-hidden",
+          collapsed ? "w-0 opacity-0" : "w-auto opacity-100"
+        )}>
+          <LotusLogo size="sm" showText={!collapsed} />
+        </div>
         <button
           onClick={() => setCollapsed(!collapsed)}
           className={cn(
