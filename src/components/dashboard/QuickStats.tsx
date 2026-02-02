@@ -2,10 +2,10 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { cn } from "@/lib/utils";
 
 const expenseData = [
-  { name: "Payroll", value: 45, color: "hsl(172, 66%, 40%)" },
-  { name: "Operations", value: 25, color: "hsl(172, 45%, 55%)" },
-  { name: "Marketing", value: 15, color: "hsl(172, 30%, 70%)" },
-  { name: "Other", value: 15, color: "hsl(200, 60%, 50%)" },
+  { name: "Payroll", value: 45, color: "hsl(28, 38%, 84%)" },
+  { name: "Operations", value: 25, color: "hsl(28, 30%, 70%)" },
+  { name: "Marketing", value: 15, color: "hsl(28, 25%, 55%)" },
+  { name: "Other", value: 15, color: "hsl(0, 0%, 40%)" },
 ];
 
 interface QuickStatsProps {

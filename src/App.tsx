@@ -9,10 +9,12 @@ import Payments from "./pages/Payments";
 import Documents from "./pages/Documents";
 import Reports from "./pages/Reports";
 import Integrations from "./pages/Integrations";
+import IntegrationSettings from "./pages/IntegrationSettings";
 import Messages from "./pages/Messages";
 import Settings from "./pages/Settings";
 import SearchCNPJ from "./pages/SearchCNPJ";
 import AffiliationProgram from "./pages/AffiliationProgram";
+import Upgrade from "./pages/Upgrade";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,8 +34,10 @@ const App = () => (
           <Route path="/search-cnpj" element={<SearchCNPJ />} />
           <Route path="/affiliation" element={<AffiliationProgram />} />
           <Route path="/integrations" element={<Integrations />} />
+          <Route path="/integrations/:id" element={<IntegrationSettings />} />
           <Route path="/messages" element={<Messages />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/upgrade" element={<Upgrade />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

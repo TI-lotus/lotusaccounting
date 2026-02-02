@@ -52,12 +52,12 @@ export const RevenueChart = ({ className }: RevenueChartProps) => {
           <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
             <defs>
               <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="hsl(172, 66%, 40%)" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="hsl(172, 66%, 40%)" stopOpacity={0} />
+                <stop offset="5%" stopColor="hsl(28, 38%, 84%)" stopOpacity={0.4} />
+                <stop offset="95%" stopColor="hsl(28, 38%, 84%)" stopOpacity={0} />
               </linearGradient>
               <linearGradient id="expenseGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="hsl(172, 30%, 70%)" stopOpacity={0.2} />
-                <stop offset="95%" stopColor="hsl(172, 30%, 70%)" stopOpacity={0} />
+                <stop offset="5%" stopColor="hsl(28, 30%, 55%)" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="hsl(28, 30%, 55%)" stopOpacity={0} />
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
@@ -85,14 +85,14 @@ export const RevenueChart = ({ className }: RevenueChartProps) => {
             <Area
               type="monotone"
               dataKey="revenue"
-              stroke="hsl(172, 66%, 40%)"
+              stroke="hsl(28, 38%, 70%)"
               strokeWidth={2}
               fill="url(#revenueGradient)"
             />
             <Area
               type="monotone"
               dataKey="expenses"
-              stroke="hsl(172, 30%, 70%)"
+              stroke="hsl(28, 25%, 55%)"
               strokeWidth={2}
               fill="url(#expenseGradient)"
             />
