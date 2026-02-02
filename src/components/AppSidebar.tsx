@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useLocation, Link } from "react-router-dom";
+import { useLocation, Link, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   Users,
@@ -14,6 +14,8 @@ import {
   LogOut,
   Search,
   Gift,
+  Crown,
+  ChevronDown,
 } from "lucide-react";
 import { LotusLogo } from "./LotusLogo";
 import { cn } from "@/lib/utils";
@@ -24,6 +26,13 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const mainNavItems = [
   { title: "Dashboard", icon: LayoutDashboard, href: "/" },
@@ -37,13 +46,10 @@ const mainNavItems = [
   { title: "Mensagens", icon: MessageSquare, href: "/messages", badge: 3 },
 ];
 
-const bottomNavItems = [
-  { title: "Configurações", icon: Settings, href: "/settings" },
-];
-
 export const AppSidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
   const NavItem = ({ item }: { item: typeof mainNavItems[0] }) => {
     const isActive = location.pathname === item.href;
@@ -102,8 +108,8 @@ export const AppSidebar = () => {
         collapsed ? "w-[72px]" : "w-[260px]"
       )}
     >
-      {/* Header */}
-      <div className="h-16 flex items-center justify-between px-4 border-b border-sidebar-border">
+      {/* Header with Gilver Background */}
+      <div className="h-16 flex items-center justify-between px-4 border-b border-sidebar-border bg-gilver dark:bg-gilver/20">
         <div className={cn(
           "transition-all duration-300 overflow-hidden",
           collapsed ? "w-0 opacity-0" : "w-auto opacity-100"
@@ -114,7 +120,7 @@ export const AppSidebar = () => {
           onClick={() => setCollapsed(!collapsed)}
           className={cn(
             "h-7 w-7 rounded-lg flex items-center justify-center",
-            "text-muted-foreground hover:text-foreground hover:bg-accent",
+            "text-foreground/70 hover:text-foreground hover:bg-background/50",
             "transition-all duration-200",
             collapsed && "mx-auto"
           )}
@@ -136,39 +142,51 @@ export const AppSidebar = () => {
 
       <Separator className="mx-3" />
 
-      {/* Bottom Navigation */}
-      <nav className="p-3 space-y-1">
-        {bottomNavItems.map((item) => (
-          <NavItem key={item.href} item={item} />
-        ))}
-      </nav>
-
-      {/* User Profile */}
+      {/* User Profile with Dropdown */}
       <div className={cn(
         "p-3 border-t border-sidebar-border",
         collapsed ? "flex justify-center" : ""
       )}>
-        <div className={cn(
-          "flex items-center gap-3 p-2 rounded-xl",
-          "hover:bg-accent transition-colors cursor-pointer"
-        )}>
-          <Avatar className="h-9 w-9 shrink-0">
-            <AvatarImage src="" />
-            <AvatarFallback className="bg-primary/10 text-primary font-medium text-sm">
-              JD
-            </AvatarFallback>
-          </Avatar>
-          <div className={cn(
-            "flex-1 min-w-0 transition-all duration-300",
-            collapsed ? "opacity-0 w-0 overflow-hidden" : "opacity-100"
-          )}>
-            <p className="text-sm font-medium truncate">John Doe</p>
-            <p className="text-xs text-muted-foreground truncate">john@lotus.com</p>
-          </div>
-          {!collapsed && (
-            <LogOut className="h-4 w-4 text-muted-foreground hover:text-foreground shrink-0" />
-          )}
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className={cn(
+              "w-full flex items-center gap-3 p-2 rounded-xl",
+              "hover:bg-accent transition-colors cursor-pointer text-left"
+            )}>
+              <Avatar className="h-9 w-9 shrink-0">
+                <AvatarImage src="" />
+                <AvatarFallback className="bg-gilver text-foreground font-medium text-sm">
+                  JD
+                </AvatarFallback>
+              </Avatar>
+              <div className={cn(
+                "flex-1 min-w-0 transition-all duration-300",
+                collapsed ? "opacity-0 w-0 overflow-hidden" : "opacity-100"
+              )}>
+                <p className="text-sm font-medium truncate">John Doe</p>
+                <p className="text-xs text-muted-foreground truncate">john@lotus.com</p>
+              </div>
+              {!collapsed && (
+                <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+              )}
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuItem onClick={() => navigate("/settings")}>
+              <Settings className="h-4 w-4 mr-2" />
+              Configurações
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/upgrade")}>
+              <Crown className="h-4 w-4 mr-2" />
+              Upgrade
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem className="text-destructive focus:text-destructive">
+              <LogOut className="h-4 w-4 mr-2" />
+              Sair
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </aside>
   );
