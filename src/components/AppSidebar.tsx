@@ -12,6 +12,8 @@ import {
   ChevronLeft,
   ChevronRight,
   LogOut,
+  Search,
+  Gift,
 } from "lucide-react";
 import { LotusLogo } from "./LotusLogo";
 import { cn } from "@/lib/utils";
@@ -25,16 +27,18 @@ import {
 
 const mainNavItems = [
   { title: "Dashboard", icon: LayoutDashboard, href: "/" },
-  { title: "Clients", icon: Users, href: "/clients" },
-  { title: "Payments", icon: CreditCard, href: "/payments" },
-  { title: "Documents", icon: FileText, href: "/documents" },
-  { title: "Reports", icon: BarChart3, href: "/reports" },
-  { title: "Integrations", icon: Plug, href: "/integrations" },
-  { title: "Messages", icon: MessageSquare, href: "/messages", badge: 3 },
+  { title: "Clientes", icon: Users, href: "/clients" },
+  { title: "Pagamentos", icon: CreditCard, href: "/payments" },
+  { title: "Documentos", icon: FileText, href: "/documents" },
+  { title: "Relatórios", icon: BarChart3, href: "/reports" },
+  { title: "Consulta CNPJ", icon: Search, href: "/search-cnpj" },
+  { title: "Afiliados", icon: Gift, href: "/affiliation" },
+  { title: "Integrações", icon: Plug, href: "/integrations" },
+  { title: "Mensagens", icon: MessageSquare, href: "/messages", badge: 3 },
 ];
 
 const bottomNavItems = [
-  { title: "Settings", icon: Settings, href: "/settings" },
+  { title: "Configurações", icon: Settings, href: "/settings" },
 ];
 
 export const AppSidebar = () => {
