@@ -15,6 +15,7 @@ import Settings from "./pages/Settings";
 import SearchCNPJ from "./pages/SearchCNPJ";
 import AffiliationProgram from "./pages/AffiliationProgram";
 import Upgrade from "./pages/Upgrade";
+import Agents from "./pages/Agents";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const App = () => (
           <Route path="/documents" element={<Documents />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/search-cnpj" element={<SearchCNPJ />} />
+          <Route path="/agents" element={<Agents />} />
           <Route path="/affiliation" element={<AffiliationProgram />} />
           <Route path="/integrations" element={<Integrations />} />
           <Route path="/integrations/:id" element={<IntegrationSettings />} />
