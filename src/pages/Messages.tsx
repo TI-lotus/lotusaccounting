@@ -64,14 +64,16 @@ const clientMessageThreads: Record<number, Array<{ id: number; sender: string; c
 
 const Messages = () => {
   const { viewMode } = useViewMode();
+  const [selectedConversation, setSelectedConversation] = useState<number | null>(null);
+  const [newMessage, setNewMessage] = useState("");
+  
   const conversations = viewMode === "office" ? officeConversations : clientConversations;
   const allMessageThreads = viewMode === "office" ? messageThreads : clientMessageThreads;
   
-  const [selectedConversation, setSelectedConversation] = useState(conversations[0]?.id || 1);
-  const [newMessage, setNewMessage] = useState("");
-
-  const currentConversation = conversations.find(c => c.id === selectedConversation);
-  const currentMessages = allMessageThreads[selectedConversation] || [];
+  // Set initial conversation when viewMode changes
+  const effectiveSelectedId = selectedConversation ?? conversations[0]?.id ?? 1;
+  const currentConversation = conversations.find(c => c.id === effectiveSelectedId);
+  const currentMessages = allMessageThreads[effectiveSelectedId] || [];
 
   const handleSendMessage = () => {
     if (newMessage.trim()) {
@@ -101,7 +103,7 @@ const Messages = () => {
                   onClick={() => setSelectedConversation(conv.id)}
                   className={cn(
                     "flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors",
-                    selectedConversation === conv.id 
+                    effectiveSelectedId === conv.id 
                       ? "bg-gilver/30 dark:bg-gilver/10" 
                       : conv.unread 
                         ? "bg-primary/5" 
