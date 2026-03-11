@@ -11,39 +11,43 @@ import { cn } from "@/lib/utils";
 
 const data = [
   { month: "Jan", revenue: 42000, expenses: 28000 },
-  { month: "Feb", revenue: 38000, expenses: 25000 },
+  { month: "Fev", revenue: 38000, expenses: 25000 },
   { month: "Mar", revenue: 55000, expenses: 32000 },
-  { month: "Apr", revenue: 48000, expenses: 30000 },
-  { month: "May", revenue: 62000, expenses: 35000 },
+  { month: "Abr", revenue: 48000, expenses: 30000 },
+  { month: "Mai", revenue: 62000, expenses: 35000 },
   { month: "Jun", revenue: 58000, expenses: 33000 },
   { month: "Jul", revenue: 72000, expenses: 38000 },
-  { month: "Aug", revenue: 68000, expenses: 36000 },
-  { month: "Sep", revenue: 78000, expenses: 40000 },
-  { month: "Oct", revenue: 85000, expenses: 42000 },
+  { month: "Ago", revenue: 68000, expenses: 36000 },
+  { month: "Set", revenue: 78000, expenses: 40000 },
+  { month: "Out", revenue: 85000, expenses: 42000 },
   { month: "Nov", revenue: 92000, expenses: 45000 },
-  { month: "Dec", revenue: 98000, expenses: 48000 },
+  { month: "Dez", revenue: 98000, expenses: 48000 },
 ];
 
 interface RevenueChartProps {
   className?: string;
 }
 
+const formatBRL = (value: number) => {
+  return `R$ ${(value / 1000).toLocaleString("pt-BR")}k`;
+};
+
 export const RevenueChart = ({ className }: RevenueChartProps) => {
   return (
     <div className={cn("glass rounded-2xl p-6 animate-fade-in", className)}>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h3 className="text-lg font-semibold">Revenue Overview</h3>
-          <p className="text-sm text-muted-foreground">Monthly revenue vs expenses</p>
+          <h3 className="text-lg font-semibold">Visão Geral de Receita</h3>
+          <p className="text-sm text-muted-foreground">Receita mensal vs despesas</p>
         </div>
         <div className="flex items-center gap-4 text-sm">
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-primary" />
-            <span className="text-muted-foreground">Revenue</span>
+            <span className="text-muted-foreground">Receita</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-chart-3" />
-            <span className="text-muted-foreground">Expenses</span>
+            <span className="text-muted-foreground">Despesas</span>
           </div>
         </div>
       </div>
@@ -71,7 +75,7 @@ export const RevenueChart = ({ className }: RevenueChartProps) => {
               axisLine={false}
               tickLine={false}
               tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
-              tickFormatter={(value) => `$${value / 1000}k`}
+              tickFormatter={formatBRL}
             />
             <Tooltip
               contentStyle={{
@@ -80,7 +84,7 @@ export const RevenueChart = ({ className }: RevenueChartProps) => {
                 borderRadius: "12px",
                 boxShadow: "0 4px 20px -4px hsl(var(--shadow-color) / 0.1)",
               }}
-              formatter={(value: number) => [`$${value.toLocaleString()}`, ""]}
+              formatter={(value: number) => [`R$ ${value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, ""]}
             />
             <Area
               type="monotone"
@@ -88,6 +92,7 @@ export const RevenueChart = ({ className }: RevenueChartProps) => {
               stroke="hsl(28, 38%, 70%)"
               strokeWidth={2}
               fill="url(#revenueGradient)"
+              name="Receita"
             />
             <Area
               type="monotone"
@@ -95,6 +100,7 @@ export const RevenueChart = ({ className }: RevenueChartProps) => {
               stroke="hsl(28, 25%, 55%)"
               strokeWidth={2}
               fill="url(#expenseGradient)"
+              name="Despesas"
             />
           </AreaChart>
         </ResponsiveContainer>

@@ -14,7 +14,7 @@ export const KPICard = ({
   title,
   value,
   change,
-  changeLabel = "vs last month",
+  changeLabel = "vs mês anterior",
   icon: Icon,
   className,
 }: KPICardProps) => {
@@ -44,7 +44,7 @@ export const KPICard = ({
       </div>
       <p className="text-muted-foreground text-sm mb-1">{title}</p>
       <p className="text-2xl font-semibold tracking-tight">{value}</p>
-      {change !== undefined && (
+      {changeLabel && (
         <p className="text-xs text-muted-foreground mt-2">{changeLabel}</p>
       )}
     </div>

@@ -6,12 +6,15 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 const integrations = [
-  { id: "stripe", name: "Stripe", description: "Payment processing and invoicing", connected: true, icon: "💳" },
-  { id: "quickbooks", name: "QuickBooks", description: "Accounting sync and reconciliation", connected: true, icon: "📊" },
-  { id: "plaid", name: "Plaid", description: "Bank account connections", connected: true, icon: "🏦" },
-  { id: "slack", name: "Slack", description: "Team notifications and alerts", connected: false, icon: "💬" },
-  { id: "xero", name: "Xero", description: "Alternative accounting platform", connected: false, icon: "📈" },
-  { id: "paypal", name: "PayPal", description: "Payment gateway integration", connected: false, icon: "💰" },
+  { id: "receita-federal", name: "Receita Federal", description: "Consulta de situação cadastral, CNPJ e declarações", connected: true, icon: "🏛️" },
+  { id: "serpro", name: "SERPRO", description: "Serviços de dados governamentais e certificação digital", connected: true, icon: "🔐" },
+  { id: "cnpj-api", name: "Consulta CNPJ", description: "API de consulta de dados cadastrais de empresas", connected: true, icon: "🏢" },
+  { id: "nfse", name: "NFSe Municipal", description: "Emissão e consulta de Notas Fiscais de Serviço", connected: false, icon: "📄" },
+  { id: "certificado-a1", name: "Certificado Digital A1", description: "Gerenciamento de certificados digitais para assinatura", connected: false, icon: "📜" },
+  { id: "sped", name: "SPED Fiscal", description: "Integração com o Sistema Público de Escrituração Digital", connected: true, icon: "📊" },
+  { id: "esocial", name: "eSocial", description: "Transmissão de obrigações trabalhistas e previdenciárias", connected: false, icon: "👥" },
+  { id: "simples-nacional", name: "Simples Nacional", description: "Consulta e cálculo de DAS e obrigações do Simples", connected: true, icon: "💰" },
+  { id: "caixa", name: "Caixa Econômica", description: "Integração bancária para conciliação e pagamentos", connected: false, icon: "🏦" },
 ];
 
 const Integrations = () => {
@@ -22,7 +25,7 @@ const Integrations = () => {
       <div className="space-y-6">
         <div className="animate-fade-in">
           <h1 className="text-2xl font-semibold tracking-tight">Integrações</h1>
-          <p className="text-muted-foreground">Conecte serviços terceiros para otimizar seu fluxo de trabalho</p>
+          <p className="text-muted-foreground">Conecte serviços para otimizar seu fluxo contábil</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -43,7 +46,7 @@ const Integrations = () => {
                     Conectado
                   </Badge>
                 ) : (
-                  <Badge variant="secondary">Disponível</Badge>
+                  <Badge variant="secondary">Desconectado</Badge>
                 )}
               </div>
               <h3 className="font-semibold mb-1">{integration.name}</h3>
@@ -52,7 +55,7 @@ const Integrations = () => {
                 <Button
                   variant={integration.connected ? "outline" : "default"}
                   className="flex-1 rounded-xl gap-2"
-                  onClick={() => !integration.connected && navigate(`/integrations/${integration.id}`)}
+                  onClick={() => navigate(`/integrations/${integration.id}`)}
                 >
                   {integration.connected ? (
                     <>

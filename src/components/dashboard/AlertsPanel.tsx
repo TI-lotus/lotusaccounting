@@ -5,30 +5,30 @@ const alerts = [
   {
     id: 1,
     type: "warning",
-    title: "Invoice Overdue",
-    description: "Invoice #1220 for Acme Corp is 15 days overdue",
-    time: "2h ago",
+    title: "Fatura Vencida",
+    description: "Fatura #1220 da Acme Corp está 15 dias em atraso",
+    time: "2h atrás",
   },
   {
     id: 2,
     type: "success",
-    title: "Payment Received",
-    description: "TechStart Inc paid invoice #1231",
-    time: "4h ago",
+    title: "Pagamento Recebido",
+    description: "TechStart Inc pagou a fatura #1231",
+    time: "4h atrás",
   },
   {
     id: 3,
     type: "info",
-    title: "Bank Sync Complete",
-    description: "All transactions synced successfully",
-    time: "Yesterday",
+    title: "Sincronização Bancária Concluída",
+    description: "Todas as transações foram sincronizadas com sucesso",
+    time: "Ontem",
   },
   {
     id: 4,
     type: "error",
-    title: "Failed Transaction",
-    description: "Card payment declined - retry required",
-    time: "Yesterday",
+    title: "Transação Falhou",
+    description: "Pagamento com cartão recusado - necessário retentar",
+    time: "Ontem",
   },
 ];
 
@@ -68,11 +68,11 @@ export const AlertsPanel = ({ className }: AlertsPanelProps) => {
     <div className={cn("glass rounded-2xl p-6 animate-fade-in", className)}>
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="text-lg font-semibold">Alerts & Notifications</h3>
-          <p className="text-sm text-muted-foreground">Recent activity updates</p>
+          <h3 className="text-lg font-semibold">Alertas e Notificações</h3>
+          <p className="text-sm text-muted-foreground">Atualizações recentes de atividade</p>
         </div>
         <span className="text-xs bg-destructive text-destructive-foreground px-2 py-1 rounded-full font-medium">
-          {alerts.length} new
+          {alerts.length} novos
         </span>
       </div>
       <div className="space-y-3">
