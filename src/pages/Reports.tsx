@@ -5,10 +5,10 @@ import { RevenueChart } from "@/components/dashboard/RevenueChart";
 import { QuickStats } from "@/components/dashboard/QuickStats";
 
 const reports = [
-  { id: 1, name: "Monthly P&L Statement", period: "January 2026", type: "Financial", generated: "Jan 12, 2026" },
-  { id: 2, name: "Cash Flow Analysis", period: "Q4 2025", type: "Cash Flow", generated: "Jan 5, 2026" },
-  { id: 3, name: "Accounts Receivable Aging", period: "Current", type: "AR/AP", generated: "Jan 12, 2026" },
-  { id: 4, name: "Annual Tax Summary", period: "FY 2025", type: "Tax", generated: "Jan 2, 2026" },
+  { id: 1, name: "DRE Mensal", period: "Janeiro 2026", type: "Financeiro", generated: "12 Jan, 2026" },
+  { id: 2, name: "Análise de Fluxo de Caixa", period: "4º Trimestre 2025", type: "Fluxo de Caixa", generated: "05 Jan, 2026" },
+  { id: 3, name: "Contas a Receber - Aging", period: "Atual", type: "Contas a Receber", generated: "12 Jan, 2026" },
+  { id: 4, name: "Resumo Fiscal Anual", period: "Exercício 2025", type: "Fiscal", generated: "02 Jan, 2026" },
 ];
 
 const Reports = () => {
@@ -17,12 +17,12 @@ const Reports = () => {
       <div className="space-y-6">
         <div className="flex items-center justify-between animate-fade-in">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Reports</h1>
-            <p className="text-muted-foreground">Financial reports and analytics</p>
+            <h1 className="text-2xl font-semibold tracking-tight">Relatórios</h1>
+            <p className="text-muted-foreground">Relatórios financeiros e análises</p>
           </div>
           <Button className="rounded-xl gap-2">
             <BarChart3 className="h-4 w-4" />
-            Generate Report
+            Gerar Relatório
           </Button>
         </div>
 
@@ -32,7 +32,7 @@ const Reports = () => {
         </div>
 
         <div className="glass rounded-2xl p-6 animate-fade-in">
-          <h3 className="text-lg font-semibold mb-4">Available Reports</h3>
+          <h3 className="text-lg font-semibold mb-4">Relatórios Disponíveis</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {reports.map((report, index) => (
               <div

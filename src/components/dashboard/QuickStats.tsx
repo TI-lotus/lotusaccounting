@@ -2,10 +2,10 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { cn } from "@/lib/utils";
 
 const expenseData = [
-  { name: "Payroll", value: 45, color: "hsl(28, 38%, 84%)" },
-  { name: "Operations", value: 25, color: "hsl(28, 30%, 70%)" },
+  { name: "Folha de Pagamento", value: 45, color: "hsl(28, 38%, 84%)" },
+  { name: "Operacional", value: 25, color: "hsl(28, 30%, 70%)" },
   { name: "Marketing", value: 15, color: "hsl(28, 25%, 55%)" },
-  { name: "Other", value: 15, color: "hsl(0, 0%, 40%)" },
+  { name: "Outros", value: 15, color: "hsl(0, 0%, 40%)" },
 ];
 
 interface QuickStatsProps {
@@ -16,8 +16,8 @@ export const QuickStats = ({ className }: QuickStatsProps) => {
   return (
     <div className={cn("glass rounded-2xl p-6 animate-fade-in", className)}>
       <div className="mb-4">
-        <h3 className="text-lg font-semibold">Expense Breakdown</h3>
-        <p className="text-sm text-muted-foreground">Current month distribution</p>
+        <h3 className="text-lg font-semibold">Distribuição de Despesas</h3>
+        <p className="text-sm text-muted-foreground">Distribuição do mês atual</p>
       </div>
       <div className="h-[200px] relative">
         <ResponsiveContainer width="100%" height="100%">
@@ -47,7 +47,7 @@ export const QuickStats = ({ className }: QuickStatsProps) => {
         </ResponsiveContainer>
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center">
-            <p className="text-2xl font-bold">$48K</p>
+            <p className="text-2xl font-bold">R$ 48K</p>
             <p className="text-xs text-muted-foreground">Total</p>
           </div>
         </div>

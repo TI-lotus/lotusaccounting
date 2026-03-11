@@ -5,43 +5,43 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 const transactions = [
   {
     id: 1,
-    name: "Stripe Payment",
-    description: "Invoice #1234 - Acme Corp",
+    name: "Pagamento Stripe",
+    description: "Fatura #1234 - Acme Corp",
     amount: 12500,
     type: "income",
-    date: "Today, 2:30 PM",
+    date: "Hoje, 14:30",
   },
   {
     id: 2,
-    name: "Office Supplies",
-    description: "Monthly subscription",
+    name: "Material de Escritório",
+    description: "Assinatura mensal",
     amount: -450,
     type: "expense",
-    date: "Today, 11:15 AM",
+    date: "Hoje, 11:15",
   },
   {
     id: 3,
-    name: "Client Payment",
-    description: "Invoice #1231 - TechStart Inc",
+    name: "Pagamento Cliente",
+    description: "Fatura #1231 - TechStart Inc",
     amount: 8750,
     type: "income",
-    date: "Yesterday, 4:45 PM",
+    date: "Ontem, 16:45",
   },
   {
     id: 4,
-    name: "Software License",
-    description: "Annual renewal - Adobe CC",
+    name: "Licença de Software",
+    description: "Renovação anual - Adobe CC",
     amount: -899,
     type: "expense",
-    date: "Yesterday, 10:00 AM",
+    date: "Ontem, 10:00",
   },
   {
     id: 5,
-    name: "Consulting Fee",
-    description: "Invoice #1228 - Global Finance",
+    name: "Taxa de Consultoria",
+    description: "Fatura #1228 - Global Finance",
     amount: 15000,
     type: "income",
-    date: "Jan 10, 3:20 PM",
+    date: "10 Jan, 15:20",
   },
 ];
 
@@ -54,11 +54,11 @@ export const RecentTransactions = ({ className }: RecentTransactionsProps) => {
     <div className={cn("glass rounded-2xl p-6 animate-fade-in", className)}>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h3 className="text-lg font-semibold">Recent Transactions</h3>
-          <p className="text-sm text-muted-foreground">Latest financial activity</p>
+          <h3 className="text-lg font-semibold">Transações Recentes</h3>
+          <p className="text-sm text-muted-foreground">Últimas movimentações financeiras</p>
         </div>
         <button className="text-sm text-primary font-medium hover:underline">
-          View all
+          Ver tudo
         </button>
       </div>
       <div className="space-y-4">
@@ -98,8 +98,8 @@ export const RecentTransactions = ({ className }: RecentTransactionsProps) => {
                     : "text-foreground"
                 )}
               >
-                {transaction.type === "income" ? "+" : ""}$
-                {Math.abs(transaction.amount).toLocaleString()}
+                {transaction.type === "income" ? "+" : "-"}R${" "}
+                {Math.abs(transaction.amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
               </p>
               <p className="text-xs text-muted-foreground">{transaction.date}</p>
             </div>

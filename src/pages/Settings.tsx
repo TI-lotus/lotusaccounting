@@ -1,5 +1,5 @@
 import { DashboardLayout } from "@/layouts/DashboardLayout";
-import { Settings as SettingsIcon, User, Bell, Shield, CreditCard, Building } from "lucide-react";
+import { Settings as SettingsIcon, User, Bell, Shield, Building } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,15 +13,15 @@ const Settings = () => {
     <DashboardLayout>
       <div className="space-y-6 max-w-3xl">
         <div className="animate-fade-in">
-          <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
-          <p className="text-muted-foreground">Manage your account and preferences</p>
+          <h1 className="text-2xl font-semibold tracking-tight">Configurações</h1>
+          <p className="text-muted-foreground">Gerencie sua conta e preferências</p>
         </div>
 
         {/* Profile Section */}
         <div className="glass rounded-2xl p-6 animate-fade-in">
           <div className="flex items-center gap-2 mb-4">
             <User className="h-5 w-5 text-primary" />
-            <h3 className="font-semibold">Profile</h3>
+            <h3 className="font-semibold">Perfil</h3>
           </div>
           <div className="flex items-start gap-6">
             <Avatar className="h-20 w-20">
@@ -30,11 +30,11 @@ const Settings = () => {
             <div className="flex-1 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>First Name</Label>
+                  <Label>Nome</Label>
                   <Input defaultValue="John" className="rounded-xl" />
                 </div>
                 <div className="space-y-2">
-                  <Label>Last Name</Label>
+                  <Label>Sobrenome</Label>
                   <Input defaultValue="Doe" className="rounded-xl" />
                 </div>
               </div>
@@ -50,21 +50,21 @@ const Settings = () => {
         <div className="glass rounded-2xl p-6 animate-fade-in">
           <div className="flex items-center gap-2 mb-4">
             <Building className="h-5 w-5 text-primary" />
-            <h3 className="font-semibold">Company</h3>
+            <h3 className="font-semibold">Empresa</h3>
           </div>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Company Name</Label>
-              <Input defaultValue="Lotus Financial Services" className="rounded-xl" />
+              <Label>Nome da Empresa</Label>
+              <Input defaultValue="Lotus Serviços Financeiros" className="rounded-xl" />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Tax ID</Label>
-                <Input defaultValue="XX-XXXXXXX" className="rounded-xl" />
+                <Label>CNPJ</Label>
+                <Input defaultValue="12.345.678/0001-90" className="rounded-xl" />
               </div>
               <div className="space-y-2">
-                <Label>Fiscal Year End</Label>
-                <Input defaultValue="December" className="rounded-xl" />
+                <Label>Encerramento do Exercício Fiscal</Label>
+                <Input defaultValue="Dezembro" className="rounded-xl" />
               </div>
             </div>
           </div>
@@ -74,23 +74,23 @@ const Settings = () => {
         <div className="glass rounded-2xl p-6 animate-fade-in">
           <div className="flex items-center gap-2 mb-4">
             <SettingsIcon className="h-5 w-5 text-primary" />
-            <h3 className="font-semibold">Preferences</h3>
+            <h3 className="font-semibold">Preferências</h3>
           </div>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium">Theme</p>
-                <p className="text-sm text-muted-foreground">Toggle between light and dark mode</p>
+                <p className="font-medium">Tema</p>
+                <p className="text-sm text-muted-foreground">Alternar entre modo claro e escuro</p>
               </div>
               <ThemeToggle />
             </div>
             <Separator />
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium">Currency</p>
-                <p className="text-sm text-muted-foreground">Default display currency</p>
+                <p className="font-medium">Moeda</p>
+                <p className="text-sm text-muted-foreground">Moeda padrão de exibição</p>
               </div>
-              <span className="text-sm text-muted-foreground">USD ($)</span>
+              <span className="text-sm text-muted-foreground">BRL (R$)</span>
             </div>
           </div>
         </div>
@@ -99,29 +99,29 @@ const Settings = () => {
         <div className="glass rounded-2xl p-6 animate-fade-in">
           <div className="flex items-center gap-2 mb-4">
             <Bell className="h-5 w-5 text-primary" />
-            <h3 className="font-semibold">Notifications</h3>
+            <h3 className="font-semibold">Notificações</h3>
           </div>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium">Email Notifications</p>
-                <p className="text-sm text-muted-foreground">Receive updates via email</p>
+                <p className="font-medium">Notificações por Email</p>
+                <p className="text-sm text-muted-foreground">Receber atualizações por email</p>
               </div>
               <Switch defaultChecked />
             </div>
             <Separator />
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium">Payment Alerts</p>
-                <p className="text-sm text-muted-foreground">Get notified for incoming payments</p>
+                <p className="font-medium">Alertas de Pagamento</p>
+                <p className="text-sm text-muted-foreground">Ser notificado sobre pagamentos recebidos</p>
               </div>
               <Switch defaultChecked />
             </div>
             <Separator />
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium">Invoice Reminders</p>
-                <p className="text-sm text-muted-foreground">Reminders for overdue invoices</p>
+                <p className="font-medium">Lembretes de Fatura</p>
+                <p className="text-sm text-muted-foreground">Lembretes para faturas vencidas</p>
               </div>
               <Switch defaultChecked />
             </div>
@@ -132,26 +132,26 @@ const Settings = () => {
         <div className="glass rounded-2xl p-6 animate-fade-in">
           <div className="flex items-center gap-2 mb-4">
             <Shield className="h-5 w-5 text-primary" />
-            <h3 className="font-semibold">Security</h3>
+            <h3 className="font-semibold">Segurança</h3>
           </div>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium">Two-Factor Authentication</p>
-                <p className="text-sm text-muted-foreground">Add an extra layer of security</p>
+                <p className="font-medium">Autenticação em Duas Etapas</p>
+                <p className="text-sm text-muted-foreground">Adicione uma camada extra de segurança</p>
               </div>
               <Button variant="outline" size="sm" className="rounded-lg">
-                Enable
+                Ativar
               </Button>
             </div>
             <Separator />
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium">Change Password</p>
-                <p className="text-sm text-muted-foreground">Update your account password</p>
+                <p className="font-medium">Alterar Senha</p>
+                <p className="text-sm text-muted-foreground">Atualize a senha da sua conta</p>
               </div>
               <Button variant="outline" size="sm" className="rounded-lg">
-                Update
+                Atualizar
               </Button>
             </div>
           </div>
@@ -160,7 +160,7 @@ const Settings = () => {
         {/* Save Button */}
         <div className="flex justify-end">
           <Button className="rounded-xl px-8">
-            Save Changes
+            Salvar Alterações
           </Button>
         </div>
       </div>

@@ -40,6 +40,7 @@ import {
   DropdownMenuRadioItem,
 } from "@/components/ui/dropdown-menu";
 import { useViewMode } from "@/contexts/ViewModeContext";
+import { CompanySelector } from "./CompanySelector";
 
 const officeNavItems = [
   { title: "Dashboard", icon: LayoutDashboard, href: "/" },
@@ -126,7 +127,7 @@ export const AppSidebar = () => {
         isCollapsed ? "w-[72px]" : "w-[260px]"
       )}
     >
-      {/* Header with Gilver Background */}
+      {/* Header */}
       <div className="h-16 flex items-center justify-between px-4 border-b border-sidebar-border bg-gilver dark:bg-gilver/20">
         <div className={cn(
           "transition-all duration-300 overflow-hidden",
@@ -175,8 +176,15 @@ export const AppSidebar = () => {
         </div>
       )}
 
+      {/* Company Selector for Client Mode */}
+      {viewMode === "client" && !isCollapsed && (
+        <div className="px-3 pt-2">
+          <CompanySelector />
+        </div>
+      )}
+
       {/* Main Navigation */}
-      <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+      <nav className="flex-1 p-3 space-y-1 overflow-y-auto sidebar-scroll">
         {navItems.map((item) => (
           <NavItem key={item.href} item={item} />
         ))}
