@@ -21,40 +21,39 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { useData } from "@/contexts/DataContext";
+import { ClientData } from "@/types";
 
-interface Client {
-  id: number;
-  name: string;
-  email: string;
-  phone: string;
-  status: "active" | "pending" | "inactive";
-  revenue: string;
-  invoices: number;
-}
-
-const initialClients: Client[] = [
-  { id: 1, name: "Acme Corporation", email: "billing@acme.com", phone: "(11) 99999-1234", status: "active", revenue: "R$ 45.200", invoices: 12 },
-  { id: 2, name: "TechStart Inc", email: "finance@techstart.io", phone: "(11) 98888-5678", status: "active", revenue: "R$ 32.100", invoices: 8 },
-  { id: 3, name: "Global Finance Ltd", email: "accounts@globalfinance.com", phone: "(21) 97777-9012", status: "pending", revenue: "R$ 28.500", invoices: 15 },
-  { id: 4, name: "Innovation Labs", email: "hello@innovationlabs.co", phone: "(11) 96666-3456", status: "active", revenue: "R$ 18.900", invoices: 5 },
-  { id: 5, name: "Sunrise Media", email: "billing@sunrisemedia.net", phone: "(31) 95555-7890", status: "inactive", revenue: "R$ 12.400", invoices: 3 },
-  { id: 6, name: "DataFlow Systems", email: "contato@dataflow.com.br", phone: "(11) 94444-1234", status: "active", revenue: "R$ 67.800", invoices: 21 },
-  { id: 7, name: "Verde Soluções", email: "financeiro@verdesolucoes.com", phone: "(19) 93333-5678", status: "active", revenue: "R$ 23.100", invoices: 7 },
-  { id: 8, name: "Nexus Tecnologia", email: "admin@nexustec.io", phone: "(11) 92222-9012", status: "pending", revenue: "R$ 41.500", invoices: 11 },
-];
+const taxRegimeLabels: Record<string, string> = {
+  simples_nacional: "Simples Nacional",
+  lucro_presumido: "Lucro Presumido",
+  lucro_real: "Lucro Real",
+  mei: "MEI",
+};
 
 const Clients = () => {
-  const [clients, setClients] = useState<Client[]>(initialClients);
+  const { clients, addClient, updateClient, deleteClient } = useData();
   const [searchTerm, setSearchTerm] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [newClient, setNewClient] = useState({ name: "", email: "", phone: "" });
+  const [newClient, setNewClient] = useState({
+    name: "", email: "", phone: "", cnpj: "", taxRegime: "simples_nacional" as ClientData["taxRegime"],
+    serviceFee: "", city: "", state: "",
+  });
 
   const filteredClients = clients.filter(
     (client) =>
       client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      client.email.toLowerCase().includes(searchTerm.toLowerCase())
+      client.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      client.cnpj.includes(searchTerm)
   );
 
   const handleAddClient = () => {
@@ -63,29 +62,32 @@ const Clients = () => {
       return;
     }
 
-    const client: Client = {
-      id: Date.now(),
+    addClient({
       name: newClient.name,
       email: newClient.email,
       phone: newClient.phone || "(00) 00000-0000",
+      cnpj: newClient.cnpj || "00.000.000/0001-00",
+      taxRegime: newClient.taxRegime,
+      responsibleUserId: "u2",
+      responsibleUserName: "Ana Costa",
+      serviceFee: parseFloat(newClient.serviceFee) || 0,
+      city: newClient.city || "São Paulo",
+      state: newClient.state || "SP",
       status: "pending",
-      revenue: "R$ 0",
-      invoices: 0,
-    };
+    });
 
-    setClients([client, ...clients]);
-    setNewClient({ name: "", email: "", phone: "" });
+    setNewClient({ name: "", email: "", phone: "", cnpj: "", taxRegime: "simples_nacional", serviceFee: "", city: "", state: "" });
     setDialogOpen(false);
     toast.success("Cliente adicionado com sucesso!");
   };
 
-  const handleDeleteClient = (id: number) => {
-    setClients(clients.filter((c) => c.id !== id));
+  const handleDeleteClient = (id: string) => {
+    deleteClient(id);
     toast.success("Cliente removido com sucesso!");
   };
 
-  const handleStatusChange = (id: number, status: Client["status"]) => {
-    setClients(clients.map((c) => (c.id === id ? { ...c, status } : c)));
+  const handleStatusChange = (id: string, status: ClientData["status"]) => {
+    updateClient(id, { status });
     toast.success("Status atualizado!");
   };
 
@@ -114,43 +116,52 @@ const Clients = () => {
               <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
                   <Label htmlFor="name">Nome da Empresa</Label>
-                  <Input
-                    id="name"
-                    value={newClient.name}
-                    onChange={(e) => setNewClient({ ...newClient, name: e.target.value })}
-                    placeholder="Empresa Ltda"
-                    className="rounded-xl"
-                  />
+                  <Input id="name" value={newClient.name} onChange={(e) => setNewClient({ ...newClient, name: e.target.value })} placeholder="Empresa Ltda" className="rounded-xl" />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="cnpj">CNPJ</Label>
+                  <Input id="cnpj" value={newClient.cnpj} onChange={(e) => setNewClient({ ...newClient, cnpj: e.target.value })} placeholder="00.000.000/0001-00" className="rounded-xl" />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={newClient.email}
-                    onChange={(e) => setNewClient({ ...newClient, email: e.target.value })}
-                    placeholder="contato@empresa.com"
-                    className="rounded-xl"
-                  />
+                  <Input id="email" type="email" value={newClient.email} onChange={(e) => setNewClient({ ...newClient, email: e.target.value })} placeholder="contato@empresa.com" className="rounded-xl" />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="phone">Telefone</Label>
-                  <Input
-                    id="phone"
-                    value={newClient.phone}
-                    onChange={(e) => setNewClient({ ...newClient, phone: e.target.value })}
-                    placeholder="(11) 99999-9999"
-                    className="rounded-xl"
-                  />
+                  <Input id="phone" value={newClient.phone} onChange={(e) => setNewClient({ ...newClient, phone: e.target.value })} placeholder="(11) 99999-9999" className="rounded-xl" />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label>Regime Tributário</Label>
+                    <Select value={newClient.taxRegime} onValueChange={(v: ClientData["taxRegime"]) => setNewClient({ ...newClient, taxRegime: v })}>
+                      <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="simples_nacional">Simples Nacional</SelectItem>
+                        <SelectItem value="lucro_presumido">Lucro Presumido</SelectItem>
+                        <SelectItem value="lucro_real">Lucro Real</SelectItem>
+                        <SelectItem value="mei">MEI</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="fee">Honorários (R$)</Label>
+                    <Input id="fee" type="number" value={newClient.serviceFee} onChange={(e) => setNewClient({ ...newClient, serviceFee: e.target.value })} placeholder="0,00" className="rounded-xl" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="city">Cidade</Label>
+                    <Input id="city" value={newClient.city} onChange={(e) => setNewClient({ ...newClient, city: e.target.value })} placeholder="São Paulo" className="rounded-xl" />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="state">Estado</Label>
+                    <Input id="state" value={newClient.state} onChange={(e) => setNewClient({ ...newClient, state: e.target.value })} placeholder="SP" className="rounded-xl" />
+                  </div>
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setDialogOpen(false)} className="rounded-xl">
-                  Cancelar
-                </Button>
-                <Button onClick={handleAddClient} className="rounded-xl">
-                  Adicionar
-                </Button>
+                <Button variant="outline" onClick={() => setDialogOpen(false)} className="rounded-xl">Cancelar</Button>
+                <Button onClick={handleAddClient} className="rounded-xl">Adicionar</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -160,12 +171,7 @@ const Clients = () => {
           <div className="flex items-center gap-4 mb-6">
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar clientes..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 rounded-xl"
-              />
+              <Input placeholder="Buscar por nome, email ou CNPJ..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10 rounded-xl" />
             </div>
             <Badge variant="secondary" className="px-3 py-1.5">
               {filteredClients.length} clientes
@@ -196,10 +202,15 @@ const Clients = () => {
                       {client.phone}
                     </span>
                   </div>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Badge variant="outline" className="text-xs">{client.cnpj}</Badge>
+                    <Badge variant="outline" className="text-xs">{taxRegimeLabels[client.taxRegime]}</Badge>
+                    <span className="text-xs text-muted-foreground hidden lg:inline">Responsável: {client.responsibleUserName}</span>
+                  </div>
                 </div>
                 <div className="hidden md:block text-right">
-                  <p className="font-semibold">{client.revenue}</p>
-                  <p className="text-xs text-muted-foreground">{client.invoices} faturas</p>
+                  <p className="font-semibold">R$ {client.serviceFee.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+                  <p className="text-xs text-muted-foreground">{client.city}/{client.state}</p>
                 </div>
                 <Badge
                   variant={client.status === 'active' ? 'default' : client.status === 'pending' ? 'secondary' : 'outline'}

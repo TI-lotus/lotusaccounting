@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ViewModeProvider } from "@/contexts/ViewModeContext";
+import { DataProvider } from "@/contexts/DataContext";
 import Index from "./pages/Index";
 import Clients from "./pages/Clients";
 import Payments from "./pages/Payments";
@@ -25,29 +26,31 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ViewModeProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/clients" element={<Clients />} />
-            <Route path="/payments" element={<Payments />} />
-            <Route path="/documents" element={<Documents />} />
-            <Route path="/reports" element={<Reports />} />
-            <Route path="/search-cnpj" element={<SearchCNPJ />} />
-            <Route path="/agents" element={<Agents />} />
-            <Route path="/affiliation" element={<AffiliationProgram />} />
-            <Route path="/integrations" element={<Integrations />} />
-            <Route path="/integrations/:id" element={<IntegrationSettings />} />
-            <Route path="/messages" element={<Messages />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/upgrade" element={<Upgrade />} />
-            <Route path="/tasks" element={<Tasks />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
+      <DataProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/clients" element={<Clients />} />
+              <Route path="/payments" element={<Payments />} />
+              <Route path="/documents" element={<Documents />} />
+              <Route path="/reports" element={<Reports />} />
+              <Route path="/search-cnpj" element={<SearchCNPJ />} />
+              <Route path="/agents" element={<Agents />} />
+              <Route path="/affiliation" element={<AffiliationProgram />} />
+              <Route path="/integrations" element={<Integrations />} />
+              <Route path="/integrations/:id" element={<IntegrationSettings />} />
+              <Route path="/messages" element={<Messages />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/upgrade" element={<Upgrade />} />
+              <Route path="/tasks" element={<Tasks />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </DataProvider>
     </ViewModeProvider>
   </QueryClientProvider>
 );
