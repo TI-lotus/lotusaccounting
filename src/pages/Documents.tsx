@@ -53,7 +53,7 @@ const months = [
 const years = ["2024", "2025", "2026"];
 
 const Documents = () => {
-  const { documents, updateDocument, deleteDocument, processFileUpload, clients } = useData();
+  const { documents, addDocument, updateDocument, deleteDocument, processFileUpload, clients } = useData();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterMonth, setFilterMonth] = useState<string>(String(currentMonth));
@@ -93,11 +93,7 @@ const Documents = () => {
       classifiedAutomatically: false,
       classificationConfidence: 1,
     };
-    // Use addDocument from context
-    const { addDocument } = useData;
-    // Actually call context directly
-    updateDocument; // just to keep reference
-    // Simpler: directly push via context
+    addDocument(doc);
     toast.success("Documento criado com sucesso!");
     setNewDoc({ name: "", client: "", type: "fatura", amount: "" });
     setDialogOpen(false);
