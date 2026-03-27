@@ -10,7 +10,7 @@ export interface PipelineResult {
 function createStepEntry(step: PipelineStep, status: "completed" | "failed", details?: string) {
   return {
     step,
-    status: status as const,
+    status,
     timestamp: new Date().toISOString(),
     details,
   };
