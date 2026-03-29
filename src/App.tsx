@@ -19,6 +19,7 @@ import AffiliationProgram from "./pages/AffiliationProgram";
 import Upgrade from "./pages/Upgrade";
 import Agents from "./pages/Agents";
 import Tasks from "./pages/Tasks";
+import Staff from "./pages/Staff";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -46,6 +47,7 @@ const App = () => (
               <Route path="/settings" element={<Settings />} />
               <Route path="/upgrade" element={<Upgrade />} />
               <Route path="/tasks" element={<Tasks />} />
+              <Route path="/staff" element={<Staff />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

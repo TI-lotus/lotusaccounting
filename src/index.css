@@ -4,7 +4,6 @@
 
 @layer base {
   :root {
-    /* Refined Silver/White/Black Theme with Gilver accent */
     --background: 0 0% 99%;
     --foreground: 0 0% 9%;
 
@@ -14,57 +13,51 @@
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 9%;
 
-    /* Primary: Elegant dark/charcoal */
     --primary: 0 0% 12%;
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary: Silver tones */
     --secondary: 0 0% 96%;
     --secondary-foreground: 0 0% 20%;
 
     --muted: 0 0% 94%;
     --muted-foreground: 0 0% 45%;
 
-    /* Accent: Gilver #E7D5C5 */
-    --accent: 28 38% 84%;
-    --accent-foreground: 0 0% 12%;
+    --accent: 40 45% 55%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
     --border: 0 0% 90%;
     --input: 0 0% 90%;
-    --ring: 28 38% 70%;
+    --ring: 40 45% 55%;
 
     --radius: 0.625rem;
 
-    /* Gilver palette */
-    --gilver: 28 38% 84%;
-    --gilver-dark: 28 30% 70%;
-    --gilver-light: 28 45% 92%;
+    /* Gilver palette - now gold #cda455 */
+    --gilver: 40 45% 57%;
+    --gilver-dark: 40 40% 45%;
+    --gilver-light: 40 50% 75%;
 
-    /* Custom variables */
     --silver: 0 0% 75%;
     --silver-light: 0 0% 88%;
     --shadow-color: 0 0% 0%;
 
-    /* Sidebar */
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 0 0% 20%;
-    --sidebar-primary: 0 0% 9%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 28 38% 90%;
-    --sidebar-accent-foreground: 0 0% 15%;
-    --sidebar-border: 0 0% 92%;
-    --sidebar-ring: 28 38% 70%;
+    /* Sidebar - always dark */
+    --sidebar-background: 0 0% 7%;
+    --sidebar-foreground: 0 0% 90%;
+    --sidebar-primary: 40 45% 57%;
+    --sidebar-primary-foreground: 0 0% 9%;
+    --sidebar-accent: 40 20% 18%;
+    --sidebar-accent-foreground: 40 45% 85%;
+    --sidebar-border: 0 0% 15%;
+    --sidebar-ring: 40 40% 50%;
     
-    /* Logo area */
-    --sidebar-logo-bg: 28 38% 84%;
+    --sidebar-logo-bg: 40 25% 15%;
 
-    /* Chart colors - Gilver palette */
-    --chart-1: 28 38% 84%;
-    --chart-2: 28 30% 70%;
-    --chart-3: 28 25% 55%;
+    --chart-1: 40 45% 57%;
+    --chart-2: 40 40% 45%;
+    --chart-3: 40 30% 35%;
     --chart-4: 0 0% 40%;
     --chart-5: 0 0% 20%;
   }
@@ -79,7 +72,7 @@
     --popover: 0 0% 9%;
     --popover-foreground: 0 0% 95%;
 
-    --primary: 28 38% 84%;
+    --primary: 40 45% 57%;
     --primary-foreground: 0 0% 9%;
 
     --secondary: 0 0% 15%;
@@ -88,42 +81,39 @@
     --muted: 0 0% 15%;
     --muted-foreground: 0 0% 60%;
 
-    /* Accent: Gilver */
-    --accent: 28 25% 25%;
-    --accent-foreground: 28 38% 90%;
+    --accent: 40 25% 25%;
+    --accent-foreground: 40 45% 90%;
 
     --destructive: 0 62% 50%;
     --destructive-foreground: 0 0% 100%;
 
     --border: 0 0% 18%;
     --input: 0 0% 18%;
-    --ring: 28 30% 50%;
+    --ring: 40 40% 50%;
 
-    /* Gilver palette - adjusted for dark mode */
-    --gilver: 28 38% 84%;
-    --gilver-dark: 28 30% 65%;
-    --gilver-light: 28 45% 92%;
+    --gilver: 40 45% 57%;
+    --gilver-dark: 40 40% 45%;
+    --gilver-light: 40 50% 75%;
 
     --silver: 0 0% 45%;
     --silver-light: 0 0% 25%;
     --shadow-color: 0 0% 0%;
 
+    /* Sidebar - always dark (same as light mode) */
     --sidebar-background: 0 0% 7%;
     --sidebar-foreground: 0 0% 90%;
-    --sidebar-primary: 28 38% 84%;
+    --sidebar-primary: 40 45% 57%;
     --sidebar-primary-foreground: 0 0% 9%;
-    --sidebar-accent: 28 20% 18%;
-    --sidebar-accent-foreground: 28 38% 85%;
+    --sidebar-accent: 40 20% 18%;
+    --sidebar-accent-foreground: 40 45% 85%;
     --sidebar-border: 0 0% 15%;
-    --sidebar-ring: 28 30% 50%;
+    --sidebar-ring: 40 40% 50%;
     
-    /* Logo area - Gilver in dark mode too */
-    --sidebar-logo-bg: 28 25% 25%;
+    --sidebar-logo-bg: 40 25% 15%;
 
-    /* Chart colors - Gilver palette for dark mode */
-    --chart-1: 28 38% 84%;
-    --chart-2: 28 30% 70%;
-    --chart-3: 28 25% 55%;
+    --chart-1: 40 45% 57%;
+    --chart-2: 40 40% 45%;
+    --chart-3: 40 30% 35%;
     --chart-4: 0 0% 55%;
     --chart-5: 0 0% 75%;
   }
@@ -145,7 +135,6 @@
 }
 
 @layer components {
-  /* Refined card styling */
   .glass {
     @apply bg-card border border-border shadow-sm;
   }
@@ -154,7 +143,6 @@
     @apply bg-card/80 backdrop-blur-sm border border-border/50;
   }
 
-  /* Soft shadow */
   .shadow-soft {
     box-shadow: 0 1px 3px hsl(var(--shadow-color) / 0.04),
                 0 1px 2px hsl(var(--shadow-color) / 0.02);
@@ -165,22 +153,19 @@
                 0 2px 6px hsl(var(--shadow-color) / 0.03);
   }
 
-  /* KPI Card */
   .kpi-card {
     @apply bg-card rounded-xl border border-border p-6 transition-all duration-200 hover:shadow-soft-lg;
   }
 
-  /* Navigation link */
   .nav-link {
     @apply flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150
-           text-muted-foreground hover:text-foreground hover:bg-accent;
+           text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent;
   }
 
   .nav-link.active {
-    @apply bg-primary text-primary-foreground;
+    @apply bg-sidebar-primary text-sidebar-primary-foreground;
   }
 
-  /* Sidebar scrollbar that adapts to theme */
   .sidebar-scroll::-webkit-scrollbar {
     width: 4px;
   }
@@ -190,27 +175,30 @@
   }
 
   .sidebar-scroll::-webkit-scrollbar-thumb {
-    background: hsl(var(--muted-foreground) / 0.3);
+    background: hsl(0 0% 40% / 0.4);
     border-radius: 9999px;
   }
 
   .sidebar-scroll::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--muted-foreground) / 0.5);
+    background: hsl(0 0% 50% / 0.6);
   }
 
   .sidebar-scroll {
     scrollbar-width: thin;
-    scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
+    scrollbar-color: hsl(0 0% 40% / 0.4) transparent;
+  }
+
+  /* Search backdrop blur */
+  .search-backdrop {
+    @apply fixed inset-0 bg-background/60 backdrop-blur-sm z-40;
   }
 }
 
 @layer utilities {
-  /* Smooth transitions */
   .transition-smooth {
     @apply transition-all duration-200 ease-out;
   }
 
-  /* Fade in animation */
   .animate-fade-in {
     animation: fadeIn 0.3s ease-out forwards;
   }
@@ -226,7 +214,6 @@
     }
   }
 
-  /* Slide in from left */
   .animate-slide-in {
     animation: slideIn 0.2s ease-out forwards;
   }
@@ -242,7 +229,6 @@
     }
   }
 
-  /* Subtle pulse */
   .animate-pulse-subtle {
     animation: pulseSubtle 2s ease-in-out infinite;
   }
