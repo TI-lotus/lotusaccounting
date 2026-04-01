@@ -231,7 +231,11 @@ const Clients = () => {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="rounded-xl">
-                    <DropdownMenuItem className="gap-2">
+                    <DropdownMenuItem className="gap-2" onClick={() => navigate(`/clients/${client.id}`)}>
+                      <Eye className="h-4 w-4" />
+                      Ver Detalhes
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="gap-2" onClick={() => navigate(`/clients/${client.id}`)}>
                       <Edit className="h-4 w-4" />
                       Editar
                     </DropdownMenuItem>
