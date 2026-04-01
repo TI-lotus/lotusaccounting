@@ -42,6 +42,7 @@ const taxRegimeLabels: Record<string, string> = {
 };
 
 const Clients = () => {
+  const navigate = useNavigate();
   const { clients, addClient, updateClient, deleteClient } = useData();
   const [searchTerm, setSearchTerm] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
