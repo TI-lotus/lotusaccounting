@@ -1,9 +1,15 @@
 import { useState, useRef, useEffect } from "react";
-import { X, Send, Sparkles, Bot, User } from "lucide-react";
+import { X, Send, Droplet, User, Paperclip, Image, FileText, Sheet, FileType } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface Message {
   id: string;
@@ -40,6 +46,7 @@ export const AIAgentChat = ({ open, onClose }: AIAgentChatProps) => {
   const [isTyping, setIsTyping] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (open && inputRef.current) {
@@ -67,7 +74,6 @@ export const AIAgentChat = ({ open, onClose }: AIAgentChatProps) => {
     setInput("");
     setIsTyping(true);
 
-    // Simulate AI response
     setTimeout(() => {
       const randomResponse = mockResponses[Math.floor(Math.random() * mockResponses.length)];
       const assistantMessage: Message = {
@@ -88,6 +94,19 @@ export const AIAgentChat = ({ open, onClose }: AIAgentChatProps) => {
     }
   };
 
+  const handleAttach = (type: string) => {
+    const acceptMap: Record<string, string> = {
+      image: "image/*",
+      pdf: ".pdf",
+      spreadsheet: ".xlsx,.xls,.csv",
+      document: ".doc,.docx",
+    };
+    if (fileInputRef.current) {
+      fileInputRef.current.accept = acceptMap[type] || "*";
+      fileInputRef.current.click();
+    }
+  };
+
   if (!open) return null;
 
   return (
@@ -102,11 +121,11 @@ export const AIAgentChat = ({ open, onClose }: AIAgentChatProps) => {
       <div className="flex items-center justify-between p-4 border-b border-border bg-accent/30">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-xl bg-primary/10">
-            <Sparkles className="h-5 w-5 text-primary" />
+            <Droplet className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <h3 className="font-semibold text-sm">Assistente IA</h3>
-            <p className="text-xs text-muted-foreground">Lótus Contabilidade</p>
+            <h3 className="font-semibold text-sm">Lótus IA</h3>
+            <p className="text-xs text-muted-foreground">Assistente Contábil</p>
           </div>
         </div>
         <Button
@@ -137,7 +156,7 @@ export const AIAgentChat = ({ open, onClose }: AIAgentChatProps) => {
                   : "bg-primary"
               )}>
                 {message.role === "assistant" ? (
-                  <Bot className="h-4 w-4 text-accent-foreground" />
+                  <Droplet className="h-4 w-4 text-accent-foreground" />
                 ) : (
                   <User className="h-4 w-4 text-primary-foreground" />
                 )}
@@ -155,7 +174,7 @@ export const AIAgentChat = ({ open, onClose }: AIAgentChatProps) => {
           {isTyping && (
             <div className="flex gap-3">
               <div className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-accent">
-                <Bot className="h-4 w-4 text-accent-foreground" />
+                <Droplet className="h-4 w-4 text-accent-foreground" />
               </div>
               <div className="bg-accent/50 rounded-2xl rounded-tl-md px-4 py-3">
                 <div className="flex gap-1">
@@ -171,7 +190,29 @@ export const AIAgentChat = ({ open, onClose }: AIAgentChatProps) => {
 
       {/* Input */}
       <div className="p-4 border-t border-border">
+        <input ref={fileInputRef} type="file" className="hidden" />
         <div className="flex gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="rounded-xl shrink-0 h-10 w-10">
+                <Paperclip className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="rounded-xl z-[99999]">
+              <DropdownMenuItem onClick={() => handleAttach("image")} className="gap-2">
+                <Image className="h-4 w-4" /> Imagem
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleAttach("pdf")} className="gap-2">
+                <FileText className="h-4 w-4" /> PDF
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleAttach("spreadsheet")} className="gap-2">
+                <Sheet className="h-4 w-4" /> Planilha
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleAttach("document")} className="gap-2">
+                <FileType className="h-4 w-4" /> Documento Word
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Input
             ref={inputRef}
             value={input}

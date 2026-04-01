@@ -53,7 +53,7 @@
     --sidebar-border: 0 0% 15%;
     --sidebar-ring: 40 40% 50%;
     
-    --sidebar-logo-bg: 40 25% 15%;
+    --sidebar-logo-bg: 0 0% 5%;
 
     --chart-1: 40 45% 57%;
     --chart-2: 40 40% 45%;
@@ -109,7 +109,7 @@
     --sidebar-border: 0 0% 15%;
     --sidebar-ring: 40 40% 50%;
     
-    --sidebar-logo-bg: 40 25% 15%;
+    --sidebar-logo-bg: 0 0% 5%;
 
     --chart-1: 40 45% 57%;
     --chart-2: 40 40% 45%;
@@ -158,7 +158,7 @@
   }
 
   .nav-link {
-    @apply flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150
            text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent;
   }
 
@@ -186,6 +186,29 @@
   .sidebar-scroll {
     scrollbar-width: thin;
     scrollbar-color: hsl(0 0% 40% / 0.4) transparent;
+  }
+
+  /* Custom thin scrollbar for search and general use */
+  .custom-scroll::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .custom-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .custom-scroll::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.3);
+    border-radius: 9999px;
+  }
+
+  .custom-scroll::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.5);
+  }
+
+  .custom-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
   }
 
   /* Search backdrop blur */

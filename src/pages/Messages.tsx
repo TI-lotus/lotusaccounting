@@ -1,10 +1,16 @@
 import { useState, useRef } from "react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
-import { MessageSquare, Send, Search, Phone, Video, MoreVertical, Paperclip, Bot, Building2, Users } from "lucide-react";
+import { MessageSquare, Send, Search, Phone, Video, MoreVertical, Paperclip, Bot, Building2, Users, Image, FileText, Sheet, FileType } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { useViewMode } from "@/contexts/ViewModeContext";
 
@@ -102,11 +108,19 @@ const Messages = () => {
     }
   };
 
-  const handleAttach = () => {
-    fileInputRef.current?.click();
+  const handleAttach = (type: string) => {
+    const acceptMap: Record<string, string> = {
+      image: "image/*",
+      pdf: ".pdf",
+      spreadsheet: ".xlsx,.xls,.csv",
+      document: ".doc,.docx",
+    };
+    if (fileInputRef.current) {
+      fileInputRef.current.accept = acceptMap[type] || "*";
+      fileInputRef.current.click();
+    }
   };
 
-  // Group conversations by role
   const roles: ChatRole[] = ["staff", "client", "ai"];
   const availableRoles = roles.filter(r => conversations.some(c => c.chatRole === r));
 
@@ -158,55 +172,52 @@ const Messages = () => {
               })}
             </div>
 
-            <div className="space-y-1 overflow-y-auto flex-1">
-              {filteredConversations.map((conv, index) => {
-                const roleConf = roleConfig[conv.chatRole];
-                return (
-                  <div
-                    key={conv.id}
-                    onClick={() => setSelectedConversation(conv.id)}
-                    className={cn(
-                      "flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors",
-                      effectiveSelectedId === conv.id 
-                        ? "bg-gilver/20" 
-                        : conv.unread 
-                          ? "bg-gilver/5" 
-                          : "hover:bg-accent/50"
-                    )}
-                    style={{ animationDelay: `${index * 30}ms` }}
-                  >
-                    <div className="relative">
-                      <Avatar className="h-10 w-10 shrink-0">
-                        <AvatarFallback className={cn(
-                          "font-medium text-sm",
-                          conv.chatRole === "ai"
-                            ? "bg-blue-500/10 text-blue-500"
-                            : conv.chatRole === "client"
-                            ? "bg-emerald-500/10 text-emerald-600"
-                            : "bg-gilver/20 text-gilver"
-                        )}>
-                          {conv.chatRole === "ai" ? <Bot className="h-4 w-4" /> : conv.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
-                        </AvatarFallback>
-                      </Avatar>
-                      {conv.online && (
-                        <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-card rounded-full" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <p className={cn("font-medium text-sm truncate", conv.unread && "text-foreground")}>
-                          {conv.name}
-                        </p>
-                        <span className="text-[10px] text-muted-foreground shrink-0">{conv.time}</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground truncate">{conv.message}</p>
-                    </div>
-                    {conv.unread && (
-                      <div className="w-2 h-2 bg-gilver rounded-full shrink-0" />
+            <div className="space-y-1 overflow-y-auto flex-1 sidebar-scroll">
+              {filteredConversations.map((conv, index) => (
+                <div
+                  key={conv.id}
+                  onClick={() => setSelectedConversation(conv.id)}
+                  className={cn(
+                    "flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors",
+                    effectiveSelectedId === conv.id 
+                      ? "bg-gilver/20" 
+                      : conv.unread 
+                        ? "bg-gilver/5" 
+                        : "hover:bg-accent/50"
+                  )}
+                  style={{ animationDelay: `${index * 30}ms` }}
+                >
+                  <div className="relative">
+                    <Avatar className="h-10 w-10 shrink-0">
+                      <AvatarFallback className={cn(
+                        "font-medium text-sm",
+                        conv.chatRole === "ai"
+                          ? "bg-blue-500/10 text-blue-500"
+                          : conv.chatRole === "client"
+                          ? "bg-emerald-500/10 text-emerald-600"
+                          : "bg-gilver/20 text-gilver"
+                      )}>
+                        {conv.chatRole === "ai" ? <Bot className="h-4 w-4" /> : conv.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                      </AvatarFallback>
+                    </Avatar>
+                    {conv.online && (
+                      <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-card rounded-full" />
                     )}
                   </div>
-                );
-              })}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <p className={cn("font-medium text-sm truncate", conv.unread && "text-foreground")}>
+                        {conv.name}
+                      </p>
+                      <span className="text-[10px] text-muted-foreground shrink-0">{conv.time}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground truncate">{conv.message}</p>
+                  </div>
+                  {conv.unread && (
+                    <div className="w-2 h-2 bg-gilver rounded-full shrink-0" />
+                  )}
+                </div>
+              ))}
             </div>
           </div>
 
@@ -256,7 +267,7 @@ const Messages = () => {
                   </div>
                 </div>
                 
-                <div className="flex-1 py-6 space-y-4 overflow-y-auto">
+                <div className="flex-1 py-6 space-y-4 overflow-y-auto sidebar-scroll">
                   {currentMessages.map((msg) => (
                     <div key={msg.id} className={cn("flex", msg.isMe ? "justify-end" : "justify-start")}>
                       <div className={cn(
@@ -276,10 +287,28 @@ const Messages = () => {
                 </div>
 
                 <div className="flex items-center gap-2 pt-4 border-t border-border">
-                  <input ref={fileInputRef} type="file" multiple accept="image/*,.pdf,.doc,.docx" className="hidden" />
-                  <Button variant="ghost" size="icon" className="rounded-xl h-10 w-10 shrink-0" onClick={handleAttach}>
-                    <Paperclip className="h-4 w-4" />
-                  </Button>
+                  <input ref={fileInputRef} type="file" multiple className="hidden" />
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="rounded-xl h-10 w-10 shrink-0">
+                        <Paperclip className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="rounded-xl z-[99999]">
+                      <DropdownMenuItem onClick={() => handleAttach("image")} className="gap-2">
+                        <Image className="h-4 w-4" /> Imagem
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleAttach("pdf")} className="gap-2">
+                        <FileText className="h-4 w-4" /> PDF
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleAttach("spreadsheet")} className="gap-2">
+                        <Sheet className="h-4 w-4" /> Planilha
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleAttach("document")} className="gap-2">
+                        <FileType className="h-4 w-4" /> Documento Word
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                   <Input 
                     placeholder="Digite uma mensagem..." 
                     className="rounded-xl flex-1"
