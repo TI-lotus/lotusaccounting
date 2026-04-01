@@ -20,6 +20,7 @@ import Upgrade from "./pages/Upgrade";
 import Agents from "./pages/Agents";
 import Tasks from "./pages/Tasks";
 import Staff from "./pages/Staff";
+import ClientDetail from "./pages/ClientDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
