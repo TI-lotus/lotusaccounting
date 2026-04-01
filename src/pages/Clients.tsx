@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
-import { Users, Plus, Search, MoreHorizontal, Mail, Phone, Edit, Trash2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Users, Plus, Search, MoreHorizontal, Mail, Phone, Edit, Trash2, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -41,6 +42,7 @@ const taxRegimeLabels: Record<string, string> = {
 };
 
 const Clients = () => {
+  const navigate = useNavigate();
   const { clients, addClient, updateClient, deleteClient } = useData();
   const [searchTerm, setSearchTerm] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -229,7 +231,11 @@ const Clients = () => {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="rounded-xl">
-                    <DropdownMenuItem className="gap-2">
+                    <DropdownMenuItem className="gap-2" onClick={() => navigate(`/clients/${client.id}`)}>
+                      <Eye className="h-4 w-4" />
+                      Ver Detalhes
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="gap-2" onClick={() => navigate(`/clients/${client.id}`)}>
                       <Edit className="h-4 w-4" />
                       Editar
                     </DropdownMenuItem>

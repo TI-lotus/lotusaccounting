@@ -81,6 +81,7 @@ export const AppSidebar = () => {
         to={item.href}
         className={cn(
           "nav-link group relative",
+          isCollapsed && "justify-center px-0",
           isActive && "active"
         )}
       >
@@ -110,7 +111,7 @@ export const AppSidebar = () => {
       return (
         <Tooltip delayDuration={0}>
           <TooltipTrigger asChild>{content}</TooltipTrigger>
-          <TooltipContent side="right" className="font-medium z-[9999]">
+          <TooltipContent side="right" className="font-medium z-[99999]">
             {item.title}
           </TooltipContent>
         </Tooltip>
@@ -123,48 +124,36 @@ export const AppSidebar = () => {
   return (
     <aside
       className={cn(
-        "h-screen sticky top-0 flex flex-col",
+        "h-screen sticky top-0 flex flex-col relative",
         "bg-[hsl(0,0%,7%)] border-r border-[hsl(0,0%,15%)]",
         "transition-all duration-300 ease-out",
         isCollapsed ? "w-[72px]" : "w-[260px]"
       )}
     >
-      {/* Header */}
-      <div className="h-16 flex items-center justify-between px-4 border-b border-[hsl(0,0%,15%)] bg-[hsl(40,25%,15%)]">
+      {/* Collapse/Expand arrow between sidebar and main */}
+      <button
+        onClick={() => setIsCollapsed(!isCollapsed)}
+        className={cn(
+          "absolute -right-3 top-7 h-6 w-6 rounded-full flex items-center justify-center",
+          "bg-gilver text-[hsl(0,0%,9%)] shadow-md",
+          "transition-all duration-200 hover:scale-110 z-[99999]"
+        )}
+      >
+        {isCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
+      </button>
+
+      {/* Header - dark like sidebar */}
+      <div className="h-20 flex items-center justify-center px-4 border-b border-[hsl(0,0%,15%)] bg-[hsl(0,0%,5%)]">
         <div className={cn(
           "transition-all duration-300 overflow-hidden",
-          isCollapsed ? "w-0 opacity-0" : "w-auto opacity-100"
+          isCollapsed ? "w-0 opacity-0 hidden" : "w-auto opacity-100"
         )}>
-          <LotusLogo size="sm" showText={!isCollapsed} />
+          <LotusLogo size="lg" showText={!isCollapsed} />
         </div>
         {isCollapsed && (
           <div className="mx-auto">
-            <LotusLogo size="sm" iconOnly />
+            <LotusLogo size="md" iconOnly />
           </div>
-        )}
-        {!isCollapsed && (
-          <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className={cn(
-              "h-7 w-7 rounded-lg flex items-center justify-center",
-              "text-[hsl(0,0%,70%)] hover:text-[hsl(0,0%,90%)] hover:bg-[hsl(0,0%,15%)]",
-              "transition-all duration-200"
-            )}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-        )}
-        {isCollapsed && (
-          <button
-            onClick={() => setIsCollapsed(false)}
-            className={cn(
-              "absolute -right-3 top-5 h-6 w-6 rounded-full flex items-center justify-center",
-              "bg-gilver text-[hsl(0,0%,9%)] shadow-md",
-              "transition-all duration-200 hover:scale-110 z-50"
-            )}
-          >
-            <ChevronRight className="h-3 w-3" />
-          </button>
         )}
       </div>
 
@@ -217,7 +206,8 @@ export const AppSidebar = () => {
           <DropdownMenuTrigger asChild>
             <button className={cn(
               "w-full flex items-center gap-3 p-2 rounded-xl",
-              "hover:bg-[hsl(0,0%,15%)] transition-colors cursor-pointer text-left"
+              "hover:bg-[hsl(0,0%,15%)] transition-colors cursor-pointer text-left",
+              isCollapsed && "justify-center"
             )}>
               <Avatar className="h-9 w-9 shrink-0">
                 <AvatarImage src="" />
@@ -241,7 +231,7 @@ export const AppSidebar = () => {
               )}
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56 z-[9999]">
+          <DropdownMenuContent align="end" className="w-56 z-[99999]">
             <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
               Alternar Visualização
             </DropdownMenuLabel>

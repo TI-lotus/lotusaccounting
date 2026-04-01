@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Search, Bell, FileText, Users, MessageSquare, BarChart3, CheckSquare, Plug, X } from "lucide-react";
+import { Search, Bell, FileText, Users, MessageSquare, BarChart3, CheckSquare, Plug, X, Droplet } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -103,11 +103,15 @@ const clientSearchData: SearchResult[] = [
   },
 ];
 
+// AI assistant trigger keywords
+const aiKeywords = ["ia", "assistente", "ajuda", "lótus ia", "lotus ia", "perguntar", "pergunta"];
+
 interface TopBarProps {
   className?: string;
+  onOpenAI?: () => void;
 }
 
-export const TopBar = ({ className }: TopBarProps) => {
+export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
   const [query, setQuery] = useState("");
   const [showResults, setShowResults] = useState(false);
   const navigate = useNavigate();
@@ -126,6 +130,8 @@ export const TopBar = ({ className }: TopBarProps) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const isAIQuery = aiKeywords.some(k => query.toLowerCase().includes(k));
+
   const filteredResults = query.trim()
     ? searchData
         .map((group) => ({
@@ -143,11 +149,16 @@ export const TopBar = ({ className }: TopBarProps) => {
     setShowResults(false);
   };
 
+  const handleAIOpen = () => {
+    setQuery("");
+    setShowResults(false);
+    onOpenAI?.();
+  };
+
   const isDropdownVisible = showResults && query.trim().length > 0;
 
   return (
     <>
-      {/* Backdrop blur */}
       {isDropdownVisible && (
         <div
           className="search-backdrop"
@@ -166,7 +177,7 @@ export const TopBar = ({ className }: TopBarProps) => {
           <div className="relative w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar clientes, documentos, tarefas..."
+              placeholder="Buscar clientes, documentos, tarefas... ou pergunte à IA"
               className="pl-10 h-10 bg-muted/50 border-0 focus-visible:ring-1 rounded-xl"
               value={query}
               onChange={(e) => {
@@ -184,9 +195,25 @@ export const TopBar = ({ className }: TopBarProps) => {
               </button>
             )}
 
-            {isDropdownVisible && filteredResults.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-popover border border-border rounded-xl shadow-lg overflow-hidden z-[9999] max-h-[400px] overflow-y-auto">
-                {filteredResults.map((group) => {
+            {isDropdownVisible && (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-popover border border-border rounded-xl shadow-lg overflow-hidden z-[99999] max-h-[400px] overflow-y-auto custom-scroll">
+                {/* AI suggestion */}
+                {isAIQuery && (
+                  <button
+                    className="w-full text-left px-4 py-3 text-sm hover:bg-accent transition-colors flex items-center gap-3 border-b border-border"
+                    onClick={handleAIOpen}
+                  >
+                    <div className="p-1.5 rounded-lg bg-blue-500/10">
+                      <Droplet className="h-4 w-4 text-blue-500" />
+                    </div>
+                    <div>
+                      <p className="font-medium">Perguntar à Lótus IA</p>
+                      <p className="text-xs text-muted-foreground">"{query}"</p>
+                    </div>
+                  </button>
+                )}
+
+                {filteredResults.length > 0 && filteredResults.map((group) => {
                   const Icon = group.icon;
                   return (
                     <div key={group.category}>
@@ -206,12 +233,16 @@ export const TopBar = ({ className }: TopBarProps) => {
                     </div>
                   );
                 })}
-              </div>
-            )}
 
-            {isDropdownVisible && filteredResults.length === 0 && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-popover border border-border rounded-xl shadow-lg z-[9999] p-6 text-center text-sm text-muted-foreground">
-                Nenhum resultado encontrado para "{query}"
+                {filteredResults.length === 0 && !isAIQuery && (
+                  <div className="p-6 text-center text-sm text-muted-foreground">
+                    <p>Nenhum resultado encontrado para "{query}"</p>
+                    <button className="mt-2 text-xs text-gilver hover:underline flex items-center gap-1 mx-auto" onClick={handleAIOpen}>
+                      <Droplet className="h-3 w-3" />
+                      Perguntar à Lótus IA
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>

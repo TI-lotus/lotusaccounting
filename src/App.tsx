@@ -20,6 +20,7 @@ import Upgrade from "./pages/Upgrade";
 import Agents from "./pages/Agents";
 import Tasks from "./pages/Tasks";
 import Staff from "./pages/Staff";
+import ClientDetail from "./pages/ClientDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,6 +36,7 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/clients" element={<Clients />} />
+              <Route path="/clients/:id" element={<ClientDetail />} />
               <Route path="/payments" element={<Payments />} />
               <Route path="/documents" element={<Documents />} />
               <Route path="/reports" element={<Reports />} />

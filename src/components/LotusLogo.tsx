@@ -13,7 +13,7 @@ export const LotusLogo = ({ className, size = "md", showText = true, iconOnly = 
   const sizeClasses = {
     sm: "h-8",
     md: "h-10",
-    lg: "h-14",
+    lg: "h-16",
   };
 
   return (
