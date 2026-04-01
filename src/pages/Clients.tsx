@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
-import { Users, Plus, Search, MoreHorizontal, Mail, Phone, Edit, Trash2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Users, Plus, Search, MoreHorizontal, Mail, Phone, Edit, Trash2, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
