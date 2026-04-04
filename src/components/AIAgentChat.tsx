@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
-import { X, Send, Droplet, User, Paperclip, Image, FileText, Sheet, FileType } from "lucide-react";
+import { X, Send, User, Paperclip, Image, FileText, Sheet, FileType } from "lucide-react";
+import liaIconImage from "@/assets/lia-icon.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -21,7 +22,7 @@ interface Message {
 const initialMessages: Message[] = [
   {
     id: "1",
-    content: "Olá! Sou sua assistente de contabilidade com IA. Como posso ajudar você hoje? Posso auxiliar com análises financeiras, relatórios, consultas fiscais e muito mais.",
+    content: "Olá! Sou a Lia, sua assistente de contabilidade com IA. Como posso ajudar você hoje? Posso auxiliar com análises financeiras, relatórios, consultas fiscais e muito mais.",
     role: "assistant",
     timestamp: new Date(),
   },
@@ -120,11 +121,11 @@ export const AIAgentChat = ({ open, onClose }: AIAgentChatProps) => {
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-border bg-accent/30">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-primary/10">
-            <Droplet className="h-5 w-5 text-primary" />
+          <div className="p-1.5 rounded-xl bg-primary/10">
+            <img src={liaIconImage} alt="Lia" className="h-6 w-6" />
           </div>
           <div>
-            <h3 className="font-semibold text-sm">Lótus IA</h3>
+            <h3 className="font-semibold text-sm">Lia</h3>
             <p className="text-xs text-muted-foreground">Assistente Contábil</p>
           </div>
         </div>
@@ -156,7 +157,7 @@ export const AIAgentChat = ({ open, onClose }: AIAgentChatProps) => {
                   : "bg-primary"
               )}>
                 {message.role === "assistant" ? (
-                  <Droplet className="h-4 w-4 text-accent-foreground" />
+                  <img src={liaIconImage} alt="Lia" className="h-4 w-4" />
                 ) : (
                   <User className="h-4 w-4 text-primary-foreground" />
                 )}
@@ -174,7 +175,7 @@ export const AIAgentChat = ({ open, onClose }: AIAgentChatProps) => {
           {isTyping && (
             <div className="flex gap-3">
               <div className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-accent">
-                <Droplet className="h-4 w-4 text-accent-foreground" />
+                <img src={liaIconImage} alt="Lia" className="h-4 w-4" />
               </div>
               <div className="bg-accent/50 rounded-2xl rounded-tl-md px-4 py-3">
                 <div className="flex gap-1">
