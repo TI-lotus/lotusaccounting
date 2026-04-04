@@ -121,11 +121,11 @@ export const AIAgentChat = ({ open, onClose }: AIAgentChatProps) => {
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-border bg-accent/30">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-primary/10">
-            <Droplet className="h-5 w-5 text-primary" />
+          <div className="p-1.5 rounded-xl bg-primary/10">
+            <img src={liaIconImage} alt="Lia" className="h-6 w-6" />
           </div>
           <div>
-            <h3 className="font-semibold text-sm">Lótus IA</h3>
+            <h3 className="font-semibold text-sm">Lia</h3>
             <p className="text-xs text-muted-foreground">Assistente Contábil</p>
           </div>
         </div>
