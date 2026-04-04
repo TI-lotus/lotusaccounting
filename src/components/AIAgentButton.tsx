@@ -36,7 +36,7 @@ export const AIAgentButton = ({ className, externalOpen, onExternalClose }: AIAg
           className
         )}
       >
-        <Droplet className="h-6 w-6" />
+        <img src={liaIconImage} alt="Lia" className="h-6 w-6" />
       </Button>
     </>
   );

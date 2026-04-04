@@ -22,7 +22,7 @@ interface Message {
 const initialMessages: Message[] = [
   {
     id: "1",
-    content: "Olá! Sou sua assistente de contabilidade com IA. Como posso ajudar você hoje? Posso auxiliar com análises financeiras, relatórios, consultas fiscais e muito mais.",
+    content: "Olá! Sou a Lia, sua assistente de contabilidade com IA. Como posso ajudar você hoje? Posso auxiliar com análises financeiras, relatórios, consultas fiscais e muito mais.",
     role: "assistant",
     timestamp: new Date(),
   },

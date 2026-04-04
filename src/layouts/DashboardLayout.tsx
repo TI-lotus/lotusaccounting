@@ -15,9 +15,9 @@ export const DashboardLayout = ({ children, className }: DashboardLayoutProps) =
   return (
     <div className="min-h-screen flex w-full bg-background">
       <AppSidebar />
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
         <TopBar onOpenAI={() => setAiOpen(true)} />
-        <main className={cn("flex-1 p-6 overflow-auto", className)}>
+        <main className={cn("flex-1 p-6", className)}>
           {children}
         </main>
       </div>
