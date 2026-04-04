@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { AIAgentChat } from "./AIAgentChat";
-import { Droplet } from "lucide-react";
+import liaIconImage from "@/assets/lia-icon.png";
 
 interface AIAgentButtonProps {
   className?: string;
