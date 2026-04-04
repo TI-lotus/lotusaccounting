@@ -175,7 +175,7 @@ export const AIAgentChat = ({ open, onClose }: AIAgentChatProps) => {
           {isTyping && (
             <div className="flex gap-3">
               <div className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-accent">
-                <Droplet className="h-4 w-4 text-accent-foreground" />
+                <img src={liaIconImage} alt="Lia" className="h-4 w-4" />
               </div>
               <div className="bg-accent/50 rounded-2xl rounded-tl-md px-4 py-3">
                 <div className="flex gap-1">
