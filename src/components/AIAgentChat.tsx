@@ -157,7 +157,7 @@ export const AIAgentChat = ({ open, onClose }: AIAgentChatProps) => {
                   : "bg-primary"
               )}>
                 {message.role === "assistant" ? (
-                  <Droplet className="h-4 w-4 text-accent-foreground" />
+                  <img src={liaIconImage} alt="Lia" className="h-4 w-4" />
                 ) : (
                   <User className="h-4 w-4 text-primary-foreground" />
                 )}
