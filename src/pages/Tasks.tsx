@@ -111,8 +111,8 @@ const Tasks = () => {
 
   const KanbanCard = ({ task }: { task: TaskData }) => (
     <div className={cn(
-      "glass rounded-2xl p-3 space-y-2",
-      task.status === "overdue" && "border border-red-500/30"
+      "glass rounded-xl p-3 space-y-2.5 cursor-pointer hover:shadow-md transition-all",
+      task.status === "overdue" && "border border-red-500/30 bg-red-500/5"
     )}>
       <div className="flex items-start justify-between gap-2">
         <h4 className={cn("text-sm font-medium leading-tight", task.status === "completed" && "line-through text-muted-foreground")}>
@@ -123,21 +123,29 @@ const Tasks = () => {
       {task.description && (
         <p className="text-xs text-muted-foreground line-clamp-2">{task.description}</p>
       )}
-      <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
-        <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{new Date(task.dueDate).toLocaleDateString("pt-BR")}</span>
-        {task.clientName && <Badge variant="outline" className="text-xs py-0">{task.clientName}</Badge>}
+      <div className="flex items-center gap-1.5 flex-wrap">
+        {task.clientName && <Badge variant="outline" className="text-[10px] py-0 px-1.5">{task.clientName}</Badge>}
+        {getTypeBadge(task.type)}
       </div>
-      <div className="flex justify-between items-center pt-1">
-        <span className="text-xs text-muted-foreground">{task.assignedToName}</span>
-        {task.status !== "completed" && (
-          <Button variant="ghost" size="sm" className="text-xs h-6 px-2" onClick={() => {
-            if (task.status === "pending" || task.status === "overdue") updateTaskStatus(task.id, "in_progress");
-            else if (task.status === "in_progress") updateTaskStatus(task.id, "completed");
-          }}>
-            {task.status === "in_progress" ? "Concluir" : "Iniciar"}
-          </Button>
-        )}
+      <div className="flex items-center justify-between pt-1.5 border-t border-border/50">
+        <div className="flex items-center gap-1.5">
+          <div className="h-5 w-5 rounded-full bg-muted flex items-center justify-center text-[9px] font-medium text-muted-foreground">
+            {task.assignedToName?.charAt(0)}
+          </div>
+          <span className="text-[11px] text-muted-foreground">{task.assignedToName}</span>
+        </div>
+        <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+          <Calendar className="h-2.5 w-2.5" />{new Date(task.dueDate).toLocaleDateString("pt-BR")}
+        </span>
       </div>
+      {task.status !== "completed" && (
+        <Button variant="outline" size="sm" className="w-full text-xs h-7 rounded-lg" onClick={() => {
+          if (task.status === "pending" || task.status === "overdue") updateTaskStatus(task.id, "in_progress");
+          else if (task.status === "in_progress") updateTaskStatus(task.id, "completed");
+        }}>
+          {task.status === "in_progress" ? "✓ Concluir" : "▶ Iniciar"}
+        </Button>
+      )}
     </div>
   );
 
@@ -296,18 +304,21 @@ const Tasks = () => {
             {kanbanColumns.map((col) => {
               const columnTasks = filteredTasks.filter(t => t.status === col.status);
               return (
-                <div key={col.status} className={cn("rounded-2xl border-t-2 p-1", col.color)}>
-                  <div className="flex items-center gap-2 p-3">
+                <div key={col.status} className={cn("rounded-xl border-t-2 bg-muted/30 flex flex-col", col.color)}>
+                  <div className="flex items-center gap-2 p-3 border-b border-border/50">
                     {col.icon}
                     <h3 className="text-sm font-semibold">{col.label}</h3>
-                    <Badge variant="secondary" className="ml-auto text-xs">{columnTasks.length}</Badge>
+                    <Badge variant="secondary" className="ml-auto text-xs rounded-full">{columnTasks.length}</Badge>
                   </div>
-                  <div className="space-y-2 p-2 min-h-[200px]">
+                  <div className="space-y-2 p-2 min-h-[250px] max-h-[60vh] overflow-y-auto custom-scroll flex-1">
                     {columnTasks.map((task) => (
                       <KanbanCard key={task.id} task={task} />
                     ))}
                     {columnTasks.length === 0 && (
-                      <p className="text-xs text-muted-foreground text-center py-8">Nenhuma tarefa</p>
+                      <div className="flex flex-col items-center justify-center py-12 text-muted-foreground/50">
+                        <Circle className="h-8 w-8 mb-2" />
+                        <p className="text-xs">Nenhuma tarefa</p>
+                      </div>
                     )}
                   </div>
                 </div>

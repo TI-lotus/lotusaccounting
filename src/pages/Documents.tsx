@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { FileText, Plus, Download, Eye, MoreHorizontal, Trash2, Send, Check, Upload, FileCode, File } from "lucide-react";
+import { DocumentViewer, ViewableDocument } from "@/components/DocumentViewer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -20,6 +21,7 @@ import { documentTypeLabels } from "@/lib/documentClassifier";
 import { DocumentData, DocumentType } from "@/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 
 const statusColors: Record<string, string> = {
   paid: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400",
@@ -129,6 +131,20 @@ const Documents = () => {
   const [newDoc, setNewDoc] = useState({ name: "", client: "", type: "fatura" as DocumentType, amount: "" });
   const [selectedFile, setSelectedFile] = useState<MockFile | null>(null);
   const [activeTab, setActiveTab] = useState("faturas");
+  const [viewerDoc, setViewerDoc] = useState<ViewableDocument | null>(null);
+
+  const openFileInViewer = (file: MockFile) => {
+    setViewerDoc({
+      id: file.id,
+      name: file.name,
+      type: file.type,
+      category: file.category,
+      clientName: file.clientName,
+      date: file.uploadedAt,
+      content: file.extractedText,
+      size: file.size,
+    });
+  };
 
   const filteredDocuments = documents.filter((doc) => {
     const statusMatch = filterStatus === "all" || doc.status === filterStatus;
@@ -198,7 +214,8 @@ const Documents = () => {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="flex h-full">
+        <div className={cn("space-y-6 transition-all", viewerDoc ? "flex-1 min-w-0" : "w-full")}>
         <div className="flex items-center justify-between animate-fade-in">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">Documentos</h1>
@@ -348,7 +365,11 @@ const Documents = () => {
                           <div className="flex items-center justify-end gap-1">
                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
                               if (doc.status === "unread") handleMarkAsRead(doc.id);
-                              toast.info("Visualizando documento...");
+                              openFileInViewer({
+                                id: doc.id, name: doc.name, type: "pdf", size: "—",
+                                clientName: doc.clientName || "", category: documentTypeLabels[doc.documentType],
+                                uploadedAt: doc.date, extractedText: `Documento: ${doc.name}\nCliente: ${doc.clientName}\nTipo: ${documentTypeLabels[doc.documentType]}\nStatus: ${doc.status}\nValor: ${doc.amount ? `R$ ${doc.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "—"}`
+                              });
                             }}>
                               <Eye className="h-4 w-4" />
                             </Button>
@@ -412,7 +433,7 @@ const Documents = () => {
                 {mockFiles.map((file) => (
                   <button
                     key={file.id}
-                    onClick={() => setSelectedFile(file)}
+                    onClick={() => { setSelectedFile(file); openFileInViewer(file); }}
                     className={`w-full text-left p-3 rounded-2xl border transition-all ${
                       selectedFile?.id === file.id
                         ? "border-primary bg-accent/50"
@@ -477,6 +498,8 @@ const Documents = () => {
             </div>
           </TabsContent>
         </Tabs>
+        </div>
+        <DocumentViewer document={viewerDoc} onClose={() => setViewerDoc(null)} />
       </div>
     </DashboardLayout>
   );
