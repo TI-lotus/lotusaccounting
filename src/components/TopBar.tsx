@@ -173,11 +173,11 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
           className
         )}
       >
-        <div className="flex items-center gap-4 flex-1 max-w-md relative" ref={wrapperRef}>
+        <div className="flex items-center gap-4 flex-1 max-w-md relative ml-2" ref={wrapperRef}>
           <div className="relative w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar clientes, documentos, tarefas... ou pergunte à IA"
+              placeholder="Buscar ou pergunte à Lia..."
               className="pl-10 h-10 bg-muted/50 border-0 focus-visible:ring-1 rounded-xl"
               value={query}
               onChange={(e) => {

@@ -80,9 +80,11 @@ export const AppSidebar = () => {
       <Link
         to={item.href}
         className={cn(
-          "nav-link group relative",
-          isCollapsed && "justify-center px-0",
-          isActive && "active"
+          "group relative flex items-center transition-all duration-150",
+          isCollapsed 
+            ? "justify-center w-10 h-10 mx-auto rounded-full hover:bg-sidebar-accent text-sidebar-foreground/70 hover:text-sidebar-foreground"
+            : "nav-link",
+          isActive && (isCollapsed ? "bg-sidebar-primary text-sidebar-primary-foreground" : "active")
         )}
       >
         <Icon className={cn("h-5 w-5 shrink-0", isActive && "text-sidebar-primary-foreground")} />

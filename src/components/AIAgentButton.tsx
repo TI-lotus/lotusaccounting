@@ -28,11 +28,11 @@ export const AIAgentButton = ({ className, externalOpen, onExternalClose }: AIAg
         className={cn(
           "fixed bottom-6 right-6 z-50",
           "h-14 w-14 rounded-full p-0",
-          "bg-primary hover:bg-primary/90",
-          "text-primary-foreground",
+          "bg-[hsl(40,45%,57%)] hover:bg-[hsl(40,45%,50%)]",
+          "text-[hsl(0,0%,9%)]",
           "shadow-lg hover:shadow-xl",
           "transition-all duration-200 hover:scale-105",
-          isOpen && "bg-accent text-accent-foreground hover:bg-accent/90",
+          isOpen && "bg-[hsl(40,45%,50%)]",
           className
         )}
       >
