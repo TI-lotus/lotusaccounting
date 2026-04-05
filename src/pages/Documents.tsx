@@ -497,6 +497,8 @@ const Documents = () => {
             </div>
           </TabsContent>
         </Tabs>
+        </div>
+        <DocumentViewer document={viewerDoc} onClose={() => setViewerDoc(null)} />
       </div>
     </DashboardLayout>
   );
