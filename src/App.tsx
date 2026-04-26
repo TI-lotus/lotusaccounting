@@ -5,7 +5,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ViewModeProvider } from "@/contexts/ViewModeContext";
 import { DataProvider } from "@/contexts/DataContext";
+import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
+import Auth from "./pages/Auth";
 import Clients from "./pages/Clients";
 import Payments from "./pages/Payments";
 import Documents from "./pages/Documents";
@@ -27,13 +29,15 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <ViewModeProvider>
-      <DataProvider>
+    <AuthProvider>
+      <ViewModeProvider>
+        <DataProvider>
         <TooltipProvider>
           <Toaster />
           <Sonner />
           <BrowserRouter>
             <Routes>
+              <Route path="/auth" element={<Auth />} />
               <Route path="/" element={<Index />} />
               <Route path="/clients" element={<Clients />} />
               <Route path="/clients/:id" element={<ClientDetail />} />
@@ -54,8 +58,9 @@ const App = () => (
             </Routes>
           </BrowserRouter>
         </TooltipProvider>
-      </DataProvider>
-    </ViewModeProvider>
+        </DataProvider>
+      </ViewModeProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 
