@@ -132,9 +132,9 @@ const Messages = () => {
           <p className="text-muted-foreground">Comunicações internas e notificações</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-220px)]">
+        <div className="grid grid-cols-1 xl:grid-cols-[minmax(260px,360px)_minmax(0,1fr)] gap-4 lg:gap-6 h-[calc(100vh-190px)] min-h-[560px]">
           {/* Conversations List */}
-          <div className="glass rounded-2xl p-4 animate-fade-in overflow-hidden flex flex-col">
+          <div className="glass rounded-2xl p-3 sm:p-4 animate-fade-in overflow-hidden flex flex-col min-h-0">
             <div className="relative mb-3">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Buscar mensagens..." className="pl-10 rounded-xl" />
@@ -222,12 +222,12 @@ const Messages = () => {
           </div>
 
           {/* Message Thread */}
-          <div className="glass rounded-2xl p-6 lg:col-span-2 animate-fade-in flex flex-col">
+          <div className="glass rounded-2xl p-4 sm:p-6 animate-fade-in flex flex-col min-w-0 min-h-0">
             {currentConversation && (
               <>
                 <div className="flex items-center justify-between pb-4 border-b border-border">
                   <div className="flex items-center gap-3">
-                    <div className="relative">
+                    <div className="relative shrink-0">
                       <Avatar className="h-10 w-10">
                         <AvatarFallback className={cn(
                           "font-medium",
@@ -243,7 +243,7 @@ const Messages = () => {
                       )}
                     </div>
                     <div>
-                      <p className="font-medium">{currentConversation.name}</p>
+                      <p className="font-medium truncate max-w-[180px] sm:max-w-none">{currentConversation.name}</p>
                       <div className="flex items-center gap-2">
                         <Badge variant="outline" className="text-[10px] h-4 px-1.5">
                           {roleConfig[currentConversation.chatRole].label}
@@ -254,7 +254,7 @@ const Messages = () => {
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className="hidden sm:flex items-center gap-1">
                     <Button variant="ghost" size="icon" className="rounded-xl h-8 w-8">
                       <Phone className="h-4 w-4" />
                     </Button>
@@ -267,11 +267,11 @@ const Messages = () => {
                   </div>
                 </div>
                 
-                <div className="flex-1 py-6 space-y-4 overflow-y-auto sidebar-scroll">
+                <div className="flex-1 py-4 sm:py-6 space-y-4 overflow-y-auto sidebar-scroll min-h-0">
                   {currentMessages.map((msg) => (
                     <div key={msg.id} className={cn("flex", msg.isMe ? "justify-end" : "justify-start")}>
                       <div className={cn(
-                        "rounded-2xl px-4 py-2.5 max-w-[80%]",
+                        "rounded-2xl px-4 py-2.5 max-w-[88%] sm:max-w-[80%] break-words",
                         msg.isMe 
                           ? "bg-gilver text-[hsl(0,0%,9%)] rounded-tr-md" 
                           : "bg-muted rounded-tl-md"
