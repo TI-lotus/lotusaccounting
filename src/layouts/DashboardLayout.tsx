@@ -11,17 +11,23 @@ interface DashboardLayoutProps {
 
 export const DashboardLayout = ({ children, className }: DashboardLayoutProps) => {
   const [aiOpen, setAiOpen] = useState(false);
+  const [aiInitialMessage, setAiInitialMessage] = useState<string | undefined>();
+
+  const handleOpenAI = (message?: string) => {
+    setAiInitialMessage(message);
+    setAiOpen(true);
+  };
 
   return (
     <div className="min-h-screen flex w-full bg-background">
       <AppSidebar />
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
-        <TopBar onOpenAI={() => setAiOpen(true)} />
+        <TopBar onOpenAI={handleOpenAI} />
         <main className={cn("flex-1 p-6", className)}>
           {children}
         </main>
       </div>
-      <AIAgentButton externalOpen={aiOpen} onExternalClose={() => setAiOpen(false)} />
+      <AIAgentButton externalOpen={aiOpen} onExternalClose={() => setAiOpen(false)} initialMessage={aiInitialMessage} onInitialMessageHandled={() => setAiInitialMessage(undefined)} />
     </div>
   );
 };
