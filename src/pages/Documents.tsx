@@ -326,7 +326,9 @@ const Documents = () => {
                               openFileInViewer({
                                 id: doc.id, name: doc.name, type: "pdf", size: "—",
                                 clientName: doc.clientName || "", category: documentTypeLabels[doc.documentType],
-                                uploadedAt: doc.date, extractedText: `Documento: ${doc.name}\nCliente: ${doc.clientName}\nTipo: ${documentTypeLabels[doc.documentType]}\nStatus: ${doc.status}\nValor: ${doc.amount ? `R$ ${doc.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "—"}`
+                                uploadedAt: doc.date,
+                                preview: `Pré-visualização de ${doc.name}`,
+                                extractedText: `Documento: ${doc.name}\nCliente: ${doc.clientName}\nTipo: ${documentTypeLabels[doc.documentType]}\nStatus: ${doc.status}\nValor: ${doc.amount ? `R$ ${doc.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "—"}`
                               });
                             }}>
                               <Eye className="h-4 w-4" />
