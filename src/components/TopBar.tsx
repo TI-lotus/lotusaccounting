@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect } from "react";
-import { Search, Bell, FileText, Users, MessageSquare, BarChart3, CheckSquare, Plug, X, Droplet } from "lucide-react";
+import { Search, Bell, FileText, Users, MessageSquare, BarChart3, CheckSquare, Plug, X, Sparkles, CalendarClock, MailCheck, Bot, UserPlus, CreditCard } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { useViewMode } from "@/contexts/ViewModeContext";
@@ -108,8 +110,17 @@ const aiKeywords = ["ia", "assistente", "ajuda", "lótus ia", "lotus ia", "pergu
 
 interface TopBarProps {
   className?: string;
-  onOpenAI?: () => void;
+  onOpenAI?: (message?: string) => void;
 }
+
+const notificationGroups = [
+  { label: "Documentos recebidos", icon: FileText, count: 4, detail: "NF-e, DAS e contratos aguardando triagem" },
+  { label: "Vencimentos", icon: CalendarClock, count: 3, detail: "Guias e faturas vencem nos próximos 7 dias" },
+  { label: "Relatórios por e-mail", icon: MailCheck, count: 2, detail: "Relatórios mensais enviados aos clientes" },
+  { label: "Agentes com atenção", icon: Bot, count: 2, detail: "Execuções falharam ou pedem revisão" },
+  { label: "Solicitações de acesso", icon: UserPlus, count: 1, detail: "Colaborador aguardando aprovação" },
+  { label: "Pagamentos recebidos", icon: CreditCard, count: 5, detail: "Novos recebimentos conciliados" },
+];
 
 export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
   const [query, setQuery] = useState("");
@@ -130,7 +141,7 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const isAIQuery = aiKeywords.some(k => query.toLowerCase().includes(k));
+  const isAIQuery = query.trim().startsWith("/") || aiKeywords.some(k => query.toLowerCase().includes(k));
 
   const filteredResults = query.trim()
     ? searchData
@@ -150,9 +161,10 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
   };
 
   const handleAIOpen = () => {
+    const message = query.trim().startsWith("/") ? query.trim().slice(1).trim() : query.trim();
     setQuery("");
     setShowResults(false);
-    onOpenAI?.();
+    onOpenAI?.(message || undefined);
   };
 
   const isDropdownVisible = showResults && query.trim().length > 0;
@@ -173,18 +185,24 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
           className
         )}
       >
-        <div className="flex items-center gap-4 flex-1 max-w-md relative ml-2" ref={wrapperRef}>
+        <div className="flex items-center gap-4 flex-1 max-w-md relative ml-2 my-2" ref={wrapperRef}>
           <div className="relative w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar ou pergunte à Lia..."
-              className="pl-10 h-10 bg-muted/50 border-0 focus-visible:ring-1 rounded-xl"
+              placeholder="Digite / para começar uma conversa com a Lia"
+              className="pl-10 h-10 bg-muted/50 border-0 focus-visible:ring-1 rounded-2xl"
               value={query}
               onChange={(e) => {
                 setQuery(e.target.value);
                 setShowResults(true);
               }}
               onFocus={() => query.trim() && setShowResults(true)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && query.trim().startsWith("/")) {
+                  e.preventDefault();
+                  handleAIOpen();
+                }
+              }}
             />
             {query && (
               <button
@@ -203,11 +221,11 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
                     className="w-full text-left px-4 py-3 text-sm hover:bg-accent transition-colors flex items-center gap-3 border-b border-border"
                     onClick={handleAIOpen}
                   >
-                    <div className="p-1.5 rounded-lg bg-blue-500/10">
-                      <Droplet className="h-4 w-4 text-blue-500" />
+                      <div className="p-1.5 rounded-lg bg-gilver/15 text-gilver">
+                       <Sparkles className="h-4 w-4" />
                     </div>
                     <div>
-                      <p className="font-medium">Perguntar à Lótus IA</p>
+                       <p className="font-medium">Conversar com a Lia</p>
                       <p className="text-xs text-muted-foreground">"{query}"</p>
                     </div>
                   </button>
@@ -238,8 +256,8 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
                   <div className="p-6 text-center text-sm text-muted-foreground">
                     <p>Nenhum resultado encontrado para "{query}"</p>
                     <button className="mt-2 text-xs text-gilver hover:underline flex items-center gap-1 mx-auto" onClick={handleAIOpen}>
-                      <Droplet className="h-3 w-3" />
-                      Perguntar à Lótus IA
+                      <Sparkles className="h-3 w-3" />
+                      Conversar com a Lia
                     </button>
                   </div>
                 )}
@@ -248,14 +266,39 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="relative h-9 w-9 rounded-xl hover:bg-accent"
-          >
-            <Bell className="h-4 w-4" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-destructive rounded-full" />
-          </Button>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-xl hover:bg-accent">
+                <Bell className="h-4 w-4" />
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-destructive rounded-full" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-96 rounded-2xl p-0 overflow-hidden z-[99999]">
+              <div className="p-4 border-b border-border">
+                <h3 className="font-semibold text-sm">Notificações</h3>
+                <p className="text-xs text-muted-foreground">Avisos separados por área</p>
+              </div>
+              <div className="max-h-[420px] overflow-y-auto custom-scroll p-2">
+                {notificationGroups.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <button key={item.label} className="w-full text-left flex items-start gap-3 rounded-xl p-3 hover:bg-accent transition-colors">
+                      <div className="mt-0.5 rounded-xl bg-muted p-2 text-muted-foreground">
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-sm font-medium truncate">{item.label}</p>
+                          <Badge variant="secondary" className="rounded-full">{item.count}</Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">{item.detail}</p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </PopoverContent>
+          </Popover>
           <ThemeToggle />
         </div>
       </header>

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { supabase } from "@/integrations/supabase/client";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,9 +40,11 @@ const mockResponses = [
 interface AIAgentChatProps {
   open: boolean;
   onClose: () => void;
+  initialMessage?: string;
+  onInitialMessageHandled?: () => void;
 }
 
-export const AIAgentChat = ({ open, onClose }: AIAgentChatProps) => {
+export const AIAgentChat = ({ open, onClose, initialMessage, onInitialMessageHandled }: AIAgentChatProps) => {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
@@ -61,31 +64,54 @@ export const AIAgentChat = ({ open, onClose }: AIAgentChatProps) => {
     }
   }, [messages]);
 
-  const handleSend = () => {
-    if (!input.trim()) return;
+  useEffect(() => {
+    if (open && initialMessage?.trim()) {
+      handleSend(initialMessage);
+      onInitialMessageHandled?.();
+    }
+  }, [open, initialMessage]);
+
+  const handleSend = async (overrideMessage?: string) => {
+    const messageText = (overrideMessage ?? input).trim();
+    if (!messageText || isTyping) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
-      content: input,
+      content: messageText,
       role: "user",
       timestamp: new Date(),
     };
 
     setMessages((prev) => [...prev, userMessage]);
-    setInput("");
+    if (!overrideMessage) setInput("");
     setIsTyping(true);
 
-    setTimeout(() => {
-      const randomResponse = mockResponses[Math.floor(Math.random() * mockResponses.length)];
+    try {
+      const { data, error } = await supabase.functions.invoke("lia-chat", {
+        body: {
+          message: messageText,
+          history: messages.map((message) => ({ role: message.role, content: message.content })),
+        },
+      });
+      if (error) throw error;
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: randomResponse,
+        content: typeof data?.reply === "string" ? data.reply : mockResponses[0],
         role: "assistant",
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, assistantMessage]);
+    } catch (error) {
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        content: "Não consegui conectar com a Lia agora. Tente novamente em alguns instantes.",
+        role: "assistant",
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, assistantMessage]);
+    } finally {
       setIsTyping(false);
-    }, 1000 + Math.random() * 1000);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -223,7 +249,7 @@ export const AIAgentChat = ({ open, onClose }: AIAgentChatProps) => {
             className="flex-1 rounded-xl bg-accent/30 border-0 focus-visible:ring-1 focus-visible:ring-ring"
           />
           <Button
-            onClick={handleSend}
+            onClick={() => handleSend()}
             disabled={!input.trim() || isTyping}
             size="icon"
             className="rounded-xl shrink-0"
