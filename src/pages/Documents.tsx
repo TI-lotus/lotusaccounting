@@ -88,8 +88,14 @@ const Documents = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [newDoc, setNewDoc] = useState({ name: "", client: "", type: "fatura" as DocumentType, amount: "" });
   const [selectedFile, setSelectedFile] = useState<MockFile | null>(null);
+  const [extractedFileIds, setExtractedFileIds] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState("faturas");
   const [viewerDoc, setViewerDoc] = useState<ViewableDocument | null>(null);
+
+  const handleExtractText = (file: MockFile) => {
+    setExtractedFileIds((current) => current.includes(file.id) ? current : [...current, file.id]);
+    toast.success("Texto extraído com sucesso!");
+  };
 
   const openFileInViewer = (file: MockFile) => {
     setViewerDoc({
