@@ -396,6 +396,16 @@ const Documents = () => {
               {/* File list */}
               <div className="lg:col-span-1 space-y-2">
                 <h3 className="text-sm font-medium text-muted-foreground mb-3">Arquivos Recentes</h3>
+                {mockFiles.length === 0 && (
+                  <div className="rounded-2xl border border-dashed border-border p-6 text-center text-muted-foreground">
+                    <FileText className="h-10 w-10 mx-auto mb-3 opacity-40" />
+                    <p className="text-sm font-medium">Nenhum documento encontrado</p>
+                    <Button variant="outline" size="sm" className="mt-4 rounded-2xl" disabled>
+                      <ScanText className="h-4 w-4" />
+                      Extrair texto
+                    </Button>
+                  </div>
+                )}
                 {mockFiles.map((file) => (
                   <button
                     key={file.id}
@@ -441,14 +451,20 @@ const Documents = () => {
                           <Download className="h-4 w-4 mr-1" />
                           Baixar
                         </Button>
+                        <Button size="sm" onClick={() => handleExtractText(selectedFile)}>
+                          <ScanText className="h-4 w-4 mr-1" />
+                          Extrair texto
+                        </Button>
                       </div>
                     </div>
 
                     <div className="border-t border-border pt-4">
-                      <h4 className="text-sm font-medium text-muted-foreground mb-3">Texto Extraído</h4>
+                      <h4 className="text-sm font-medium text-muted-foreground mb-3">
+                        {extractedFileIds.includes(selectedFile.id) ? "Texto Extraído" : "Pré-visualização"}
+                      </h4>
                       <ScrollArea className="h-[400px]">
                         <pre className="text-sm whitespace-pre-wrap bg-accent/30 rounded-xl p-4 font-mono leading-relaxed">
-                          {selectedFile.extractedText}
+                          {extractedFileIds.includes(selectedFile.id) ? selectedFile.extractedText : selectedFile.preview}
                         </pre>
                       </ScrollArea>
                     </div>
@@ -456,8 +472,12 @@ const Documents = () => {
                 ) : (
                   <div className="glass rounded-2xl p-12 text-center text-muted-foreground">
                     <FileText className="h-16 w-16 mx-auto mb-4 opacity-30" />
-                    <p className="text-lg font-medium">Selecione um arquivo</p>
-                    <p className="text-sm">Clique em um arquivo à esquerda para visualizar o conteúdo extraído</p>
+                    <p className="text-lg font-medium">Nenhum documento encontrado</p>
+                    <p className="text-sm">Envie um arquivo para pré-visualizar e extrair textos</p>
+                    <Button variant="outline" className="mt-4 rounded-2xl" disabled>
+                      <ScanText className="h-4 w-4" />
+                      Extrair texto
+                    </Button>
                   </div>
                 )}
               </div>
