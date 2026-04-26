@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import LotusLogo from "@/components/LotusLogo";
+import { LotusLogo } from "@/components/LotusLogo";
 
 const Auth = () => {
   const navigate = useNavigate();
