@@ -8,9 +8,11 @@ interface AIAgentButtonProps {
   className?: string;
   externalOpen?: boolean;
   onExternalClose?: () => void;
+  initialMessage?: string;
+  onInitialMessageHandled?: () => void;
 }
 
-export const AIAgentButton = ({ className, externalOpen, onExternalClose }: AIAgentButtonProps) => {
+export const AIAgentButton = ({ className, externalOpen, onExternalClose, initialMessage, onInitialMessageHandled }: AIAgentButtonProps) => {
   const [chatOpen, setChatOpen] = useState(false);
 
   const isOpen = externalOpen || chatOpen;
@@ -22,7 +24,7 @@ export const AIAgentButton = ({ className, externalOpen, onExternalClose }: AIAg
 
   return (
     <>
-      <AIAgentChat open={isOpen} onClose={handleClose} />
+      <AIAgentChat open={isOpen} onClose={handleClose} initialMessage={initialMessage} onInitialMessageHandled={onInitialMessageHandled} />
       <Button
         onClick={() => setChatOpen(!chatOpen)}
         className={cn(
