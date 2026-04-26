@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
-import { FileText, Plus, Download, Eye, MoreHorizontal, Trash2, Send, Check, Upload, FileCode, File } from "lucide-react";
+import { FileText, Plus, Download, Eye, MoreHorizontal, Trash2, Send, Check, Upload, FileCode, File, ScanText } from "lucide-react";
 import { DocumentViewer, ViewableDocument } from "@/components/DocumentViewer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -64,53 +64,11 @@ interface MockFile {
   clientName: string;
   category: string;
   uploadedAt: string;
+  preview: string;
   extractedText: string;
 }
 
-const mockFiles: MockFile[] = [
-  {
-    id: "mf1", name: "NF-e_001234.xml", type: "xml", size: "45 KB",
-    clientName: "TechSoft Ltda", category: "NF-e",
-    uploadedAt: "02/04/2026",
-    extractedText: "NOTA FISCAL ELETRÔNICA\nNúmero: 001234\nSérie: 1\nEmitente: TechSoft Soluções Ltda\nCNPJ: 12.345.678/0001-90\nDestinatário: ABC Comércio S.A.\nValor Total: R$ 15.750,00\nICMS: R$ 2.835,00\nDescrição: Serviços de desenvolvimento de software - Módulo ERP Financeiro\nData Emissão: 01/04/2026"
-  },
-  {
-    id: "mf2", name: "DAS_03_2026.pdf", type: "pdf", size: "128 KB",
-    clientName: "Café & Cia ME", category: "DAS",
-    uploadedAt: "01/04/2026",
-    extractedText: "DOCUMENTO DE ARRECADAÇÃO DO SIMPLES NACIONAL\nPeríodo de Apuração: 03/2026\nCNPJ: 98.765.432/0001-10\nRazão Social: Café & Companhia ME\nValor do DAS: R$ 1.234,56\nReceita Bruta: R$ 28.500,00\nAlíquota Efetiva: 4,33%\nVencimento: 20/04/2026\nCódigo de Barras: 85890.00001 23456.789012 34567.890123 1 98760000123456"
-  },
-  {
-    id: "mf3", name: "Balanco_Q1_2026.xlsx", type: "xlsx", size: "2.3 MB",
-    clientName: "Construtora Horizonte", category: "Balanço",
-    uploadedAt: "31/03/2026",
-    extractedText: "BALANÇO PATRIMONIAL - 1º TRIMESTRE 2026\nATIVO TOTAL: R$ 4.567.890,00\n  Ativo Circulante: R$ 1.234.567,00\n    Caixa e Equivalentes: R$ 345.678,00\n    Contas a Receber: R$ 567.890,00\n    Estoques: R$ 320.999,00\n  Ativo Não Circulante: R$ 3.333.323,00\nPASSIVO TOTAL: R$ 4.567.890,00\n  Passivo Circulante: R$ 987.654,00\n  Patrimônio Líquido: R$ 2.345.678,00"
-  },
-  {
-    id: "mf4", name: "DARF_IRPJ_03_2026.pdf", type: "pdf", size: "95 KB",
-    clientName: "AutoPeças Nacional", category: "DARF",
-    uploadedAt: "28/03/2026",
-    extractedText: "DOCUMENTO DE ARRECADAÇÃO DE RECEITAS FEDERAIS\nCódigo da Receita: 2089 - IRPJ\nPeríodo de Apuração: 03/2026\nCNPJ: 45.678.901/0001-23\nNome: AutoPeças Nacional Ltda\nValor do Principal: R$ 8.456,00\nValor da Multa: R$ 0,00\nValor dos Juros: R$ 0,00\nValor Total: R$ 8.456,00\nData de Vencimento: 30/04/2026"
-  },
-  {
-    id: "mf5", name: "Contrato_Servicos_2026.docx", type: "docx", size: "320 KB",
-    clientName: "TechSoft Ltda", category: "Contrato",
-    uploadedAt: "15/03/2026",
-    extractedText: "CONTRATO DE PRESTAÇÃO DE SERVIÇOS CONTÁBEIS\nCONTRATANTE: TechSoft Soluções Ltda\nCONTRATADA: Lótus Contabilidade\nOBJETO: Prestação de serviços contábeis, fiscais e trabalhistas\nVIGÊNCIA: 01/01/2026 a 31/12/2026\nHONORÁRIOS: R$ 3.500,00/mês\nCLÁUSULA 5: Obrigações da Contratada incluem escrituração contábil, apuração de impostos, folha de pagamento e obrigações acessórias."
-  },
-  {
-    id: "mf6", name: "Folha_Pagamento_03_2026.csv", type: "csv", size: "78 KB",
-    clientName: "Construtora Horizonte", category: "Folha",
-    uploadedAt: "05/04/2026",
-    extractedText: "FOLHA DE PAGAMENTO - MARÇO/2026\nTotal de Funcionários: 45\nSalário Bruto Total: R$ 187.500,00\nINSS Patronal: R$ 37.500,00\nFGTS: R$ 15.000,00\nIRRF Retido: R$ 12.350,00\nSalário Líquido Total: R$ 142.650,00\nHoras Extras: R$ 8.900,00\nBenefícios: R$ 22.500,00"
-  },
-  {
-    id: "mf7", name: "SPED_Fiscal_03_2026.xml", type: "xml", size: "1.8 MB",
-    clientName: "AutoPeças Nacional", category: "SPED",
-    uploadedAt: "10/04/2026",
-    extractedText: "ESCRITURAÇÃO FISCAL DIGITAL - EFD ICMS/IPI\nPeríodo: 03/2026\nCNPJ: 45.678.901/0001-23\nInscrição Estadual: 123.456.789.001\nTotal de Registros: 4.567\nNotas de Entrada: 234\nNotas de Saída: 189\nValor Total Entradas: R$ 456.789,00\nValor Total Saídas: R$ 678.901,00\nICMS a Recolher: R$ 34.567,00"
-  },
-];
+const mockFiles: MockFile[] = [];
 
 const fileTypeIcons: Record<string, React.ReactNode> = {
   pdf: <FileText className="h-4 w-4 text-red-500" />,
