@@ -249,7 +249,7 @@ export const AIAgentChat = ({ open, onClose, initialMessage, onInitialMessageHan
             className="flex-1 rounded-xl bg-accent/30 border-0 focus-visible:ring-1 focus-visible:ring-ring"
           />
           <Button
-            onClick={handleSend}
+            onClick={() => handleSend()}
             disabled={!input.trim() || isTyping}
             size="icon"
             className="rounded-xl shrink-0"
