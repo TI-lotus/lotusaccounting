@@ -141,7 +141,7 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const isAIQuery = aiKeywords.some(k => query.toLowerCase().includes(k));
+  const isAIQuery = query.trim().startsWith("/") || aiKeywords.some(k => query.toLowerCase().includes(k));
 
   const filteredResults = query.trim()
     ? searchData
@@ -197,6 +197,12 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
                 setShowResults(true);
               }}
               onFocus={() => query.trim() && setShowResults(true)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && query.trim().startsWith("/")) {
+                  e.preventDefault();
+                  handleAIOpen();
+                }
+              }}
             />
             {query && (
               <button
