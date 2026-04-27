@@ -43,6 +43,7 @@ import {
 import { useViewMode } from "@/contexts/ViewModeContext";
 import { CompanySelector } from "./CompanySelector";
 import { useUserProfile } from "@/contexts/UserProfileContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 const officeNavItems = [
   { title: "Dashboard", icon: LayoutDashboard, href: "/" },
@@ -69,8 +70,14 @@ const clientNavItems = [
 export const AppSidebar = () => {
   const { viewMode, setViewMode, isCollapsed, setIsCollapsed } = useViewMode();
   const profile = useUserProfile();
+  const { signOut } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/auth", { replace: true });
+  };
 
   const navItems = viewMode === "office" ? officeNavItems : clientNavItems;
 
@@ -259,7 +266,7 @@ export const AppSidebar = () => {
               Upgrade
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive focus:text-destructive">
+            <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={handleSignOut}>
               <LogOut className="h-4 w-4 mr-2" />
               Sair
             </DropdownMenuItem>
