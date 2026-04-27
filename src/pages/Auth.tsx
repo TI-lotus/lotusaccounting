@@ -1,19 +1,19 @@
 import { useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
-import { Eye, EyeOff, Loader2, Sparkles } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { LotusLogo } from "@/components/LotusLogo";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const Auth = () => {
   const navigate = useNavigate();
-  const { session, signIn, signUp } = useAuth();
-  const [mode, setMode] = useState("signin");
+  const { session, signIn, signUp, signInWithProvider } = useAuth();
+  const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ email: "", password: "", fullName: "", accountType: "client" });
@@ -39,8 +39,19 @@ const Auth = () => {
     }
   };
 
+  const handleProviderLogin = async (provider: "google" | "facebook") => {
+    try {
+      await signInWithProvider(provider);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível continuar");
+    }
+  };
+
   return (
-    <main className="min-h-screen bg-background flex items-center justify-center p-6">
+    <main className="min-h-screen bg-background flex items-center justify-center p-6 relative">
+      <div className="absolute right-6 top-6">
+        <ThemeToggle />
+      </div>
       <section className="w-full max-w-md glass rounded-3xl p-6 shadow-soft-lg">
         <div className="flex flex-col items-center text-center gap-3 mb-6">
           <div className="h-14 flex items-center justify-center">
@@ -52,14 +63,9 @@ const Auth = () => {
           </div>
         </div>
 
-        <Tabs value={mode} onValueChange={setMode} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 rounded-2xl">
-            <TabsTrigger value="signin" className="rounded-xl">Sign in</TabsTrigger>
-            <TabsTrigger value="signup" className="rounded-xl">Sign up</TabsTrigger>
-          </TabsList>
-
           <form onSubmit={submit} className="mt-5 space-y-4">
-            <TabsContent value="signup" className="mt-0 space-y-4">
+            {mode === "signup" && (
+              <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="fullName">Nome completo</Label>
                 <Input id="fullName" value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} required={mode === "signup"} />
@@ -74,9 +80,8 @@ const Auth = () => {
                   </SelectContent>
                 </Select>
               </div>
-            </TabsContent>
-
-            <TabsContent value="signin" className="mt-0" />
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="email">E-mail</Label>
@@ -93,11 +98,24 @@ const Auth = () => {
             </div>
 
             <Button type="submit" className="w-full rounded-2xl" disabled={loading}>
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              {loading && <Loader2 className="h-4 w-4 animate-spin" />}
               {mode === "signin" ? "Entrar" : "Criar conta"}
             </Button>
+            <div className="grid grid-cols-2 gap-2">
+              <Button type="button" variant="outline" className="rounded-2xl" onClick={() => handleProviderLogin("google")}>
+                Google
+              </Button>
+              <Button type="button" variant="outline" className="rounded-2xl" onClick={() => handleProviderLogin("facebook")}>
+                Facebook
+              </Button>
+            </div>
+            <p className="text-center text-sm text-muted-foreground">
+              {mode === "signin" ? "Não tem conta?" : "Já tem conta?"}{" "}
+              <button type="button" className="font-medium text-primary hover:underline" onClick={() => setMode(mode === "signin" ? "signup" : "signin")}>
+                {mode === "signin" ? "Criar conta" : "Entrar"}
+              </button>
+            </p>
           </form>
-        </Tabs>
       </section>
     </main>
   );

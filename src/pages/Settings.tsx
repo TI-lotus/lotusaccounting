@@ -7,8 +7,11 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { useUserProfile } from "@/contexts/UserProfileContext";
 
 const Settings = () => {
+  const profile = useUserProfile();
+
   return (
     <DashboardLayout>
       <div className="space-y-6 max-w-3xl">
@@ -25,22 +28,26 @@ const Settings = () => {
           </div>
           <div className="flex items-start gap-6">
             <Avatar className="h-20 w-20">
-              <AvatarFallback className="bg-primary/10 text-primary text-xl font-semibold">JD</AvatarFallback>
+              <AvatarFallback className="bg-primary/10 text-primary text-xl font-semibold">{profile.initials}</AvatarFallback>
             </Avatar>
             <div className="flex-1 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Nome</Label>
-                  <Input defaultValue="John" className="rounded-xl" />
+                  <Input value={profile.firstName} onChange={(e) => profile.updateProfile({ firstName: e.target.value })} className="rounded-xl" />
                 </div>
                 <div className="space-y-2">
                   <Label>Sobrenome</Label>
-                  <Input defaultValue="Doe" className="rounded-xl" />
+                  <Input value={profile.lastName} onChange={(e) => profile.updateProfile({ lastName: e.target.value })} className="rounded-xl" />
                 </div>
               </div>
               <div className="space-y-2">
                 <Label>Email</Label>
-                <Input defaultValue="john@lotus.com" className="rounded-xl" />
+                <Input value={profile.email} onChange={(e) => profile.updateProfile({ email: e.target.value })} className="rounded-xl" />
+              </div>
+              <div className="space-y-2">
+                <Label>CPF</Label>
+                <Input value={profile.cpf} className="rounded-xl" disabled />
               </div>
             </div>
           </div>
@@ -55,12 +62,12 @@ const Settings = () => {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Nome da Empresa</Label>
-              <Input defaultValue="Lotus Serviços Financeiros" className="rounded-xl" />
+              <Input value={profile.companyName} onChange={(e) => profile.updateProfile({ companyName: e.target.value })} className="rounded-xl" />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>CNPJ</Label>
-                <Input defaultValue="12.345.678/0001-90" className="rounded-xl" />
+                <Input value={profile.cnpj} className="rounded-xl" disabled />
               </div>
               <div className="space-y-2">
                 <Label>Encerramento do Exercício Fiscal</Label>

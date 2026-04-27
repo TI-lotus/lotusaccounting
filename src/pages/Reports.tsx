@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
-import { BarChart3, Download, Calendar, TrendingUp, PieChart, LineChart, DollarSign, FileText, Users } from "lucide-react";
+import { BarChart3, Download, Calendar, TrendingUp, PieChart, DollarSign, FileText, Users, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +26,9 @@ const kpiData = [
 ];
 
 const Reports = () => {
+  const [view, setView] = useState<"dashboard" | "calendar">("dashboard");
+  const [dateRange, setDateRange] = useState({ start: "2026-03-01", end: "2026-03-31" });
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -39,6 +43,44 @@ const Reports = () => {
           </Button>
         </div>
 
+        <div className="flex flex-wrap items-center justify-between gap-3 animate-fade-in">
+          <div className="flex rounded-2xl border border-border bg-card p-1">
+            <Button variant={view === "dashboard" ? "default" : "ghost"} size="sm" className="rounded-xl" onClick={() => setView("dashboard")}>
+              <LayoutDashboard className="h-4 w-4" /> Dashboard
+            </Button>
+            <Button variant={view === "calendar" ? "default" : "ghost"} size="sm" className="rounded-xl" onClick={() => setView("calendar")}>
+              <Calendar className="h-4 w-4" /> Calendário
+            </Button>
+          </div>
+          {view === "calendar" && (
+            <div className="flex items-center gap-2 rounded-2xl border border-border bg-card p-2">
+              <Input type="date" value={dateRange.start} onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })} className="h-9 w-36 rounded-xl" />
+              <span className="text-sm text-muted-foreground">até</span>
+              <Input type="date" value={dateRange.end} onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })} className="h-9 w-36 rounded-xl" />
+            </div>
+          )}
+        </div>
+
+        {view === "calendar" && (
+          <div className="glass rounded-2xl p-6 animate-fade-in">
+            <h3 className="text-lg font-semibold mb-4">Calendário de relatórios</h3>
+            <div className="grid grid-cols-7 gap-2 text-center text-sm">
+              {["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"].map((day) => <div key={day} className="py-2 font-medium text-muted-foreground">{day}</div>)}
+              {Array.from({ length: 35 }, (_, index) => {
+                const day = index + 1;
+                const report = reports.find((item) => item.generated.startsWith(String(day).padStart(2, "0")) || item.generated.startsWith(String(day)));
+                return (
+                  <div key={day} className={`min-h-20 rounded-xl border border-border p-2 text-left ${report ? "bg-accent/30 ring-1 ring-primary" : ""}`}>
+                    <span className="text-xs font-medium">{day <= 31 ? day : ""}</span>
+                    {report && <p className="mt-2 truncate text-xs text-muted-foreground">{report.name}</p>}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {view === "dashboard" && <>
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-fade-in">
           {kpiData.map((kpi) => {
@@ -223,6 +265,7 @@ const Reports = () => {
             ))}
           </div>
         </div>
+        </>}
       </div>
     </DashboardLayout>
   );

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { X, Send, User, Paperclip, Image, FileText, Sheet, FileType } from "lucide-react";
-import liaIconImage from "@/assets/lia-icon.png";
+import liaIconImage from "@/assets/lia-assistant.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";

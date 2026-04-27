@@ -3,8 +3,10 @@ import { KPICard } from "@/components/dashboard/KPICard";
 import { RevenueChart } from "@/components/dashboard/RevenueChart";
 import { RecentTransactions } from "@/components/dashboard/RecentTransactions";
 import { QuickStats } from "@/components/dashboard/QuickStats";
-import { AlertsPanel } from "@/components/dashboard/AlertsPanel";
 import { useViewMode } from "@/contexts/ViewModeContext";
+import { useData } from "@/contexts/DataContext";
+import { useUserProfile } from "@/contexts/UserProfileContext";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   DollarSign,
   TrendingUp,
@@ -18,6 +20,8 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 const ClientDashboard = () => {
+  const profile = useUserProfile();
+  const { tasks, updateTaskStatus } = useData();
   const recentDocs = [
     { name: "Balancete Mensal - Jan/2026", date: "12 Jan, 2026", type: "Relatório" },
     { name: "Fatura #1234", date: "10 Jan, 2026", type: "Fatura" },
@@ -25,18 +29,12 @@ const ClientDashboard = () => {
     { name: "Nota Fiscal #892", date: "05 Jan, 2026", type: "NF" },
   ];
 
-  const alerts = [
-    { text: "Declaração IRPJ vence em 15 dias", type: "warning" as const },
-    { text: "Fatura #1220 pendente de aprovação", type: "warning" as const },
-    { text: "Documentos de janeiro processados", type: "success" as const },
-  ];
-
   return (
     <div className="space-y-6">
       <div className="animate-fade-in">
         <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
         <p className="text-muted-foreground">
-          Bem-vindo de volta, Claison. Aqui está o resumo da sua empresa.
+          Bem-vindo de volta, {profile.firstName}. Aqui está o resumo da sua empresa.
         </p>
       </div>
 
@@ -90,25 +88,17 @@ const ClientDashboard = () => {
           </div>
         </div>
 
-        {/* Alerts */}
+        {/* Tasks */}
         <div className="glass rounded-2xl p-6 animate-fade-in">
-          <h3 className="text-lg font-semibold mb-4">Avisos Importantes</h3>
+          <h3 className="text-lg font-semibold mb-4">Tarefas da conta</h3>
           <div className="space-y-3">
-            {alerts.map((alert, i) => (
-              <div
-                key={i}
-                className={cn(
-                  "flex items-center gap-3 p-3 rounded-xl border",
-                  alert.type === "warning"
-                    ? "bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800"
-                    : "bg-emerald-50 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800"
-                )}
-              >
-                <AlertCircle className={cn(
-                  "h-5 w-5 shrink-0",
-                  alert.type === "warning" ? "text-amber-500" : "text-emerald-500"
-                )} />
-                <p className="text-sm">{alert.text}</p>
+            {tasks.slice(0, 5).map((task) => (
+              <div key={task.id} className="flex items-start gap-3 p-3 rounded-xl border border-border hover:bg-accent/30 transition-colors">
+                <Checkbox checked={task.status === "completed"} onCheckedChange={(checked) => updateTaskStatus(task.id, checked ? "completed" : "pending")} className="mt-0.5" />
+                <div className="min-w-0 flex-1">
+                  <p className={cn("text-sm font-medium", task.status === "completed" && "line-through text-muted-foreground")}>{task.title}</p>
+                  <p className="text-xs text-muted-foreground truncate">{task.clientName} · vence em {new Date(task.dueDate).toLocaleDateString("pt-BR")}</p>
+                </div>
               </div>
             ))}
           </div>
@@ -139,6 +129,8 @@ const ClientDashboard = () => {
 
 const Index = () => {
   const { viewMode } = useViewMode();
+  const profile = useUserProfile();
+  const { tasks, updateTaskStatus } = useData();
 
   if (viewMode === "client") {
     return (
@@ -154,7 +146,7 @@ const Index = () => {
         <div className="animate-fade-in">
           <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
           <p className="text-muted-foreground">
-            Bem-vindo de volta, John. Aqui está seu panorama financeiro.
+            Bem-vindo de volta, {profile.firstName}. Aqui está seu panorama financeiro.
           </p>
         </div>
 
@@ -193,7 +185,21 @@ const Index = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <RecentTransactions />
-          <AlertsPanel />
+          <div className="glass rounded-2xl p-6 animate-fade-in">
+            <h3 className="text-lg font-semibold mb-4">Tarefas da conta</h3>
+            <div className="space-y-3">
+              {tasks.slice(0, 6).map((task) => (
+                <div key={task.id} className="flex items-start gap-3 p-3 rounded-xl border border-border hover:bg-accent/30 transition-colors">
+                  <Checkbox checked={task.status === "completed"} onCheckedChange={(checked) => updateTaskStatus(task.id, checked ? "completed" : "pending")} className="mt-0.5" />
+                  <div className="min-w-0 flex-1">
+                    <p className={cn("text-sm font-medium", task.status === "completed" && "line-through text-muted-foreground")}>{task.title}</p>
+                    <p className="text-xs text-muted-foreground truncate">{task.clientName} · vence em {new Date(task.dueDate).toLocaleDateString("pt-BR")}</p>
+                  </div>
+                  <Badge variant="outline" className="text-xs shrink-0">{task.category}</Badge>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </DashboardLayout>

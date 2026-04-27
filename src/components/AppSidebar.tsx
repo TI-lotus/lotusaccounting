@@ -42,6 +42,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useViewMode } from "@/contexts/ViewModeContext";
 import { CompanySelector } from "./CompanySelector";
+import { useUserProfile } from "@/contexts/UserProfileContext";
 
 const officeNavItems = [
   { title: "Dashboard", icon: LayoutDashboard, href: "/" },
@@ -67,6 +68,7 @@ const clientNavItems = [
 
 export const AppSidebar = () => {
   const { viewMode, setViewMode, isCollapsed, setIsCollapsed } = useViewMode();
+  const profile = useUserProfile();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -214,7 +216,7 @@ export const AppSidebar = () => {
               <Avatar className="h-9 w-9 shrink-0">
                 <AvatarImage src="" />
                 <AvatarFallback className="bg-gilver text-[hsl(0,0%,9%)] font-medium text-sm">
-                  {viewMode === "office" ? "JD" : "CK"}
+                  {profile.initials}
                 </AvatarFallback>
               </Avatar>
               <div className={cn(
@@ -222,10 +224,10 @@ export const AppSidebar = () => {
                 isCollapsed ? "opacity-0 w-0 overflow-hidden" : "opacity-100"
               )}>
                 <p className="text-sm font-medium truncate text-[hsl(0,0%,90%)]">
-                  {viewMode === "office" ? "John Doe" : "Claison Kepler"}
+                  {profile.fullName}
                 </p>
                 <p className="text-xs text-[hsl(0,0%,55%)] truncate">
-                  {viewMode === "office" ? "john@lotus.com" : "claison@empresa.com"}
+                  {profile.email} · {viewMode === "office" ? profile.cpf : profile.cnpj}
                 </p>
               </div>
               {!isCollapsed && (

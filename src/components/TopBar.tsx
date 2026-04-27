@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { useViewMode } from "@/contexts/ViewModeContext";
@@ -114,17 +115,18 @@ interface TopBarProps {
 }
 
 const notificationGroups = [
-  { label: "Documentos recebidos", icon: FileText, count: 4, detail: "NF-e, DAS e contratos aguardando triagem" },
-  { label: "Vencimentos", icon: CalendarClock, count: 3, detail: "Guias e faturas vencem nos próximos 7 dias" },
-  { label: "Relatórios por e-mail", icon: MailCheck, count: 2, detail: "Relatórios mensais enviados aos clientes" },
-  { label: "Agentes com atenção", icon: Bot, count: 2, detail: "Execuções falharam ou pedem revisão" },
-  { label: "Solicitações de acesso", icon: UserPlus, count: 1, detail: "Colaborador aguardando aprovação" },
-  { label: "Pagamentos recebidos", icon: CreditCard, count: 5, detail: "Novos recebimentos conciliados" },
+  { label: "Documentos recebidos", icon: FileText, items: ["NF-e de Acme Corporation recebida", "DAS de TechStart pronto para revisão"] },
+  { label: "Vencimentos", icon: CalendarClock, items: ["Guia DAS vence em 20 Abr", "Fatura #1231 vence esta semana"] },
+  { label: "Relatórios", icon: MailCheck, items: ["DRE mensal gerado para Março"] },
+  { label: "Agentes", icon: Bot, items: ["Lia aguardando revisão de classificação"] },
+  { label: "Pagamentos Recebidos", icon: CreditCard, items: ["Pagamento de R$ 12.500,00 conciliado"] },
+  { label: "Solicitações de acesso", icon: UserPlus, items: [] },
 ];
 
 export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
   const [query, setQuery] = useState("");
   const [showResults, setShowResults] = useState(false);
+  const [notificationOpen, setNotificationOpen] = useState(false);
   const navigate = useNavigate();
   const { viewMode } = useViewMode();
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -171,10 +173,10 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
 
   return (
     <>
-      {isDropdownVisible && (
+      {(isDropdownVisible || notificationOpen) && (
         <div
           className="search-backdrop"
-          onClick={() => setShowResults(false)}
+          onClick={() => { setShowResults(false); setNotificationOpen(false); }}
         />
       )}
       <header
@@ -266,7 +268,7 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Popover>
+          <Popover open={notificationOpen} onOpenChange={setNotificationOpen}>
             <PopoverTrigger asChild>
               <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-xl hover:bg-accent">
                 <Bell className="h-4 w-4" />
@@ -278,24 +280,38 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
                 <h3 className="font-semibold text-sm">Notificações</h3>
                 <p className="text-xs text-muted-foreground">Avisos separados por área</p>
               </div>
-              <div className="max-h-[420px] overflow-y-auto custom-scroll p-2">
+              <div className="max-h-[420px] overflow-y-auto custom-scroll px-2 pb-2">
+                <Accordion type="multiple" className="space-y-1">
                 {notificationGroups.map((item) => {
                   const Icon = item.icon;
                   return (
-                    <button key={item.label} className="w-full text-left flex items-start gap-3 rounded-xl p-3 hover:bg-accent transition-colors">
-                      <div className="mt-0.5 rounded-xl bg-muted p-2 text-muted-foreground">
-                        <Icon className="h-4 w-4" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2">
+                    <AccordionItem key={item.label} value={item.label} className="border-0">
+                      <AccordionTrigger className="rounded-xl px-3 py-3 hover:bg-accent hover:no-underline">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="rounded-xl bg-muted p-2 text-muted-foreground">
+                            <Icon className="h-4 w-4" />
+                          </div>
                           <p className="text-sm font-medium truncate">{item.label}</p>
-                          <Badge variant="secondary" className="rounded-full">{item.count}</Badge>
+                          <Badge variant="secondary" className="rounded-full">{item.items.length}</Badge>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-0.5">{item.detail}</p>
-                      </div>
-                    </button>
+                      </AccordionTrigger>
+                      <AccordionContent className="px-3 pb-3">
+                        {item.items.length ? (
+                          <div className="space-y-2">
+                            {item.items.map((notification) => (
+                              <div key={notification} className="rounded-xl bg-muted/50 px-3 py-2 text-sm">
+                                {notification}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="rounded-xl bg-muted/50 px-3 py-2 text-sm text-muted-foreground">Não há nada aqui</p>
+                        )}
+                      </AccordionContent>
+                    </AccordionItem>
                   );
                 })}
+                </Accordion>
               </div>
             </PopoverContent>
           </Popover>
