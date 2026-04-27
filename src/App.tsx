@@ -6,6 +6,7 @@ import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom";
 import { ViewModeProvider } from "@/contexts/ViewModeContext";
 import { DataProvider } from "@/contexts/DataContext";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { UserProfileProvider } from "@/contexts/UserProfileContext";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Clients from "./pages/Clients";
@@ -47,7 +48,8 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <ViewModeProvider>
-        <DataProvider>
+        <UserProfileProvider>
+          <DataProvider>
         <TooltipProvider>
           <Toaster />
           <Sonner />
@@ -74,7 +76,8 @@ const App = () => (
             </Routes>
           </BrowserRouter>
         </TooltipProvider>
-        </DataProvider>
+          </DataProvider>
+        </UserProfileProvider>
       </ViewModeProvider>
     </AuthProvider>
   </QueryClientProvider>
