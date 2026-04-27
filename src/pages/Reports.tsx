@@ -2,7 +2,6 @@ import { useState } from "react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { BarChart3, Download, Calendar, TrendingUp, PieChart, DollarSign, FileText, Users, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
