@@ -22,6 +22,7 @@ import { DocumentData, DocumentType } from "@/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { CalendarEventView } from "@/components/CalendarEventView";
 
 const statusColors: Record<string, string> = {
   paid: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400",
@@ -262,13 +263,6 @@ const Documents = () => {
               );
             })}
           </div>
-          {view === "calendar" && (
-            <div className="flex items-center gap-2 rounded-2xl border border-border bg-card p-2">
-              <Input type="date" value={dateRange.start} onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })} className="h-9 w-36 rounded-xl" />
-              <span className="text-sm text-muted-foreground">até</span>
-              <Input type="date" value={dateRange.end} onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })} className="h-9 w-36 rounded-xl" />
-            </div>
-          )}
         </div>
 
         {view === "dashboard" && (
@@ -280,22 +274,12 @@ const Documents = () => {
         )}
 
         {view === "calendar" && (
-          <div className="glass rounded-2xl p-6 animate-fade-in">
-            <h3 className="text-lg font-semibold mb-4">Calendário de documentos</h3>
-            <div className="grid grid-cols-7 gap-2 text-center text-sm">
-              {["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"].map((day) => <div key={day} className="py-2 font-medium text-muted-foreground">{day}</div>)}
-              {Array.from({ length: 35 }, (_, index) => {
-                const day = index + 1;
-                const dayDocs = documents.filter((doc) => doc.date.includes(String(day)));
-                return (
-                  <div key={day} className={cn("min-h-20 rounded-xl border border-border p-2 text-left", dayDocs.length && "bg-accent/30 ring-1 ring-primary")}>
-                    <span className="text-xs font-medium">{day <= 31 ? day : ""}</span>
-                    {dayDocs.slice(0, 1).map((doc) => <p key={doc.id} className="mt-2 truncate text-xs text-muted-foreground">{doc.name}</p>)}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          <CalendarEventView
+            title="Calendário de documentos"
+            dateRange={dateRange}
+            onDateRangeChange={setDateRange}
+            events={documents.map((doc, index) => ({ day: ((index * 2) % 30) + 1, title: doc.name, time: "09:00" }))}
+          />
         )}
 
         {view !== "calendar" && <Tabs value={activeTab} onValueChange={setActiveTab}>

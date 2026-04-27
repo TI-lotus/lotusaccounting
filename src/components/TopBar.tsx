@@ -115,11 +115,11 @@ interface TopBarProps {
 }
 
 const notificationGroups = [
-  { label: "Documentos recebidos", icon: FileText, items: ["NF-e de Acme Corporation recebida", "DAS de TechStart pronto para revisão"] },
-  { label: "Vencimentos", icon: CalendarClock, items: ["Guia DAS vence em 20 Abr", "Fatura #1231 vence esta semana"] },
-  { label: "Relatórios", icon: MailCheck, items: ["DRE mensal gerado para Março"] },
-  { label: "Agentes", icon: Bot, items: ["Lia aguardando revisão de classificação"] },
-  { label: "Pagamentos Recebidos", icon: CreditCard, items: ["Pagamento de R$ 12.500,00 conciliado"] },
+  { label: "Documentos recebidos", icon: FileText, items: [{ label: "NF-e de Acme Corporation recebida", href: "/documents" }, { label: "DAS de TechStart pronto para revisão", href: "/documents" }] },
+  { label: "Vencimentos", icon: CalendarClock, items: [{ label: "Guia DAS vence em 20 Abr", href: "/tasks" }, { label: "Fatura #1231 vence esta semana", href: "/payments" }] },
+  { label: "Relatórios", icon: MailCheck, items: [{ label: "DRE mensal gerado para Março", href: "/reports" }] },
+  { label: "Agentes", icon: Bot, items: [{ label: "Lia aguardando revisão de classificação", href: "/agents" }] },
+  { label: "Pagamentos Recebidos", icon: CreditCard, items: [{ label: "Pagamento de R$ 12.500,00 conciliado", href: "/payments" }] },
   { label: "Solicitações de acesso", icon: UserPlus, items: [] },
 ];
 
@@ -299,14 +299,12 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
                         {item.items.length ? (
                           <div className="space-y-2">
                             {item.items.map((notification) => (
-                              <div key={notification} className="rounded-xl bg-muted/50 px-3 py-2 text-sm">
-                                {notification}
-                              </div>
+                              <button key={notification.label} className="w-full rounded-xl bg-muted/50 px-3 py-2 text-left text-sm transition-colors hover:bg-accent" onClick={() => { navigate(notification.href); setNotificationOpen(false); }}>
+                                {notification.label}
+                              </button>
                             ))}
                           </div>
-                        ) : (
-                          <p className="rounded-xl bg-muted/50 px-3 py-2 text-sm text-muted-foreground">Não há nada aqui</p>
-                        )}
+                        ) : null}
                       </AccordionContent>
                     </AccordionItem>
                   );

@@ -9,6 +9,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { LotusLogo } from "@/components/LotusLogo";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import googleLogo from "@/assets/google-logo.png";
+import metaLogo from "@/assets/meta-logo.png";
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -103,9 +105,11 @@ const Auth = () => {
             </Button>
             <div className="grid grid-cols-2 gap-2">
               <Button type="button" variant="outline" className="rounded-2xl" onClick={() => handleProviderLogin("google")}>
+                <img src={googleLogo} alt="" className="h-4 w-4 object-contain" />
                 Google
               </Button>
               <Button type="button" variant="outline" className="rounded-2xl" onClick={() => handleProviderLogin("facebook")}>
+                <img src={metaLogo} alt="" className="h-4 w-4 object-contain" />
                 Facebook
               </Button>
             </div>

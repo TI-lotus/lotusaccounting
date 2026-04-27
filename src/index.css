@@ -211,9 +211,9 @@
     scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
   }
 
-  /* Search backdrop blur */
+  /* Search and modal backdrop */
   .search-backdrop {
-    @apply fixed inset-0 bg-background/60 backdrop-blur-sm z-40;
+    @apply fixed inset-0 bg-background/70 z-40;
   }
 }
 

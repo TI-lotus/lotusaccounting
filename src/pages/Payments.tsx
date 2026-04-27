@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { CalendarEventView } from "@/components/CalendarEventView";
 
 interface Payment {
   id: number;
@@ -196,13 +197,6 @@ const Payments = () => {
               );
             })}
           </div>
-          {view === "calendar" && (
-            <div className="flex items-center gap-2 rounded-2xl border border-border bg-card p-2">
-              <Input type="date" value={dateRange.start} onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })} className="h-9 w-36 rounded-xl" />
-              <span className="text-sm text-muted-foreground">até</span>
-              <Input type="date" value={dateRange.end} onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })} className="h-9 w-36 rounded-xl" />
-            </div>
-          )}
         </div>
 
         {view === "dashboard" && <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -248,23 +242,12 @@ const Payments = () => {
         </div>}
 
         {view === "calendar" && (
-          <div className="glass rounded-2xl p-6 animate-fade-in">
-            <h3 className="text-lg font-semibold mb-4">Calendário financeiro</h3>
-            <div className="grid grid-cols-7 gap-2 text-center text-sm">
-              {["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"].map((day) => <div key={day} className="text-muted-foreground font-medium py-2">{day}</div>)}
-              {Array.from({ length: 35 }, (_, index) => {
-                const day = index + 1;
-                const hasPayment = [2, 3, 5, 9, 10, 11, 12].includes(day);
-                const isRange = day >= 1 && day <= 31;
-                return (
-                  <div key={day} className={cn("min-h-20 rounded-xl border border-border p-2 text-left", isRange && "bg-accent/20", hasPayment && "ring-1 ring-primary")}> 
-                    <span className="text-xs font-medium">{day <= 31 ? day : ""}</span>
-                    {hasPayment && <p className="mt-2 truncate text-xs text-muted-foreground">Pagamento</p>}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          <CalendarEventView
+            title="Calendário financeiro"
+            dateRange={dateRange}
+            onDateRangeChange={setDateRange}
+            events={[2, 3, 5, 9, 10, 11, 12].map((day) => ({ day, title: "Pagamento", time: "09:00" }))}
+          />
         )}
 
         {view === "list" && <div className="glass rounded-2xl p-6 animate-fade-in">
