@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
-import { CreditCard, Plus, ArrowUpRight, ArrowDownLeft, Filter, Calendar } from "lucide-react";
+import { CreditCard, Plus, ArrowUpRight, ArrowDownLeft, Calendar, LayoutDashboard, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -48,6 +48,8 @@ const initialPayments: Payment[] = [
 const Payments = () => {
   const [payments, setPayments] = useState<Payment[]>(initialPayments);
   const [filter, setFilter] = useState<"all" | "income" | "expense">("all");
+  const [view, setView] = useState<"dashboard" | "list" | "calendar">("dashboard");
+  const [dateRange, setDateRange] = useState({ start: "2026-01-01", end: "2026-01-31" });
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newPayment, setNewPayment] = useState({
     description: "",
@@ -178,7 +180,32 @@ const Payments = () => {
           </Dialog>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 animate-fade-in">
+          <div className="flex rounded-2xl border border-border bg-card p-1">
+            {[
+              { value: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+              { value: "list", label: "Lista", icon: List },
+              { value: "calendar", label: "Calendário", icon: Calendar },
+            ].map((item) => {
+              const Icon = item.icon;
+              return (
+                <Button key={item.value} variant={view === item.value ? "default" : "ghost"} size="sm" className="rounded-xl" onClick={() => setView(item.value as typeof view)}>
+                  <Icon className="h-4 w-4" />
+                  {item.label}
+                </Button>
+              );
+            })}
+          </div>
+          {view === "calendar" && (
+            <div className="flex items-center gap-2 rounded-2xl border border-border bg-card p-2">
+              <Input type="date" value={dateRange.start} onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })} className="h-9 w-36 rounded-xl" />
+              <span className="text-sm text-muted-foreground">até</span>
+              <Input type="date" value={dateRange.end} onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })} className="h-9 w-36 rounded-xl" />
+            </div>
+          )}
+        </div>
+
+        {view === "dashboard" && <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="kpi-card animate-fade-in cursor-pointer hover:ring-2 ring-accent transition-all" onClick={() => setFilter("income")}>
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-xl bg-emerald-100 dark:bg-emerald-950">
@@ -218,9 +245,29 @@ const Payments = () => {
               </div>
             </div>
           </div>
-        </div>
+        </div>}
 
-        <div className="glass rounded-2xl p-6 animate-fade-in">
+        {view === "calendar" && (
+          <div className="glass rounded-2xl p-6 animate-fade-in">
+            <h3 className="text-lg font-semibold mb-4">Calendário financeiro</h3>
+            <div className="grid grid-cols-7 gap-2 text-center text-sm">
+              {["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"].map((day) => <div key={day} className="text-muted-foreground font-medium py-2">{day}</div>)}
+              {Array.from({ length: 35 }, (_, index) => {
+                const day = index + 1;
+                const hasPayment = [2, 3, 5, 9, 10, 11, 12].includes(day);
+                const isRange = day >= 1 && day <= 31;
+                return (
+                  <div key={day} className={cn("min-h-20 rounded-xl border border-border p-2 text-left", isRange && "bg-accent/20", hasPayment && "ring-1 ring-primary")}> 
+                    <span className="text-xs font-medium">{day <= 31 ? day : ""}</span>
+                    {hasPayment && <p className="mt-2 truncate text-xs text-muted-foreground">Pagamento</p>}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {view === "list" && <div className="glass rounded-2xl p-6 animate-fade-in">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold">Pagamentos Recentes</h3>
             <div className="flex gap-2">
@@ -296,7 +343,7 @@ const Payments = () => {
               </div>
             ))}
           </div>
-        </div>
+        </div>}
       </div>
     </DashboardLayout>
   );
