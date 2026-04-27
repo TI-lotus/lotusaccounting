@@ -34,7 +34,7 @@ const ClientDashboard = () => {
       <div className="animate-fade-in">
         <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
         <p className="text-muted-foreground">
-          Bem-vindo de volta, Claison. Aqui está o resumo da sua empresa.
+          Bem-vindo de volta, {profile.firstName}. Aqui está o resumo da sua empresa.
         </p>
       </div>
 
@@ -146,7 +146,7 @@ const Index = () => {
         <div className="animate-fade-in">
           <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
           <p className="text-muted-foreground">
-            Bem-vindo de volta, John. Aqui está seu panorama financeiro.
+            Bem-vindo de volta, {profile.firstName}. Aqui está seu panorama financeiro.
           </p>
         </div>
 
