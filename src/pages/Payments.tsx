@@ -23,7 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { CalendarEventView, CalendarRangeControls } from "@/components/CalendarEventView";
+import { CalendarEventView } from "@/components/CalendarEventView";
 
 interface Payment {
   id: number;
@@ -197,9 +197,6 @@ const Payments = () => {
               );
             })}
           </div>
-          {view === "calendar" && (
-            <CalendarRangeControls dateRange={dateRange} onDateRangeChange={setDateRange} />
-          )}
         </div>
 
         {view === "dashboard" && <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
