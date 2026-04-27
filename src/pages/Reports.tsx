@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { RevenueChart } from "@/components/dashboard/RevenueChart";
 import { QuickStats } from "@/components/dashboard/QuickStats";
+import { CalendarEventView } from "@/components/CalendarEventView";
 
 const reports = [
   { id: 1, name: "DRE Mensal", period: "Março 2026", type: "Financeiro", generated: "01 Abr, 2026" },
@@ -52,32 +53,15 @@ const Reports = () => {
               <Calendar className="h-4 w-4" /> Calendário
             </Button>
           </div>
-          {view === "calendar" && (
-            <div className="flex items-center gap-2 rounded-2xl border border-border bg-card p-2">
-              <Input type="date" value={dateRange.start} onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })} className="h-9 w-36 rounded-xl" />
-              <span className="text-sm text-muted-foreground">até</span>
-              <Input type="date" value={dateRange.end} onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })} className="h-9 w-36 rounded-xl" />
-            </div>
-          )}
         </div>
 
         {view === "calendar" && (
-          <div className="glass rounded-2xl p-6 animate-fade-in">
-            <h3 className="text-lg font-semibold mb-4">Calendário de relatórios</h3>
-            <div className="grid grid-cols-7 gap-2 text-center text-sm">
-              {["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"].map((day) => <div key={day} className="py-2 font-medium text-muted-foreground">{day}</div>)}
-              {Array.from({ length: 35 }, (_, index) => {
-                const day = index + 1;
-                const report = reports.find((item) => item.generated.startsWith(String(day).padStart(2, "0")) || item.generated.startsWith(String(day)));
-                return (
-                  <div key={day} className={`min-h-20 rounded-xl border border-border p-2 text-left ${report ? "bg-accent/30 ring-1 ring-primary" : ""}`}>
-                    <span className="text-xs font-medium">{day <= 31 ? day : ""}</span>
-                    {report && <p className="mt-2 truncate text-xs text-muted-foreground">{report.name}</p>}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          <CalendarEventView
+            title="Calendário de relatórios"
+            dateRange={dateRange}
+            onDateRangeChange={setDateRange}
+            events={reports.map((report, index) => ({ day: index + 1, title: report.name, time: "10:00" }))}
+          />
         )}
 
         {view === "dashboard" && <>
