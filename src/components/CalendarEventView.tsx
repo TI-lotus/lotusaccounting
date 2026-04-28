@@ -13,6 +13,9 @@ export interface CalendarEventItem {
   day: number;
   title: string;
   time?: string;
+  subtitle?: string;
+  amount?: string;
+  status?: string;
 }
 
 interface CalendarEventViewProps {
@@ -94,8 +97,17 @@ export const CalendarEventView = ({ title, events, dateRange, onDateRangeChange 
           <div className="space-y-2 py-2 text-sm">
             {selectedEvents.map((event) => (
               <div key={`${event.title}-${event.time}`} className="rounded-xl border border-border p-3">
-                <p className="font-medium">{event.title}</p>
-                {event.time && <p className="text-xs text-muted-foreground">{event.time}</p>}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-medium truncate">{event.title}</p>
+                    {event.subtitle && <p className="text-xs text-muted-foreground">{event.subtitle}</p>}
+                    {event.time && <p className="text-xs text-muted-foreground">{event.time}</p>}
+                  </div>
+                  <div className="text-right text-xs shrink-0">
+                    {event.amount && <p className="font-semibold">{event.amount}</p>}
+                    {event.status && <p className="text-muted-foreground">{event.status}</p>}
+                  </div>
+                </div>
               </div>
             ))}
           </div>

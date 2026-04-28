@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { DragEvent } from "react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
@@ -96,6 +97,22 @@ export default function Agents() {
   const [editForm, setEditForm] = useState({ name: "", description: "", schedule: "", maxRetries: 3 });
   const [execFilter, setExecFilter] = useState<string>("all");
   const [execStatusFilter, setExecStatusFilter] = useState<string>("all");
+  const [workflowNodes, setWorkflowNodes] = useState([
+    { id: "input", label: "Entrada", x: 10, y: 45 },
+    { id: "agent", label: "Agente IA", x: 35, y: 25 },
+    { id: "validation", label: "Validação", x: 60, y: 45 },
+    { id: "action", label: "Ação final", x: 85, y: 65 },
+  ]);
+  const [selectedWorkflowNode, setSelectedWorkflowNode] = useState<string | null>(null);
+
+  const handleWorkflowDrop = (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    const nodeId = event.dataTransfer.getData("node-id");
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = Math.min(92, Math.max(8, ((event.clientX - rect.left) / rect.width) * 100));
+    const y = Math.min(88, Math.max(12, ((event.clientY - rect.top) / rect.height) * 100));
+    setWorkflowNodes((nodes) => nodes.map((node) => node.id === nodeId ? { ...node, x, y } : node));
+  };
 
   const toggleAgent = (id: string) => {
     setAgents((prev) =>
@@ -162,6 +179,7 @@ export default function Agents() {
         <Tabs defaultValue="agents">
           <TabsList>
             <TabsTrigger value="agents" className="gap-2"><Zap className="h-4 w-4" />Agentes</TabsTrigger>
+            <TabsTrigger value="workflow" className="gap-2"><FileSearch className="h-4 w-4" />Workflow</TabsTrigger>
             <TabsTrigger value="executions" className="gap-2"><Play className="h-4 w-4" />Execuções</TabsTrigger>
           </TabsList>
 
@@ -217,6 +235,27 @@ export default function Agents() {
                 </div>
               </div>
             ))}
+          </TabsContent>
+
+          <TabsContent value="workflow" className="mt-6 space-y-4">
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" className="rounded-xl gap-2"><FileCheck className="h-4 w-4" />Salvar alterações</Button>
+              <Button className="rounded-xl gap-2"><Play className="h-4 w-4" />Executar workflow</Button>
+            </div>
+            <div className="relative h-[460px] rounded-2xl border border-border bg-card overflow-hidden" onDragOver={(event) => event.preventDefault()} onDrop={handleWorkflowDrop} style={{ backgroundImage: "radial-gradient(hsl(var(--muted-foreground) / 0.25) 1px, transparent 1px)", backgroundSize: "18px 18px" }}>
+              <svg className="absolute inset-0 h-full w-full" aria-hidden="true">
+                {workflowNodes.slice(0, -1).map((node, index) => {
+                  const next = workflowNodes[index + 1];
+                  return <line key={node.id} x1={`${node.x}%`} y1={`${node.y}%`} x2={`${next.x}%`} y2={`${next.y}%`} stroke="hsl(var(--primary))" strokeWidth="2" strokeDasharray="6 6" />;
+                })}
+              </svg>
+              {workflowNodes.map((node) => (
+                <button key={node.id} draggable onDragStart={(event) => event.dataTransfer.setData("node-id", node.id)} onClick={() => setSelectedWorkflowNode(node.label)} className="absolute w-36 -translate-x-1/2 -translate-y-1/2 cursor-grab rounded-xl border border-border bg-background p-4 text-left shadow-soft hover:ring-2 hover:ring-primary active:cursor-grabbing" style={{ left: `${node.x}%`, top: `${node.y}%` }}>
+                  <p className="font-medium text-sm">{node.label}</p>
+                  <p className="text-xs text-muted-foreground mt-1">Arraste para mover</p>
+                </button>
+              ))}
+            </div>
           </TabsContent>
 
           <TabsContent value="executions" className="mt-6 space-y-4">
@@ -349,6 +388,16 @@ export default function Agents() {
                 </div>
               </div>
               <Button onClick={saveEdit} className="w-full">Salvar Alterações</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+        <Dialog open={!!selectedWorkflowNode} onOpenChange={(open) => !open && setSelectedWorkflowNode(null)}>
+          <DialogContent className="rounded-2xl">
+            <DialogHeader><DialogTitle>{selectedWorkflowNode}</DialogTitle></DialogHeader>
+            <div className="space-y-4 pt-2">
+              <div className="space-y-2"><Label>Nome do node</Label><Input defaultValue={selectedWorkflowNode ?? ""} className="rounded-xl" /></div>
+              <div className="space-y-2"><Label>Ação do agente</Label><Textarea defaultValue={'Analisar entrada e executar próxima etapa com validação.'} className="rounded-xl" /></div>
+              <Button className="w-full rounded-xl" onClick={() => setSelectedWorkflowNode(null)}>Salvar node</Button>
             </div>
           </DialogContent>
         </Dialog>

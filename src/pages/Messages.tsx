@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
-import { MessageSquare, Send, Search, Phone, Video, MoreVertical, Paperclip, Bot, Building2, Users, Image, FileText, Sheet, FileType, PanelLeftClose, PanelLeftOpen, Mail, Instagram } from "lucide-react";
+import { MessageSquare, Send, Search, Phone, Video, MoreVertical, Paperclip, Bot, Building2, Users, Image, FileText, Sheet, FileType, PanelLeftClose, PanelLeftOpen, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -143,7 +143,15 @@ const Messages = () => {
             <Button variant="ghost" size="icon" className="mb-2 rounded-xl" onClick={() => setListCollapsed(!listCollapsed)}>
               {listCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
             </Button>
-            {!listCollapsed && <>
+            {listCollapsed ? (
+              <div className="flex flex-col items-center gap-2">
+                <Button variant="ghost" size="icon" className="rounded-xl"><Search className="h-4 w-4" /></Button>
+                {availableRoles.map(role => {
+                  const Icon = roleConfig[role].icon;
+                  return <Button key={role} variant={activeRoleFilter === role ? "default" : "ghost"} size="icon" className="rounded-xl" onClick={() => setActiveRoleFilter(role)}><Icon className="h-4 w-4" /></Button>;
+                })}
+              </div>
+            ) : <>
             <div className="relative mb-3">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Buscar mensagens..." className="pl-10 rounded-xl" />
@@ -277,15 +285,29 @@ const Messages = () => {
                   </div>
                 </div>
                 <Dialog open={contactOpen} onOpenChange={setContactOpen}>
-                  <DialogContent className="sm:max-w-[420px] rounded-2xl">
-                    <DialogHeader><DialogTitle>{currentConversation.name}</DialogTitle></DialogHeader>
-                    <div className="space-y-3 text-sm">
-                      {[{ icon: Phone, label: "WhatsApp", value: currentConversation.phone ?? "(11) 99999-0000" }, { icon: Phone, label: "Telefone fixo", value: "(11) 3000-0000" }, { icon: Instagram, label: "Instagram", value: "@lotus.contabil" }, { icon: Mail, label: "Email", value: currentConversation.email ?? "contato@lotus.com" }, { icon: Send, label: "Telegram", value: "@lotuscontabil" }].map((item) => (
-                        <div key={item.label} className="flex items-center gap-3 rounded-xl border border-border p-3">
-                          <item.icon className="h-4 w-4 text-muted-foreground" />
-                          <div><p className="font-medium">{item.label}</p><p className="text-muted-foreground">{item.value}</p></div>
-                        </div>
-                      ))}
+                  <DialogContent className="overflow-hidden p-0 sm:max-w-[460px] rounded-2xl">
+                    <div className="h-32 bg-accent" />
+                    <div className="px-6 pb-6 text-center">
+                      <Avatar className="mx-auto -mt-12 h-24 w-24 border-4 border-background">
+                        <AvatarFallback className="text-xl bg-gilver/20 text-gilver">
+                          {currentConversation.chatRole === "ai" ? <Bot className="h-8 w-8" /> : currentConversation.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <DialogHeader className="mt-3"><DialogTitle className="text-center">{currentConversation.name}</DialogTitle></DialogHeader>
+                      <p className="text-sm text-muted-foreground">{currentConversation.phone ?? "(11) 99999-0000"}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{currentConversation.online ? "Online agora" : `Visto por último ${currentConversation.time}`}</p>
+                      <div className="mt-5 grid grid-cols-4 gap-2">
+                        {[{ icon: Phone, label: "WhatsApp" }, { icon: Mail, label: "Email" }, { icon: Phone, label: "Ligação" }, { icon: Send, label: "Telegram" }].map((item) => (
+                          <Button key={item.label} variant="outline" className="h-20 flex-col rounded-xl gap-2">
+                            <item.icon className="h-5 w-5" />
+                            <span className="text-xs">{item.label}</span>
+                          </Button>
+                        ))}
+                      </div>
+                      <div className="mt-5 space-y-2 text-left text-sm">
+                        <div className="rounded-xl border border-border p-3"><p className="text-xs text-muted-foreground">Email</p><p>{currentConversation.email ?? "contato@lotus.com"}</p></div>
+                        <div className="rounded-xl border border-border p-3"><p className="text-xs text-muted-foreground">Telegram</p><p>@lotuscontabil</p></div>
+                      </div>
                     </div>
                   </DialogContent>
                 </Dialog>

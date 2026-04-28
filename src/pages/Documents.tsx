@@ -278,7 +278,14 @@ const Documents = () => {
             title="Calendário de documentos"
             dateRange={dateRange}
             onDateRangeChange={setDateRange}
-            events={documents.map((doc, index) => ({ day: ((index * 2) % 30) + 1, title: doc.name, time: "09:00" }))}
+            events={documents.map((doc, index) => ({
+              day: ((index * 2) % 30) + 1,
+              title: doc.name,
+              subtitle: `${doc.clientName ?? "Sem cliente"} • ${documentTypeLabels[doc.documentType]}`,
+              time: "09:00",
+              amount: doc.amount ? `R$ ${doc.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : undefined,
+              status: statusLabels[doc.status] || doc.status,
+            }))}
           />
         )}
 

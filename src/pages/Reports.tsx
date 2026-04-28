@@ -59,7 +59,13 @@ const Reports = () => {
             title="Calendário de relatórios"
             dateRange={dateRange}
             onDateRangeChange={setDateRange}
-            events={reports.map((report, index) => ({ day: index + 1, title: report.name, time: "10:00" }))}
+            events={reports.map((report, index) => ({
+              day: index + 1,
+              title: report.name,
+              subtitle: `${report.period} • ${report.type}`,
+              time: "10:00",
+              status: `Gerado em ${report.generated}`,
+            }))}
           />
         )}
 

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { useNavigate } from "react-router-dom";
-import { Users, Plus, Search, MoreHorizontal, Mail, Phone, Edit, Trash2, Eye } from "lucide-react";
+import { Users, Plus, Search, MoreHorizontal, Mail, Edit, Trash2, Eye, Grid2X2, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -33,6 +33,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useData } from "@/contexts/DataContext";
 import { ClientData } from "@/types";
+import { cn } from "@/lib/utils";
 
 const taxRegimeLabels: Record<string, string> = {
   simples_nacional: "Simples Nacional",
@@ -45,16 +46,24 @@ const Clients = () => {
   const navigate = useNavigate();
   const { clients, addClient, updateClient, deleteClient } = useData();
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortBy, setSortBy] = useState("fee-desc");
+  const [feeRange, setFeeRange] = useState({ min: "", max: "" });
+  const [contractSort, setContractSort] = useState("contract-desc");
   const [sizeFilter, setSizeFilter] = useState("all");
   const [responsibleFilter, setResponsibleFilter] = useState("all");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newClient, setNewClient] = useState({
     name: "", email: "", phone: "", cnpj: "", taxRegime: "simples_nacional" as ClientData["taxRegime"],
     serviceFee: "", city: "", state: "",
   });
 
-  const getClientSize = (fee: number) => fee >= 3000 ? "Grande" : fee >= 1500 ? "Médio" : "Pequeno";
+  const getClientSize = (client: ClientData) => {
+    if (client.taxRegime === "mei") return "MEI";
+    if (client.serviceFee >= 5000) return "Grande porte";
+    if (client.serviceFee >= 3000) return "Médio porte";
+    if (client.serviceFee >= 1500) return "EPP";
+    return "ME";
+  };
   const responsibles = Array.from(new Set(clients.map((client) => client.responsibleUserName)));
 
   const filteredClients = clients.filter((client) => {
@@ -62,13 +71,14 @@ const Clients = () => {
       client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       client.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       client.cnpj.includes(searchTerm);
-    const matchesSize = sizeFilter === "all" || getClientSize(client.serviceFee) === sizeFilter;
+    const minFee = feeRange.min ? Number(feeRange.min) : null;
+    const maxFee = feeRange.max ? Number(feeRange.max) : null;
+    const matchesFee = (minFee === null || client.serviceFee >= minFee) && (maxFee === null || client.serviceFee <= maxFee);
+    const matchesSize = sizeFilter === "all" || getClientSize(client) === sizeFilter;
     const matchesResponsible = responsibleFilter === "all" || client.responsibleUserName === responsibleFilter;
-    return matchesSearch && matchesSize && matchesResponsible;
+    return matchesSearch && matchesFee && matchesSize && matchesResponsible;
   }).sort((a, b) => {
-    if (sortBy === "fee-asc") return a.serviceFee - b.serviceFee;
-    if (sortBy === "fee-desc") return b.serviceFee - a.serviceFee;
-    if (sortBy === "contract-asc") return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    if (contractSort === "contract-asc") return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
 
@@ -189,18 +199,28 @@ const Clients = () => {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Buscar por nome, email ou CNPJ..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10 rounded-xl" />
             </div>
-            <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-[190px] rounded-xl"><SelectValue /></SelectTrigger>
+            <div className="flex items-center gap-2 rounded-xl border border-input bg-background px-2 py-1">
+              <span className="text-xs text-muted-foreground">Honorários</span>
+              <Input inputMode="numeric" pattern="[0-9]*" value={feeRange.min} onChange={(e) => setFeeRange({ ...feeRange, min: e.target.value.replace(/\D/g, "") })} placeholder="Mín." className="h-8 w-20 rounded-lg" />
+              <Input inputMode="numeric" pattern="[0-9]*" value={feeRange.max} onChange={(e) => setFeeRange({ ...feeRange, max: e.target.value.replace(/\D/g, "") })} placeholder="Máx." className="h-8 w-20 rounded-lg" />
+            </div>
+            <Select value={sizeFilter} onValueChange={setSizeFilter}>
+              <SelectTrigger className="w-[170px] rounded-xl"><SelectValue placeholder="Porte" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="fee-desc">Honorários maiores</SelectItem>
-                <SelectItem value="fee-asc">Honorários menores</SelectItem>
+                <SelectItem value="all">Todos portes</SelectItem>
+                <SelectItem value="MEI">MEI</SelectItem>
+                <SelectItem value="ME">ME</SelectItem>
+                <SelectItem value="EPP">EPP</SelectItem>
+                <SelectItem value="Médio porte">Médio porte</SelectItem>
+                <SelectItem value="Grande porte">Grande porte</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={contractSort} onValueChange={setContractSort}>
+              <SelectTrigger className="w-[180px] rounded-xl"><SelectValue /></SelectTrigger>
+              <SelectContent>
                 <SelectItem value="contract-desc">Contrato mais novo</SelectItem>
                 <SelectItem value="contract-asc">Contrato mais antigo</SelectItem>
               </SelectContent>
-            </Select>
-            <Select value={sizeFilter} onValueChange={setSizeFilter}>
-              <SelectTrigger className="w-[150px] rounded-xl"><SelectValue placeholder="Porte" /></SelectTrigger>
-              <SelectContent><SelectItem value="all">Todos portes</SelectItem><SelectItem value="Grande">Grande</SelectItem><SelectItem value="Médio">Médio</SelectItem><SelectItem value="Pequeno">Pequeno</SelectItem></SelectContent>
             </Select>
             <Select value={responsibleFilter} onValueChange={setResponsibleFilter}>
               <SelectTrigger className="w-[190px] rounded-xl"><SelectValue placeholder="Responsável" /></SelectTrigger>
@@ -209,13 +229,17 @@ const Clients = () => {
             <Badge variant="secondary" className="px-3 py-1.5">
               {filteredClients.length} clientes
             </Badge>
+            <div className="ml-auto flex rounded-xl border border-border bg-card p-1">
+              <Button variant={viewMode === "grid" ? "default" : "ghost"} size="sm" className="rounded-lg" onClick={() => setViewMode("grid")}><Grid2X2 className="h-4 w-4" />Grade</Button>
+              <Button variant={viewMode === "list" ? "default" : "ghost"} size="sm" className="rounded-lg" onClick={() => setViewMode("list")}><List className="h-4 w-4" />Lista</Button>
+            </div>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <div className={cn("grid gap-4", viewMode === "grid" ? "sm:grid-cols-2 xl:grid-cols-3" : "grid-cols-1")}>
             {filteredClients.map((client, index) => (
               <div
                 key={client.id}
-                className="aspect-square rounded-2xl border border-border p-5 hover:bg-accent/40 transition-colors flex flex-col"
+                className={cn("rounded-2xl border border-border p-5 hover:bg-accent/40 transition-colors flex", viewMode === "grid" ? "aspect-square flex-col" : "items-center gap-4")}
                 style={{ animationDelay: `${index * 50}ms` }}
               >
                 <div className="flex items-start justify-between gap-3">
@@ -238,7 +262,7 @@ const Clients = () => {
                   <div className="flex flex-wrap items-center gap-2 mt-3">
                     <Badge variant="outline" className="text-xs">{client.cnpj}</Badge>
                     <Badge variant="outline" className="text-xs">{taxRegimeLabels[client.taxRegime]}</Badge>
-                    <Badge variant="outline" className="text-xs">{getClientSize(client.serviceFee)}</Badge>
+                    <Badge variant="outline" className="text-xs">{getClientSize(client)}</Badge>
                   </div>
                   <p className="text-xs text-muted-foreground mt-3">Responsável: {client.responsibleUserName}</p>
                   <p className="text-xs text-muted-foreground">Desde {new Date(client.createdAt).toLocaleDateString("pt-BR")}</p>

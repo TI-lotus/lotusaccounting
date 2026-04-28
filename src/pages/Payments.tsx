@@ -49,7 +49,8 @@ const initialPayments: Payment[] = [
 const Payments = () => {
   const [payments, setPayments] = useState<Payment[]>(initialPayments);
   const [filter, setFilter] = useState<"all" | "income" | "expense">("all");
-  const [sortBy, setSortBy] = useState<"newest" | "oldest" | "asc" | "desc">("newest");
+  const [valueSort, setValueSort] = useState<"none" | "asc" | "desc">("none");
+  const [dateSort, setDateSort] = useState<"newest" | "oldest">("newest");
   const [view, setView] = useState<"dashboard" | "list" | "calendar">("dashboard");
   const [dateRange, setDateRange] = useState({ start: "2026-01-01", end: "2026-01-31" });
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -64,9 +65,9 @@ const Payments = () => {
     if (filter === "all") return true;
     return p.type === filter;
   }).sort((a, b) => {
-    if (sortBy === "asc") return a.amount - b.amount;
-    if (sortBy === "desc") return b.amount - a.amount;
-    return sortBy === "newest" ? b.id - a.id : a.id - b.id;
+    if (valueSort === "asc") return a.amount - b.amount;
+    if (valueSort === "desc") return b.amount - a.amount;
+    return dateSort === "newest" ? b.id - a.id : a.id - b.id;
   });
 
   const totalIncome = payments.filter((p) => p.type === "income").reduce((sum, p) => sum + p.amount, 0);
@@ -251,7 +252,14 @@ const Payments = () => {
             title="Calendário financeiro"
             dateRange={dateRange}
             onDateRangeChange={setDateRange}
-            events={[2, 3, 5, 9, 10, 11, 12].map((day) => ({ day, title: "Pagamento", time: "09:00" }))}
+            events={payments.map((payment, index) => ({
+              day: ((index * 2) % 30) + 1,
+              title: payment.description,
+              subtitle: payment.category,
+              time: "09:00",
+              amount: `${payment.type === "income" ? "+" : "-"}R$ ${payment.amount.toLocaleString("pt-BR")}`,
+              status: payment.status === "completed" ? "Concluído" : "Pendente",
+            }))}
           />
         )}
 
@@ -259,13 +267,19 @@ const Payments = () => {
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold">Pagamentos Recentes</h3>
             <div className="flex gap-2">
-              <Select value={sortBy} onValueChange={(value: typeof sortBy) => setSortBy(value)}>
+              <Select value={valueSort} onValueChange={(value: typeof valueSort) => setValueSort(value)}>
                 <SelectTrigger className="h-9 w-[170px] rounded-lg"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Valor</SelectItem>
+                  <SelectItem value="desc">Maior valor</SelectItem>
+                  <SelectItem value="asc">Menor valor</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={dateSort} onValueChange={(value: typeof dateSort) => setDateSort(value)}>
+                <SelectTrigger className="h-9 w-[150px] rounded-lg"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="newest">Mais novo</SelectItem>
                   <SelectItem value="oldest">Mais antigo</SelectItem>
-                  <SelectItem value="asc">Crescente</SelectItem>
-                  <SelectItem value="desc">Decrescente</SelectItem>
                 </SelectContent>
               </Select>
               <Button
