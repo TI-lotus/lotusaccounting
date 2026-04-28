@@ -33,6 +33,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useData } from "@/contexts/DataContext";
 import { ClientData } from "@/types";
+import { cn } from "@/lib/utils";
 
 const taxRegimeLabels: Record<string, string> = {
   simples_nacional: "Simples Nacional",
