@@ -5,6 +5,7 @@ type UserProfileState = {
   lastName: string;
   email: string;
   cpf: string;
+  avatarUrl: string;
   companyName: string;
   cnpj: string;
 };
@@ -20,6 +21,7 @@ const defaultProfile: UserProfileState = {
   lastName: "Doe",
   email: "john@lotus.com",
   cpf: "123.456.789-00",
+  avatarUrl: "",
   companyName: "Lotus Serviços Financeiros",
   cnpj: "12.345.678/0001-90",
 };

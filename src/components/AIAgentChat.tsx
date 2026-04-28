@@ -179,11 +179,11 @@ export const AIAgentChat = ({ open, onClose, initialMessage, onInitialMessageHan
               <div className={cn(
                 "shrink-0 w-8 h-8 rounded-full flex items-center justify-center",
                 message.role === "assistant" 
-                  ? "bg-accent" 
+                  ? "bg-accent overflow-hidden" 
                   : "bg-primary"
               )}>
                 {message.role === "assistant" ? (
-                  <img src={liaIconImage} alt="Lia" className="h-4 w-4" />
+                  <img src={liaIconImage} alt="Lia" className="h-full w-full object-cover" />
                 ) : (
                   <User className="h-4 w-4 text-primary-foreground" />
                 )}
@@ -191,7 +191,7 @@ export const AIAgentChat = ({ open, onClose, initialMessage, onInitialMessageHan
               <div className={cn(
                 "max-w-[80%] rounded-2xl px-4 py-2.5 text-sm",
                 message.role === "assistant"
-                  ? "bg-accent/50 text-foreground rounded-tl-md"
+                  ? "bg-[hsl(0,0%,7%)] text-[hsl(0,0%,98%)] dark:bg-[hsl(0,0%,98%)] dark:text-[hsl(0,0%,7%)] rounded-tl-md"
                   : "bg-primary text-primary-foreground rounded-tr-md"
               )}>
                 {message.content}
@@ -200,14 +200,14 @@ export const AIAgentChat = ({ open, onClose, initialMessage, onInitialMessageHan
           ))}
           {isTyping && (
             <div className="flex gap-3">
-              <div className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-accent">
-                <img src={liaIconImage} alt="Lia" className="h-4 w-4" />
+              <div className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-accent overflow-hidden">
+                <img src={liaIconImage} alt="Lia" className="h-full w-full object-cover" />
               </div>
-              <div className="bg-accent/50 rounded-2xl rounded-tl-md px-4 py-3">
+              <div className="bg-[hsl(0,0%,7%)] dark:bg-[hsl(0,0%,98%)] rounded-2xl rounded-tl-md px-4 py-3">
                 <div className="flex gap-1">
-                  <span className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-pulse" />
-                  <span className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-pulse" style={{ animationDelay: "150ms" }} />
-                  <span className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-pulse" style={{ animationDelay: "300ms" }} />
+                  <span className="w-2 h-2 bg-[hsl(0,0%,98%)]/60 dark:bg-[hsl(0,0%,7%)]/60 rounded-full animate-pulse" />
+                  <span className="w-2 h-2 bg-[hsl(0,0%,98%)]/60 dark:bg-[hsl(0,0%,7%)]/60 rounded-full animate-pulse" style={{ animationDelay: "150ms" }} />
+                  <span className="w-2 h-2 bg-[hsl(0,0%,98%)]/60 dark:bg-[hsl(0,0%,7%)]/60 rounded-full animate-pulse" style={{ animationDelay: "300ms" }} />
                 </div>
               </div>
             </div>

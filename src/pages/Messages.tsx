@@ -1,10 +1,11 @@
 import { useState, useRef } from "react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
-import { MessageSquare, Send, Search, Phone, Video, MoreVertical, Paperclip, Bot, Building2, Users, Image, FileText, Sheet, FileType } from "lucide-react";
+import { MessageSquare, Send, Search, Phone, Video, MoreVertical, Paperclip, Bot, Building2, Users, Image, FileText, Sheet, FileType, PanelLeftClose, PanelLeftOpen, Mail, Instagram } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,6 +26,8 @@ interface Conversation {
   time: string;
   unread: boolean;
   online: boolean;
+  phone?: string;
+  email?: string;
 }
 
 const roleConfig: Record<ChatRole, { label: string; icon: React.ElementType; color: string }> = {
@@ -34,7 +37,7 @@ const roleConfig: Record<ChatRole, { label: string; icon: React.ElementType; col
 };
 
 const officeConversations: Conversation[] = [
-  { id: 1, name: "Sarah Johnson", role: "Contadora", chatRole: "staff", message: "O relatório trimestral está pronto para revisão", time: "2m atrás", unread: true, online: true },
+  { id: 1, name: "Sarah Johnson", role: "Contadora", chatRole: "staff", message: "O relatório trimestral está pronto para revisão", time: "2m atrás", unread: true, online: true, phone: "(11) 98888-1001", email: "sarah@lotus.com" },
   { id: 2, name: "Mike Chen", role: "CFO", chatRole: "staff", message: "Podemos discutir a previsão orçamentária?", time: "1h atrás", unread: true, online: true },
   { id: 6, name: "Roberto Santos", role: "Auditor", chatRole: "staff", message: "Terminei a revisão dos demonstrativos do Q3", time: "2 dias atrás", unread: false, online: true },
   { id: 7, name: "Ana Costa", role: "Fiscal", chatRole: "staff", message: "Lembrete de prazo enviado aos clientes", time: "3 dias atrás", unread: false, online: false },
@@ -90,6 +93,8 @@ const Messages = () => {
   const [selectedConversation, setSelectedConversation] = useState<number | null>(null);
   const [newMessage, setNewMessage] = useState("");
   const [activeRoleFilter, setActiveRoleFilter] = useState<ChatRole | "all">("all");
+  const [listCollapsed, setListCollapsed] = useState(false);
+  const [contactOpen, setContactOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const conversations = viewMode === "office" ? officeConversations : clientConversations;
@@ -132,9 +137,13 @@ const Messages = () => {
           <p className="text-muted-foreground">Comunicações internas e notificações</p>
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-[minmax(260px,360px)_minmax(0,1fr)] gap-4 lg:gap-6 h-[calc(100vh-190px)] min-h-[560px]">
+        <div className={cn("grid grid-cols-1 gap-4 lg:gap-6 h-[calc(100vh-150px)] min-h-0", listCollapsed ? "xl:grid-cols-[56px_minmax(0,1fr)]" : "xl:grid-cols-[minmax(260px,360px)_minmax(0,1fr)]")}>
           {/* Conversations List */}
           <div className="glass rounded-2xl p-3 sm:p-4 animate-fade-in overflow-hidden flex flex-col min-h-0">
+            <Button variant="ghost" size="icon" className="mb-2 rounded-xl" onClick={() => setListCollapsed(!listCollapsed)}>
+              {listCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+            </Button>
+            {!listCollapsed && <>
             <div className="relative mb-3">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Buscar mensagens..." className="pl-10 rounded-xl" />
@@ -219,6 +228,7 @@ const Messages = () => {
                 </div>
               ))}
             </div>
+            </>}
           </div>
 
           {/* Message Thread */}
@@ -228,7 +238,7 @@ const Messages = () => {
                 <div className="flex items-center justify-between pb-4 border-b border-border">
                   <div className="flex items-center gap-3">
                     <div className="relative shrink-0">
-                      <Avatar className="h-10 w-10">
+                      <Avatar className="h-10 w-10 cursor-pointer" onClick={() => setContactOpen(true)}>
                         <AvatarFallback className={cn(
                           "font-medium",
                           currentConversation.chatRole === "ai"
@@ -266,6 +276,19 @@ const Messages = () => {
                     </Button>
                   </div>
                 </div>
+                <Dialog open={contactOpen} onOpenChange={setContactOpen}>
+                  <DialogContent className="sm:max-w-[420px] rounded-2xl">
+                    <DialogHeader><DialogTitle>{currentConversation.name}</DialogTitle></DialogHeader>
+                    <div className="space-y-3 text-sm">
+                      {[{ icon: Phone, label: "WhatsApp", value: currentConversation.phone ?? "(11) 99999-0000" }, { icon: Phone, label: "Telefone fixo", value: "(11) 3000-0000" }, { icon: Instagram, label: "Instagram", value: "@lotus.contabil" }, { icon: Mail, label: "Email", value: currentConversation.email ?? "contato@lotus.com" }, { icon: Send, label: "Telegram", value: "@lotuscontabil" }].map((item) => (
+                        <div key={item.label} className="flex items-center gap-3 rounded-xl border border-border p-3">
+                          <item.icon className="h-4 w-4 text-muted-foreground" />
+                          <div><p className="font-medium">{item.label}</p><p className="text-muted-foreground">{item.value}</p></div>
+                        </div>
+                      ))}
+                    </div>
+                  </DialogContent>
+                </Dialog>
                 
                 <div className="flex-1 py-4 sm:py-6 space-y-4 overflow-y-auto sidebar-scroll min-h-0">
                   {currentMessages.map((msg) => (

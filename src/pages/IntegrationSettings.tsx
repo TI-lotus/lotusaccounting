@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Key, BarChart3, CreditCard, Clock, AlertCircle, Check, Copy, Eye, EyeOff, Plus, Trash2, Power, PowerOff } from "lucide-react";
+import { ArrowLeft, Key, BarChart3, CreditCard, Clock, AlertCircle, Check, Copy, Eye, EyeOff, Plus, Trash2, Power, PowerOff, Play, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
@@ -146,6 +147,13 @@ const IntegrationSettings = () => {
   const [isConnected, setIsConnected] = useState(
     ["receita-federal", "serpro", "cnpj-api", "sped", "simples-nacional"].includes(id || "")
   );
+  const [selectedNode, setSelectedNode] = useState<string | null>(null);
+  const workflowNodes = [
+    { id: "trigger", label: "Trigger", x: "8%", y: "42%" },
+    { id: "auth", label: "Autenticação", x: "32%", y: "22%" },
+    { id: "request", label: "Consulta API", x: "56%", y: "42%" },
+    { id: "output", label: "Retorno", x: "80%", y: "62%" },
+  ];
 
   if (!integration) {
     return (
@@ -244,8 +252,12 @@ const IntegrationSettings = () => {
           </div>
         </div>
 
-        <Tabs defaultValue="config" className="animate-fade-in">
-          <TabsList className="grid w-full max-w-lg grid-cols-3">
+        <Tabs defaultValue="workflow" className="animate-fade-in">
+          <TabsList className="grid w-full max-w-2xl grid-cols-4">
+            <TabsTrigger value="workflow" className="gap-2">
+              <Play className="h-4 w-4" />
+              Workflow
+            </TabsTrigger>
             <TabsTrigger value="config" className="gap-2">
               <Key className="h-4 w-4" />
               Configuração
@@ -259,6 +271,38 @@ const IntegrationSettings = () => {
               Uso
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="workflow" className="space-y-4 mt-6">
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" className="rounded-xl gap-2"><Save className="h-4 w-4" />Salvar alterações</Button>
+              <Button className="rounded-xl gap-2"><Play className="h-4 w-4" />Executar</Button>
+            </div>
+            <div className="relative h-[460px] rounded-2xl border border-border bg-card overflow-hidden" style={{ backgroundImage: "radial-gradient(hsl(var(--muted-foreground) / 0.25) 1px, transparent 1px)", backgroundSize: "18px 18px" }}>
+              <svg className="absolute inset-0 h-full w-full" aria-hidden="true">
+                {workflowNodes.slice(0, -1).map((node, index) => {
+                  const next = workflowNodes[index + 1];
+                  return <line key={node.id} x1={node.x} y1={node.y} x2={next.x} y2={next.y} stroke="hsl(var(--primary))" strokeWidth="2" strokeDasharray="6 6" />;
+                })}
+              </svg>
+              {workflowNodes.map((node) => (
+                <button key={node.id} onClick={() => setSelectedNode(node.label)} className="absolute w-36 -translate-x-1/2 -translate-y-1/2 rounded-xl border border-border bg-background p-4 text-left shadow-soft hover:ring-2 hover:ring-primary" style={{ left: node.x, top: node.y }}>
+                  <p className="font-medium text-sm">{node.label}</p>
+                  <p className="text-xs text-muted-foreground mt-1">Clique para editar</p>
+                </button>
+              ))}
+            </div>
+            <Dialog open={!!selectedNode} onOpenChange={(open) => !open && setSelectedNode(null)}>
+              <DialogContent className="sm:max-w-[520px] rounded-2xl">
+                <DialogHeader><DialogTitle>{selectedNode}</DialogTitle><DialogDescription>Configure os campos e o payload personalizado deste node.</DialogDescription></DialogHeader>
+                <div className="grid gap-4 py-2">
+                  <div className="grid gap-2"><Label>Nome do node</Label><Input defaultValue={selectedNode ?? ""} className="rounded-xl" /></div>
+                  <div className="grid gap-2"><Label>Endpoint / ação</Label><Input placeholder="https://api.exemplo.com/recurso" className="rounded-xl" /></div>
+                  <div className="grid gap-2"><Label>JSON personalizado</Label><Textarea className="min-h-32 rounded-xl font-mono text-sm" defaultValue={'{\n  "cnpj": "{{cliente.cnpj}}"\n}'} /></div>
+                </div>
+                <DialogFooter><Button className="rounded-xl" onClick={() => { setSelectedNode(null); toast.success("Node salvo com sucesso!"); }}>Salvar alterações</Button></DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </TabsContent>
 
           {/* Config Tab */}
           <TabsContent value="config" className="space-y-6 mt-6">

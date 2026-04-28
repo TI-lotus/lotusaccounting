@@ -2,7 +2,7 @@ import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Users, Gift, DollarSign, Copy, Share2, TrendingUp, CheckCircle } from "lucide-react";
+import { Users, Gift, DollarSign, Copy, Share2, TrendingUp, CheckCircle, MousePointerClick, Wallet } from "lucide-react";
 import { toast } from "sonner";
 
 const AffiliationProgram = () => {
@@ -20,6 +20,13 @@ const AffiliationProgram = () => {
     { name: "João Santos", date: "12 Jan 2026", status: "Ativo", commission: "R$ 300" },
     { name: "Ana Costa", date: "08 Jan 2026", status: "Pendente", commission: "-" },
     { name: "Carlos Lima", date: "02 Jan 2026", status: "Ativo", commission: "R$ 300" },
+  ];
+
+  const performance = [
+    { label: "Cliques no link", value: "1.284", icon: MousePointerClick, change: "+18%" },
+    { label: "Leads qualificados", value: "96", icon: Users, change: "+12" },
+    { label: "Ganhos pendentes", value: "R$ 900", icon: Wallet, change: "3 conversões" },
+    { label: "Ganhos pagos", value: "R$ 1.500", icon: DollarSign, change: "este mês" },
   ];
 
   const copyToClipboard = (text: string) => {
@@ -56,6 +63,25 @@ const AffiliationProgram = () => {
             </Card>
           ))}
         </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2"><TrendingUp className="h-5 w-5" />Dashboard de Performance</CardTitle>
+            <CardDescription>Acompanhe conversões e ganhos do programa</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-4">
+              {performance.map((item) => (
+                <div key={item.label} className="rounded-xl border border-border p-4">
+                  <item.icon className="h-5 w-5 text-gilver mb-3" />
+                  <p className="text-sm text-muted-foreground">{item.label}</p>
+                  <p className="text-xl font-semibold mt-1">{item.value}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{item.change}</p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Affiliate Link */}
         <Card>
