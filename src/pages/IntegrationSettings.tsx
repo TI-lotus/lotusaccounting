@@ -147,6 +147,13 @@ const IntegrationSettings = () => {
   const [isConnected, setIsConnected] = useState(
     ["receita-federal", "serpro", "cnpj-api", "sped", "simples-nacional"].includes(id || "")
   );
+  const [selectedNode, setSelectedNode] = useState<string | null>(null);
+  const workflowNodes = [
+    { id: "trigger", label: "Trigger", x: "8%", y: "42%" },
+    { id: "auth", label: "Autenticação", x: "32%", y: "22%" },
+    { id: "request", label: "Consulta API", x: "56%", y: "42%" },
+    { id: "output", label: "Retorno", x: "80%", y: "62%" },
+  ];
 
   if (!integration) {
     return (
