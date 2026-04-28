@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Users, Plus, Search, MoreHorizontal, Mail, Phone, Edit, Trash2, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
@@ -45,18 +45,32 @@ const Clients = () => {
   const navigate = useNavigate();
   const { clients, addClient, updateClient, deleteClient } = useData();
   const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState("fee-desc");
+  const [sizeFilter, setSizeFilter] = useState("all");
+  const [responsibleFilter, setResponsibleFilter] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newClient, setNewClient] = useState({
     name: "", email: "", phone: "", cnpj: "", taxRegime: "simples_nacional" as ClientData["taxRegime"],
     serviceFee: "", city: "", state: "",
   });
 
-  const filteredClients = clients.filter(
-    (client) =>
+  const getClientSize = (fee: number) => fee >= 3000 ? "Grande" : fee >= 1500 ? "Médio" : "Pequeno";
+  const responsibles = Array.from(new Set(clients.map((client) => client.responsibleUserName)));
+
+  const filteredClients = clients.filter((client) => {
+    const matchesSearch =
       client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       client.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      client.cnpj.includes(searchTerm)
-  );
+      client.cnpj.includes(searchTerm);
+    const matchesSize = sizeFilter === "all" || getClientSize(client.serviceFee) === sizeFilter;
+    const matchesResponsible = responsibleFilter === "all" || client.responsibleUserName === responsibleFilter;
+    return matchesSearch && matchesSize && matchesResponsible;
+  }).sort((a, b) => {
+    if (sortBy === "fee-asc") return a.serviceFee - b.serviceFee;
+    if (sortBy === "fee-desc") return b.serviceFee - a.serviceFee;
+    if (sortBy === "contract-asc") return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
 
   const handleAddClient = () => {
     if (!newClient.name || !newClient.email) {
