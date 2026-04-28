@@ -49,6 +49,7 @@ const initialPayments: Payment[] = [
 const Payments = () => {
   const [payments, setPayments] = useState<Payment[]>(initialPayments);
   const [filter, setFilter] = useState<"all" | "income" | "expense">("all");
+  const [sortBy, setSortBy] = useState<"newest" | "oldest" | "asc" | "desc">("newest");
   const [view, setView] = useState<"dashboard" | "list" | "calendar">("dashboard");
   const [dateRange, setDateRange] = useState({ start: "2026-01-01", end: "2026-01-31" });
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -62,6 +63,10 @@ const Payments = () => {
   const filteredPayments = payments.filter((p) => {
     if (filter === "all") return true;
     return p.type === filter;
+  }).sort((a, b) => {
+    if (sortBy === "asc") return a.amount - b.amount;
+    if (sortBy === "desc") return b.amount - a.amount;
+    return sortBy === "newest" ? b.id - a.id : a.id - b.id;
   });
 
   const totalIncome = payments.filter((p) => p.type === "income").reduce((sum, p) => sum + p.amount, 0);
@@ -254,6 +259,15 @@ const Payments = () => {
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold">Pagamentos Recentes</h3>
             <div className="flex gap-2">
+              <Select value={sortBy} onValueChange={(value: typeof sortBy) => setSortBy(value)}>
+                <SelectTrigger className="h-9 w-[170px] rounded-lg"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="newest">Mais novo</SelectItem>
+                  <SelectItem value="oldest">Mais antigo</SelectItem>
+                  <SelectItem value="asc">Crescente</SelectItem>
+                  <SelectItem value="desc">Decrescente</SelectItem>
+                </SelectContent>
+              </Select>
               <Button
                 variant={filter === "all" ? "default" : "outline"}
                 size="sm"
