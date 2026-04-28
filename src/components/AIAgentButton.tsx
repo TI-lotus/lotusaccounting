@@ -37,7 +37,7 @@ export const AIAgentButton = ({ className, externalOpen, onExternalClose, initia
           className
         )}
       >
-        <img src={liaIconImage} alt="Lia" className="h-6 w-6" />
+        <img src={liaIconImage} alt="Lia" className="h-full w-full rounded-full object-cover" />
       </Button>
     </>
   );
