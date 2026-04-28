@@ -252,7 +252,7 @@ const IntegrationSettings = () => {
           </div>
         </div>
 
-        <Tabs defaultValue="config" className="animate-fade-in">
+        <Tabs defaultValue="workflow" className="animate-fade-in">
           <TabsList className="grid w-full max-w-2xl grid-cols-4">
             <TabsTrigger value="workflow" className="gap-2">
               <Play className="h-4 w-4" />
