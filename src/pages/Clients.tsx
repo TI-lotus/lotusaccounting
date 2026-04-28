@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { useNavigate } from "react-router-dom";
-import { Users, Plus, Search, MoreHorizontal, Mail, Phone, Edit, Trash2, Eye } from "lucide-react";
+import { Users, Plus, Search, MoreHorizontal, Mail, Edit, Trash2, Eye, Grid2X2, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -45,16 +45,24 @@ const Clients = () => {
   const navigate = useNavigate();
   const { clients, addClient, updateClient, deleteClient } = useData();
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortBy, setSortBy] = useState("fee-desc");
+  const [feeRange, setFeeRange] = useState({ min: "", max: "" });
+  const [contractSort, setContractSort] = useState("contract-desc");
   const [sizeFilter, setSizeFilter] = useState("all");
   const [responsibleFilter, setResponsibleFilter] = useState("all");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newClient, setNewClient] = useState({
     name: "", email: "", phone: "", cnpj: "", taxRegime: "simples_nacional" as ClientData["taxRegime"],
     serviceFee: "", city: "", state: "",
   });
 
-  const getClientSize = (fee: number) => fee >= 3000 ? "Grande" : fee >= 1500 ? "Médio" : "Pequeno";
+  const getClientSize = (client: ClientData) => {
+    if (client.taxRegime === "mei") return "MEI";
+    if (client.serviceFee >= 5000) return "Grande porte";
+    if (client.serviceFee >= 3000) return "Médio porte";
+    if (client.serviceFee >= 1500) return "EPP";
+    return "ME";
+  };
   const responsibles = Array.from(new Set(clients.map((client) => client.responsibleUserName)));
 
   const filteredClients = clients.filter((client) => {
@@ -62,13 +70,14 @@ const Clients = () => {
       client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       client.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       client.cnpj.includes(searchTerm);
-    const matchesSize = sizeFilter === "all" || getClientSize(client.serviceFee) === sizeFilter;
+    const minFee = feeRange.min ? Number(feeRange.min) : null;
+    const maxFee = feeRange.max ? Number(feeRange.max) : null;
+    const matchesFee = (minFee === null || client.serviceFee >= minFee) && (maxFee === null || client.serviceFee <= maxFee);
+    const matchesSize = sizeFilter === "all" || getClientSize(client) === sizeFilter;
     const matchesResponsible = responsibleFilter === "all" || client.responsibleUserName === responsibleFilter;
-    return matchesSearch && matchesSize && matchesResponsible;
+    return matchesSearch && matchesFee && matchesSize && matchesResponsible;
   }).sort((a, b) => {
-    if (sortBy === "fee-asc") return a.serviceFee - b.serviceFee;
-    if (sortBy === "fee-desc") return b.serviceFee - a.serviceFee;
-    if (sortBy === "contract-asc") return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    if (contractSort === "contract-asc") return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
 
