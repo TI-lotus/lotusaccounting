@@ -184,60 +184,67 @@ const Clients = () => {
         </div>
 
         <div className="glass rounded-2xl p-6 animate-fade-in">
-          <div className="flex items-center gap-4 mb-6">
+          <div className="flex flex-wrap items-center gap-4 mb-6">
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Buscar por nome, email ou CNPJ..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10 rounded-xl" />
             </div>
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="w-[190px] rounded-xl"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="fee-desc">Honorários maiores</SelectItem>
+                <SelectItem value="fee-asc">Honorários menores</SelectItem>
+                <SelectItem value="contract-desc">Contrato mais novo</SelectItem>
+                <SelectItem value="contract-asc">Contrato mais antigo</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={sizeFilter} onValueChange={setSizeFilter}>
+              <SelectTrigger className="w-[150px] rounded-xl"><SelectValue placeholder="Porte" /></SelectTrigger>
+              <SelectContent><SelectItem value="all">Todos portes</SelectItem><SelectItem value="Grande">Grande</SelectItem><SelectItem value="Médio">Médio</SelectItem><SelectItem value="Pequeno">Pequeno</SelectItem></SelectContent>
+            </Select>
+            <Select value={responsibleFilter} onValueChange={setResponsibleFilter}>
+              <SelectTrigger className="w-[190px] rounded-xl"><SelectValue placeholder="Responsável" /></SelectTrigger>
+              <SelectContent><SelectItem value="all">Todos responsáveis</SelectItem>{responsibles.map((name) => <SelectItem key={name} value={name}>{name}</SelectItem>)}</SelectContent>
+            </Select>
             <Badge variant="secondary" className="px-3 py-1.5">
               {filteredClients.length} clientes
             </Badge>
           </div>
 
-          <div className="space-y-3">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {filteredClients.map((client, index) => (
               <div
                 key={client.id}
-                className="flex items-center gap-4 p-4 rounded-xl hover:bg-accent/50 transition-colors border border-transparent hover:border-border"
+                className="aspect-square rounded-2xl border border-border p-5 hover:bg-accent/40 transition-colors flex flex-col"
                 style={{ animationDelay: `${index * 50}ms` }}
               >
-                <Avatar className="h-11 w-11 ring-2 ring-accent">
+                <div className="flex items-start justify-between gap-3">
+                <Avatar className="h-12 w-12 ring-2 ring-accent">
+                  <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(client.name)}`} />
                   <AvatarFallback className="bg-accent text-accent-foreground font-medium">
                     {client.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
                   </AvatarFallback>
                 </Avatar>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate">{client.name}</p>
+                <Badge variant={client.status === 'active' ? 'default' : client.status === 'pending' ? 'secondary' : 'outline'}>{client.status === 'active' ? 'Ativo' : client.status === 'pending' ? 'Pendente' : 'Inativo'}</Badge>
+                </div>
+                <div className="mt-4 flex-1 min-w-0">
+                  <p className="font-semibold truncate">{client.name}</p>
                   <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                    <span className="flex items-center gap-1">
+                    <span className="flex items-center gap-1 truncate">
                       <Mail className="h-3 w-3" />
                       {client.email}
                     </span>
-                    <span className="hidden md:flex items-center gap-1">
-                      <Phone className="h-3 w-3" />
-                      {client.phone}
-                    </span>
                   </div>
-                  <div className="flex items-center gap-2 mt-1">
+                  <div className="flex flex-wrap items-center gap-2 mt-3">
                     <Badge variant="outline" className="text-xs">{client.cnpj}</Badge>
                     <Badge variant="outline" className="text-xs">{taxRegimeLabels[client.taxRegime]}</Badge>
-                    <span className="text-xs text-muted-foreground hidden lg:inline">Responsável: {client.responsibleUserName}</span>
+                    <Badge variant="outline" className="text-xs">{getClientSize(client.serviceFee)}</Badge>
                   </div>
+                  <p className="text-xs text-muted-foreground mt-3">Responsável: {client.responsibleUserName}</p>
+                  <p className="text-xs text-muted-foreground">Desde {new Date(client.createdAt).toLocaleDateString("pt-BR")}</p>
                 </div>
-                <div className="hidden md:block text-right">
-                  <p className="font-semibold">R$ {client.serviceFee.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
-                  <p className="text-xs text-muted-foreground">{client.city}/{client.state}</p>
-                </div>
-                <Badge
-                  variant={client.status === 'active' ? 'default' : client.status === 'pending' ? 'secondary' : 'outline'}
-                  className="capitalize cursor-pointer"
-                  onClick={() => {
-                    const nextStatus = client.status === 'active' ? 'inactive' : client.status === 'inactive' ? 'pending' : 'active';
-                    handleStatusChange(client.id, nextStatus);
-                  }}
-                >
-                  {client.status === 'active' ? 'Ativo' : client.status === 'pending' ? 'Pendente' : 'Inativo'}
-                </Badge>
+                <div className="flex items-center justify-between pt-4 border-t border-border">
+                  <div><p className="font-semibold">R$ {client.serviceFee.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p><p className="text-xs text-muted-foreground">{client.city}/{client.state}</p></div>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon" className="rounded-lg">
@@ -267,6 +274,7 @@ const Clients = () => {
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
+                </div>
               </div>
             ))}
 
