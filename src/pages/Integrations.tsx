@@ -28,37 +28,27 @@ const Integrations = () => {
           <p className="text-muted-foreground">Conecte serviços para otimizar seu fluxo contábil</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="glass rounded-2xl divide-y divide-border overflow-hidden">
           {integrations.map((integration, index) => {
             const Icon = integration.icon;
             return (
               <div
                 key={integration.id}
                 className={cn(
-                  "glass rounded-2xl p-6 transition-all duration-300 hover:shadow-soft-lg animate-fade-in",
-                  integration.connected && "ring-1 ring-gilver/50"
+                  "flex flex-col gap-4 p-4 transition-colors hover:bg-accent/40 animate-fade-in md:flex-row md:items-center",
+                  integration.connected && "bg-gilver/5"
                 )}
                 style={{ animationDelay: `${index * 50}ms` }}
               >
-                <div className="flex items-start justify-between mb-4">
-                  <div className={cn(
-                    "p-2.5 rounded-xl",
-                    integration.connected ? "bg-gilver/15 text-gilver" : "bg-muted text-muted-foreground"
-                  )}>
-                    <Icon className="h-5 w-5" strokeWidth={1.5} />
-                  </div>
-                  {integration.connected ? (
-                    <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400">
-                      <Check className="h-3 w-3 mr-1" />
-                      Conectado
-                    </Badge>
-                  ) : (
-                    <Badge variant="secondary">Desconectado</Badge>
-                  )}
+                <div className={cn("p-2.5 rounded-xl", integration.connected ? "bg-gilver/15 text-gilver" : "bg-muted text-muted-foreground")}>
+                  <Icon className="h-5 w-5" strokeWidth={1.5} />
                 </div>
-                <h3 className="font-semibold mb-1">{integration.name}</h3>
-                <p className="text-sm text-muted-foreground mb-4">{integration.description}</p>
-                <div className="flex gap-2">
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold">{integration.name}</h3>
+                  <p className="text-sm text-muted-foreground truncate">{integration.description}</p>
+                </div>
+                {integration.connected ? <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400"><Check className="h-3 w-3 mr-1" />Conectado</Badge> : <Badge variant="secondary">Desconectado</Badge>}
+                <div className="flex gap-2 md:w-56">
                   <Button
                     variant={integration.connected ? "outline" : "default"}
                     className="flex-1 rounded-xl gap-2"
