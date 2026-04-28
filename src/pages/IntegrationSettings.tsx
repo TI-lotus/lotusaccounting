@@ -148,12 +148,21 @@ const IntegrationSettings = () => {
     ["receita-federal", "serpro", "cnpj-api", "sped", "simples-nacional"].includes(id || "")
   );
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
-  const workflowNodes = [
-    { id: "trigger", label: "Trigger", x: "8%", y: "42%" },
-    { id: "auth", label: "Autenticação", x: "32%", y: "22%" },
-    { id: "request", label: "Consulta API", x: "56%", y: "42%" },
-    { id: "output", label: "Retorno", x: "80%", y: "62%" },
-  ];
+  const [workflowNodes, setWorkflowNodes] = useState([
+    { id: "trigger", label: "Trigger", x: 8, y: 42 },
+    { id: "auth", label: "Autenticação", x: 32, y: 22 },
+    { id: "request", label: "Consulta API", x: 56, y: 42 },
+    { id: "output", label: "Retorno", x: 80, y: 62 },
+  ]);
+
+  const handleNodeDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    const nodeId = event.dataTransfer.getData("node-id");
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = Math.min(92, Math.max(8, ((event.clientX - rect.left) / rect.width) * 100));
+    const y = Math.min(88, Math.max(12, ((event.clientY - rect.top) / rect.height) * 100));
+    setWorkflowNodes((nodes) => nodes.map((node) => node.id === nodeId ? { ...node, x, y } : node));
+  };
 
   if (!integration) {
     return (
@@ -277,15 +286,15 @@ const IntegrationSettings = () => {
               <Button variant="outline" className="rounded-xl gap-2"><Save className="h-4 w-4" />Salvar alterações</Button>
               <Button className="rounded-xl gap-2"><Play className="h-4 w-4" />Executar</Button>
             </div>
-            <div className="relative h-[460px] rounded-2xl border border-border bg-card overflow-hidden" style={{ backgroundImage: "radial-gradient(hsl(var(--muted-foreground) / 0.25) 1px, transparent 1px)", backgroundSize: "18px 18px" }}>
+            <div className="relative h-[460px] rounded-2xl border border-border bg-card overflow-hidden" onDragOver={(event) => event.preventDefault()} onDrop={handleNodeDrop} style={{ backgroundImage: "radial-gradient(hsl(var(--muted-foreground) / 0.25) 1px, transparent 1px)", backgroundSize: "18px 18px" }}>
               <svg className="absolute inset-0 h-full w-full" aria-hidden="true">
                 {workflowNodes.slice(0, -1).map((node, index) => {
                   const next = workflowNodes[index + 1];
-                  return <line key={node.id} x1={node.x} y1={node.y} x2={next.x} y2={next.y} stroke="hsl(var(--primary))" strokeWidth="2" strokeDasharray="6 6" />;
+                   return <line key={node.id} x1={`${node.x}%`} y1={`${node.y}%`} x2={`${next.x}%`} y2={`${next.y}%`} stroke="hsl(var(--primary))" strokeWidth="2" strokeDasharray="6 6" />;
                 })}
               </svg>
               {workflowNodes.map((node) => (
-                <button key={node.id} onClick={() => setSelectedNode(node.label)} className="absolute w-36 -translate-x-1/2 -translate-y-1/2 rounded-xl border border-border bg-background p-4 text-left shadow-soft hover:ring-2 hover:ring-primary" style={{ left: node.x, top: node.y }}>
+                <button key={node.id} draggable onDragStart={(event) => event.dataTransfer.setData("node-id", node.id)} onClick={() => setSelectedNode(node.label)} className="absolute w-36 -translate-x-1/2 -translate-y-1/2 cursor-grab rounded-xl border border-border bg-background p-4 text-left shadow-soft hover:ring-2 hover:ring-primary active:cursor-grabbing" style={{ left: `${node.x}%`, top: `${node.y}%` }}>
                   <p className="font-medium text-sm">{node.label}</p>
                   <p className="text-xs text-muted-foreground mt-1">Clique para editar</p>
                 </button>
