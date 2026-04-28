@@ -137,9 +137,13 @@ const Messages = () => {
           <p className="text-muted-foreground">Comunicações internas e notificações</p>
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-[minmax(260px,360px)_minmax(0,1fr)] gap-4 lg:gap-6 h-[calc(100vh-190px)] min-h-[560px]">
+        <div className={cn("grid grid-cols-1 gap-4 lg:gap-6 h-[calc(100vh-150px)] min-h-0", listCollapsed ? "xl:grid-cols-[56px_minmax(0,1fr)]" : "xl:grid-cols-[minmax(260px,360px)_minmax(0,1fr)]")}>
           {/* Conversations List */}
           <div className="glass rounded-2xl p-3 sm:p-4 animate-fade-in overflow-hidden flex flex-col min-h-0">
+            <Button variant="ghost" size="icon" className="mb-2 rounded-xl" onClick={() => setListCollapsed(!listCollapsed)}>
+              {listCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+            </Button>
+            {!listCollapsed && <>
             <div className="relative mb-3">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Buscar mensagens..." className="pl-10 rounded-xl" />
@@ -224,6 +228,7 @@ const Messages = () => {
                 </div>
               ))}
             </div>
+            </>}
           </div>
 
           {/* Message Thread */}
@@ -233,7 +238,7 @@ const Messages = () => {
                 <div className="flex items-center justify-between pb-4 border-b border-border">
                   <div className="flex items-center gap-3">
                     <div className="relative shrink-0">
-                      <Avatar className="h-10 w-10">
+                      <Avatar className="h-10 w-10 cursor-pointer" onClick={() => setContactOpen(true)}>
                         <AvatarFallback className={cn(
                           "font-medium",
                           currentConversation.chatRole === "ai"
@@ -271,6 +276,19 @@ const Messages = () => {
                     </Button>
                   </div>
                 </div>
+                <Dialog open={contactOpen} onOpenChange={setContactOpen}>
+                  <DialogContent className="sm:max-w-[420px] rounded-2xl">
+                    <DialogHeader><DialogTitle>{currentConversation.name}</DialogTitle></DialogHeader>
+                    <div className="space-y-3 text-sm">
+                      {[{ icon: Phone, label: "WhatsApp", value: currentConversation.phone ?? "(11) 99999-0000" }, { icon: Phone, label: "Telefone fixo", value: "(11) 3000-0000" }, { icon: Instagram, label: "Instagram", value: "@lotus.contabil" }, { icon: Mail, label: "Email", value: currentConversation.email ?? "contato@lotus.com" }, { icon: Send, label: "Telegram", value: "@lotuscontabil" }].map((item) => (
+                        <div key={item.label} className="flex items-center gap-3 rounded-xl border border-border p-3">
+                          <item.icon className="h-4 w-4 text-muted-foreground" />
+                          <div><p className="font-medium">{item.label}</p><p className="text-muted-foreground">{item.value}</p></div>
+                        </div>
+                      ))}
+                    </div>
+                  </DialogContent>
+                </Dialog>
                 
                 <div className="flex-1 py-4 sm:py-6 space-y-4 overflow-y-auto sidebar-scroll min-h-0">
                   {currentMessages.map((msg) => (
