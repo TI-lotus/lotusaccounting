@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useUserProfile } from "@/contexts/UserProfileContext";
 
@@ -28,9 +28,18 @@ const Settings = () => {
           </div>
           <div className="flex items-start gap-6">
             <Avatar className="h-20 w-20">
+              <AvatarImage src={profile.avatarUrl} />
               <AvatarFallback className="bg-primary/10 text-primary text-xl font-semibold">{profile.initials}</AvatarFallback>
             </Avatar>
             <div className="flex-1 space-y-4">
+              <div className="space-y-2">
+                <Label>Foto de perfil</Label>
+                <Input type="file" accept="image/*" className="rounded-xl" onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  profile.updateProfile({ avatarUrl: URL.createObjectURL(file) });
+                }} />
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Nome</Label>
