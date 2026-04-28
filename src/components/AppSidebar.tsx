@@ -221,7 +221,7 @@ export const AppSidebar = () => {
               isCollapsed && "justify-center"
             )}>
               <Avatar className="h-9 w-9 shrink-0">
-                <AvatarImage src="" />
+                <AvatarImage src={profile.avatarUrl} />
                 <AvatarFallback className="bg-gilver text-[hsl(0,0%,9%)] font-medium text-sm">
                   {profile.initials}
                 </AvatarFallback>
@@ -234,7 +234,7 @@ export const AppSidebar = () => {
                   {profile.fullName}
                 </p>
                 <p className="text-xs text-[hsl(0,0%,55%)] truncate">
-                  {profile.email} · {viewMode === "office" ? profile.cpf : profile.cnpj}
+                  {profile.email}
                 </p>
               </div>
               {!isCollapsed && (
