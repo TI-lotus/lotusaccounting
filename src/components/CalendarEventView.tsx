@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { CalendarClock, Clock } from "lucide-react";
+import { CalendarClock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { addDays, format } from "date-fns";
+import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { DateRange } from "react-day-picker";
 
@@ -50,8 +50,9 @@ export const CalendarRangeControls = ({ dateRange, onDateRangeChange }: Pick<Cal
 };
 
 export const CalendarEventView = ({ title, events, dateRange, onDateRangeChange }: CalendarEventViewProps) => {
-  const [selectedEvent, setSelectedEvent] = useState<CalendarEventItem | null>(null);
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const sanitizedEvents = events.filter((event) => ((event.day - 1) % 7) !== 6);
+  const selectedEvents = selectedDay ? sanitizedEvents.filter((event) => event.day === selectedDay) : [];
 
   return (
     <div className="glass rounded-2xl p-6 animate-fade-in">
@@ -70,9 +71,9 @@ export const CalendarEventView = ({ title, events, dateRange, onDateRangeChange 
               type="button"
               key={day}
               disabled={!dayEvents.length}
-              onClick={() => dayEvents[0] && setSelectedEvent(dayEvents[0])}
+              onClick={() => dayEvents.length && setSelectedDay(day)}
               className={cn(
-                "min-h-20 rounded-xl border border-border p-2 text-left transition-colors",
+                "aspect-square min-h-0 rounded-xl border border-border p-2 text-left transition-colors",
                 isSunday && "bg-muted/30 text-muted-foreground/60",
                 dayEvents.length && "bg-accent/30 ring-1 ring-primary hover:bg-accent/50",
               )}
@@ -85,24 +86,19 @@ export const CalendarEventView = ({ title, events, dateRange, onDateRangeChange 
           );
         })}
       </div>
-      <Dialog open={!!selectedEvent} onOpenChange={(open) => !open && setSelectedEvent(null)}>
+      <Dialog open={!!selectedDay} onOpenChange={(open) => !open && setSelectedDay(null)}>
         <DialogContent className="sm:max-w-[420px] rounded-2xl">
           <DialogHeader>
-            <DialogTitle>{selectedEvent?.title}</DialogTitle>
+            <DialogTitle>Dia {selectedDay}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3 py-2 text-sm">
-            <p className="text-muted-foreground">Dia {selectedEvent?.day}</p>
-            <div className="grid gap-2">
-              <Label htmlFor="event-time">Horário</Label>
-              <div className="relative">
-                <Clock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input id="event-time" type="time" defaultValue={selectedEvent?.time ?? "09:00"} className="rounded-xl pl-10" />
+          <div className="space-y-2 py-2 text-sm">
+            {selectedEvents.map((event) => (
+              <div key={`${event.title}-${event.time}`} className="rounded-xl border border-border p-3">
+                <p className="font-medium">{event.title}</p>
+                {event.time && <p className="text-xs text-muted-foreground">{event.time}</p>}
               </div>
-            </div>
+            ))}
           </div>
-          <DialogFooter>
-            <Button className="rounded-xl" onClick={() => setSelectedEvent(null)}>Salvar</Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
