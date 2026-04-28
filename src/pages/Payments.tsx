@@ -252,7 +252,6 @@ const Payments = () => {
             title="Calendário financeiro"
             dateRange={dateRange}
             onDateRangeChange={setDateRange}
-            events={[2, 3, 5, 9, 10, 11, 12].map((day) => ({ day, title: "Pagamento", time: "09:00" }))}
             events={payments.map((payment, index) => ({
               day: ((index * 2) % 30) + 1,
               title: payment.description,
