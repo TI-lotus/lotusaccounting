@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { DragEvent } from "react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
@@ -96,6 +97,22 @@ export default function Agents() {
   const [editForm, setEditForm] = useState({ name: "", description: "", schedule: "", maxRetries: 3 });
   const [execFilter, setExecFilter] = useState<string>("all");
   const [execStatusFilter, setExecStatusFilter] = useState<string>("all");
+  const [workflowNodes, setWorkflowNodes] = useState([
+    { id: "input", label: "Entrada", x: 10, y: 45 },
+    { id: "agent", label: "Agente IA", x: 35, y: 25 },
+    { id: "validation", label: "Validação", x: 60, y: 45 },
+    { id: "action", label: "Ação final", x: 85, y: 65 },
+  ]);
+  const [selectedWorkflowNode, setSelectedWorkflowNode] = useState<string | null>(null);
+
+  const handleWorkflowDrop = (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    const nodeId = event.dataTransfer.getData("node-id");
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = Math.min(92, Math.max(8, ((event.clientX - rect.left) / rect.width) * 100));
+    const y = Math.min(88, Math.max(12, ((event.clientY - rect.top) / rect.height) * 100));
+    setWorkflowNodes((nodes) => nodes.map((node) => node.id === nodeId ? { ...node, x, y } : node));
+  };
 
   const toggleAgent = (id: string) => {
     setAgents((prev) =>
