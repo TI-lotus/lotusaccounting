@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
-import { MessageSquare, Send, Search, Phone, Video, MoreVertical, Paperclip, Bot, Building2, Users, Image, FileText, Sheet, FileType, PanelLeftClose, PanelLeftOpen, Mail, Instagram } from "lucide-react";
+import { MessageSquare, Send, Search, Phone, Video, MoreVertical, Paperclip, Bot, Building2, Users, Image, FileText, Sheet, FileType, PanelLeftClose, PanelLeftOpen, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
