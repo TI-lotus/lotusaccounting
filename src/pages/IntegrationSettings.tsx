@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Key, BarChart3, CreditCard, Clock, AlertCircle, Check, Copy, Eye, EyeOff, Plus, Trash2, Power, PowerOff } from "lucide-react";
+import { ArrowLeft, Key, BarChart3, CreditCard, Clock, AlertCircle, Check, Copy, Eye, EyeOff, Plus, Trash2, Power, PowerOff, Play, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
