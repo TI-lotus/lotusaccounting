@@ -37,7 +37,9 @@ const Settings = () => {
                 <Input type="file" accept="image/*" className="rounded-xl" onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (!file) return;
-                  profile.updateProfile({ avatarUrl: URL.createObjectURL(file) });
+                  const reader = new FileReader();
+                  reader.onload = () => profile.updateProfile({ avatarUrl: String(reader.result) });
+                  reader.readAsDataURL(file);
                 }} />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
