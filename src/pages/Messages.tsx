@@ -1,10 +1,11 @@
 import { useState, useRef } from "react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
-import { MessageSquare, Send, Search, Phone, Video, MoreVertical, Paperclip, Bot, Building2, Users, Image, FileText, Sheet, FileType } from "lucide-react";
+import { MessageSquare, Send, Search, Phone, Video, MoreVertical, Paperclip, Bot, Building2, Users, Image, FileText, Sheet, FileType, PanelLeftClose, PanelLeftOpen, Mail, Instagram } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,6 +26,8 @@ interface Conversation {
   time: string;
   unread: boolean;
   online: boolean;
+  phone?: string;
+  email?: string;
 }
 
 const roleConfig: Record<ChatRole, { label: string; icon: React.ElementType; color: string }> = {
@@ -34,7 +37,7 @@ const roleConfig: Record<ChatRole, { label: string; icon: React.ElementType; col
 };
 
 const officeConversations: Conversation[] = [
-  { id: 1, name: "Sarah Johnson", role: "Contadora", chatRole: "staff", message: "O relatório trimestral está pronto para revisão", time: "2m atrás", unread: true, online: true },
+  { id: 1, name: "Sarah Johnson", role: "Contadora", chatRole: "staff", message: "O relatório trimestral está pronto para revisão", time: "2m atrás", unread: true, online: true, phone: "(11) 98888-1001", email: "sarah@lotus.com" },
   { id: 2, name: "Mike Chen", role: "CFO", chatRole: "staff", message: "Podemos discutir a previsão orçamentária?", time: "1h atrás", unread: true, online: true },
   { id: 6, name: "Roberto Santos", role: "Auditor", chatRole: "staff", message: "Terminei a revisão dos demonstrativos do Q3", time: "2 dias atrás", unread: false, online: true },
   { id: 7, name: "Ana Costa", role: "Fiscal", chatRole: "staff", message: "Lembrete de prazo enviado aos clientes", time: "3 dias atrás", unread: false, online: false },
@@ -90,6 +93,8 @@ const Messages = () => {
   const [selectedConversation, setSelectedConversation] = useState<number | null>(null);
   const [newMessage, setNewMessage] = useState("");
   const [activeRoleFilter, setActiveRoleFilter] = useState<ChatRole | "all">("all");
+  const [listCollapsed, setListCollapsed] = useState(false);
+  const [contactOpen, setContactOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const conversations = viewMode === "office" ? officeConversations : clientConversations;
