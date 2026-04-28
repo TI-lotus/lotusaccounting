@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { DragEvent } from "react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Key, BarChart3, CreditCard, Clock, AlertCircle, Check, Copy, Eye, EyeOff, Plus, Trash2, Power, PowerOff, Play, Save } from "lucide-react";
@@ -155,7 +156,7 @@ const IntegrationSettings = () => {
     { id: "output", label: "Retorno", x: 80, y: 62 },
   ]);
 
-  const handleNodeDrop = (event: React.DragEvent<HTMLDivElement>) => {
+  const handleNodeDrop = (event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     const nodeId = event.dataTransfer.getData("node-id");
     const rect = event.currentTarget.getBoundingClientRect();
