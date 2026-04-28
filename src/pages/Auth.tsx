@@ -18,7 +18,7 @@ const Auth = () => {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({ email: "", password: "", fullName: "", accountType: "client" });
+  const [form, setForm] = useState({ email: "", password: "", fullName: "", accountType: "client", cpf: "" });
 
   if (session) return <Navigate to="/" replace />;
 
@@ -82,6 +82,12 @@ const Auth = () => {
                   </SelectContent>
                 </Select>
               </div>
+              {form.accountType === "client" && (
+                <div className="space-y-2">
+                  <Label htmlFor="cpf">CPF</Label>
+                  <Input id="cpf" inputMode="numeric" value={form.cpf} onChange={(e) => setForm({ ...form, cpf: e.target.value.replace(/\D/g, "") })} required placeholder="Somente números" />
+                </div>
+              )}
               </div>
             )}
 
