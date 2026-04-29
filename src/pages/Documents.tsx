@@ -307,7 +307,7 @@ const Documents = () => {
             <TabsTrigger value="arquivos" className="rounded-xl">Arquivos</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="recebidos" className="space-y-4 mt-4">
+          <TabsContent value={activeTab === "enviados" ? "enviados" : "recebidos"} className="space-y-4 mt-4">
             {/* Filters */}
             <div className="flex flex-wrap gap-2 items-center animate-fade-in">
               <div className="flex gap-2">
@@ -445,13 +445,6 @@ const Documents = () => {
                   <p>Nenhum documento encontrado para o período selecionado</p>
                 </div>
               )}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="enviados" className="space-y-4 mt-4">
-            <div className="glass rounded-2xl p-6 text-center text-muted-foreground">
-              <Send className="mx-auto mb-3 h-10 w-10 opacity-50" />
-              <p>Documentos enviados ao cliente aparecem aqui.</p>
             </div>
           </TabsContent>
 
