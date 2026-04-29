@@ -18,6 +18,7 @@ import { useData } from "@/contexts/DataContext";
 import { TaskData, TaskStatus, TaskPriority, TaskType } from "@/types";
 import { filterTasks } from "@/lib/taskUtils";
 import { useViewMode } from "@/contexts/ViewModeContext";
+import { CalendarEventView } from "@/components/CalendarEventView";
 
 const kanbanColumns: { status: TaskStatus; label: string; color: string; icon: React.ReactNode }[] = [
   { status: "overdue", label: "Atrasadas", color: "border-red-500/40", icon: <AlertTriangle className="h-4 w-4 text-red-500" /> },
@@ -34,7 +35,8 @@ const Tasks = () => {
   const [assigneeFilter, setAssigneeFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [viewType, setViewType] = useState<"list" | "kanban">(viewMode === "client" ? "kanban" : "list");
+  const [viewType, setViewType] = useState<"list" | "kanban" | "calendar">(viewMode === "client" ? "kanban" : "list");
+  const [dateRange, setDateRange] = useState({ start: "2026-01-01", end: "2026-01-31" });
   const [newTask, setNewTask] = useState({
     title: "", description: "", priority: "medium" as TaskPriority,
     dueDate: "", category: "", clientId: "", assignedToId: "u2",
@@ -164,6 +166,9 @@ const Tasks = () => {
               </Button>
               <Button variant={viewType === "kanban" ? "default" : "ghost"} size="sm" className="rounded-none rounded-r-xl" onClick={() => setViewType("kanban")}>
                 <Columns3 className="h-4 w-4" />
+              </Button>
+              <Button variant={viewType === "calendar" ? "default" : "ghost"} size="sm" className="rounded-none" onClick={() => setViewType("calendar")}>
+                <Calendar className="h-4 w-4" />
               </Button>
             </div>
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -298,8 +303,26 @@ const Tasks = () => {
           </div>
         </div>
 
-        {/* Kanban View */}
-        {viewType === "kanban" ? (
+        {viewMode === "client" && (
+          <div className="glass rounded-2xl p-4 text-sm text-muted-foreground animate-fade-in">
+            As tarefas do cliente reúnem dados, documentos e pagamentos enviados para a Lotus.
+          </div>
+        )}
+
+        {viewType === "calendar" ? (
+          <CalendarEventView
+            title="Calendário de tarefas"
+            dateRange={dateRange}
+            onDateRangeChange={setDateRange}
+            events={filteredTasks.map((task, index) => ({
+              day: ((index * 3) % 30) + 1,
+              title: task.title,
+              subtitle: `${task.category} • ${task.clientName ?? "Lotus"}`,
+              time: "10:00",
+              status: task.status === "completed" ? "Concluída" : task.status === "overdue" ? "Atrasada" : "Pendente",
+            }))}
+          />
+        ) : viewType === "kanban" ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-fade-in">
             {kanbanColumns.map((col) => {
               const columnTasks = filteredTasks.filter(t => t.status === col.status);
