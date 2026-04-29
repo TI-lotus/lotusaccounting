@@ -13,14 +13,14 @@ const AffiliationProgram = () => {
   const stats = [
     { label: "Indicações", value: "12", icon: Users, change: "+3 este mês" },
     { label: "Conversões", value: "8", icon: CheckCircle, change: "67% taxa" },
-    { label: "Comissões", value: "R$ 2.400", icon: DollarSign, change: "+R$ 600" },
+    { label: "Comissões", value: "R$ 2.160", icon: DollarSign, change: "+R$ 360" },
   ];
 
   const referrals = [
-    { name: "Maria Silva", date: "15 Jan 2026", status: "Ativo", commission: "R$ 300" },
-    { name: "João Santos", date: "12 Jan 2026", status: "Ativo", commission: "R$ 300" },
+    { name: "Maria Silva", date: "15 Jan 2026", status: "Ativo", commission: "R$ 80" },
+    { name: "João Santos", date: "12 Jan 2026", status: "Ativo", commission: "R$ 160" },
     { name: "Ana Costa", date: "08 Jan 2026", status: "Pendente", commission: "-" },
-    { name: "Carlos Lima", date: "02 Jan 2026", status: "Ativo", commission: "R$ 300" },
+    { name: "Carlos Lima", date: "02 Jan 2026", status: "Ativo", commission: "R$ 280" },
   ];
 
   const performance = [
