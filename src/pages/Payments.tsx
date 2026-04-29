@@ -66,9 +66,9 @@ const Payments = () => {
   });
 
   const filteredPayments = payments.filter((p, index) => {
-    if (filter === "all") return true;
     const directionMatch = direction === "received" ? index % 2 === 0 : index % 2 !== 0;
-    return p.type === filter && directionMatch;
+    const typeMatch = filter === "all" || p.type === filter;
+    return typeMatch && directionMatch;
   }).sort((a, b) => {
     if (valueSort === "asc") return a.amount - b.amount;
     if (valueSort === "desc") return b.amount - a.amount;
