@@ -35,7 +35,7 @@ const Tasks = () => {
   const [assigneeFilter, setAssigneeFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [viewType, setViewType] = useState<"list" | "kanban" | "calendar">(viewMode === "client" ? "kanban" : "list");
+  const [viewType, setViewType] = useState<"list" | "grid" | "calendar">(viewMode === "client" ? "grid" : "list");
   const [dateRange, setDateRange] = useState({ start: "2026-01-01", end: "2026-01-31" });
   const [newTask, setNewTask] = useState({
     title: "", description: "", priority: "medium" as TaskPriority,
@@ -164,7 +164,7 @@ const Tasks = () => {
               <Button variant={viewType === "list" ? "default" : "ghost"} size="sm" className="rounded-none rounded-l-xl" onClick={() => setViewType("list")}>
                 <LayoutList className="h-4 w-4" />
               </Button>
-              <Button variant={viewType === "kanban" ? "default" : "ghost"} size="sm" className="rounded-none rounded-r-xl" onClick={() => setViewType("kanban")}>
+              <Button variant={viewType === "grid" ? "default" : "ghost"} size="sm" className="rounded-none rounded-r-xl" onClick={() => setViewType("grid")}>
                 <Columns3 className="h-4 w-4" />
               </Button>
               <Button variant={viewType === "calendar" ? "default" : "ghost"} size="sm" className="rounded-none" onClick={() => setViewType("calendar")}>
@@ -322,31 +322,9 @@ const Tasks = () => {
               status: task.status === "completed" ? "Concluída" : task.status === "overdue" ? "Atrasada" : "Pendente",
             }))}
           />
-        ) : viewType === "kanban" ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-fade-in">
-            {kanbanColumns.map((col) => {
-              const columnTasks = filteredTasks.filter(t => t.status === col.status);
-              return (
-                <div key={col.status} className={cn("rounded-xl border-t-2 bg-muted/30 flex flex-col", col.color)}>
-                  <div className="flex items-center gap-2 p-3 border-b border-border/50">
-                    {col.icon}
-                    <h3 className="text-sm font-semibold">{col.label}</h3>
-                    <Badge variant="secondary" className="ml-auto text-xs rounded-full">{columnTasks.length}</Badge>
-                  </div>
-                  <div className="space-y-2 p-2 min-h-[250px] max-h-[60vh] overflow-y-auto custom-scroll flex-1">
-                    {columnTasks.map((task) => (
-                      <KanbanCard key={task.id} task={task} />
-                    ))}
-                    {columnTasks.length === 0 && (
-                      <div className="flex flex-col items-center justify-center py-12 text-muted-foreground/50">
-                        <Circle className="h-8 w-8 mb-2" />
-                        <p className="text-xs">Nenhuma tarefa</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+        ) : viewType === "grid" ? (
+          <div className="grid grid-cols-1 gap-4 animate-fade-in md:grid-cols-2 xl:grid-cols-3">
+            {filteredTasks.map((task) => <KanbanCard key={task.id} task={task} />)}
           </div>
         ) : (
           /* List View */
