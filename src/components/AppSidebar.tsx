@@ -62,6 +62,7 @@ const officeNavItems = [
 const clientNavItems = [
   { title: "Dashboard", icon: LayoutDashboard, href: "/" },
   { title: "Tarefas", icon: CheckSquare, href: "/tasks" },
+  { title: "Pagamentos", icon: CreditCard, href: "/payments" },
   { title: "Documentos", icon: FileText, href: "/documents" },
   { title: "Relatórios", icon: BarChart3, href: "/reports" },
   { title: "Mensagens", icon: MessageSquare, href: "/messages", badge: 2 },
