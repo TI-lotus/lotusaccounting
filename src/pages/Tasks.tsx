@@ -20,13 +20,6 @@ import { filterTasks } from "@/lib/taskUtils";
 import { useViewMode } from "@/contexts/ViewModeContext";
 import { CalendarEventView } from "@/components/CalendarEventView";
 
-const kanbanColumns: { status: TaskStatus; label: string; color: string; icon: React.ReactNode }[] = [
-  { status: "overdue", label: "Atrasadas", color: "border-red-500/40", icon: <AlertTriangle className="h-4 w-4 text-red-500" /> },
-  { status: "pending", label: "Pendentes", color: "border-amber-500/40", icon: <Circle className="h-4 w-4 text-amber-500" /> },
-  { status: "in_progress", label: "Em Andamento", color: "border-primary/40", icon: <Clock className="h-4 w-4 text-primary" /> },
-  { status: "completed", label: "Concluídas", color: "border-emerald-500/40", icon: <CheckCircle2 className="h-4 w-4 text-emerald-500" /> },
-];
-
 const Tasks = () => {
   const { tasks, addTask, updateTaskStatus, clients } = useData();
   const { viewMode } = useViewMode();
