@@ -448,6 +448,13 @@ const Documents = () => {
             </div>
           </TabsContent>
 
+          <TabsContent value="enviados" className="space-y-4 mt-4">
+            <div className="glass rounded-2xl p-6 text-center text-muted-foreground">
+              <Send className="mx-auto mb-3 h-10 w-10 opacity-50" />
+              <p>Documentos enviados ao cliente aparecem aqui.</p>
+            </div>
+          </TabsContent>
+
           <TabsContent value="arquivos" className="space-y-4 mt-4">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in">
               {/* File list */}
