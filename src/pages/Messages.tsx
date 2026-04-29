@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
-import { MessageSquare, Send, Search, Phone, Video, MoreVertical, Paperclip, Bot, Building2, Users, Image, FileText, Sheet, FileType, PanelLeftClose, PanelLeftOpen, Mail } from "lucide-react";
+import { MessageSquare, Send, Search, Video, MoreVertical, Paperclip, Bot, Building2, Users, Image, FileText, Sheet, FileType, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -14,6 +14,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { useViewMode } from "@/contexts/ViewModeContext";
+import whatsappLogo from "@/assets/whatsapp-logo.png";
+import gmailLogo from "@/assets/gmail-logo.png";
+import messengerLogo from "@/assets/messenger-logo.png";
 
 type ChatRole = "client" | "staff" | "ai";
 
@@ -137,7 +140,7 @@ const Messages = () => {
           <p className="text-muted-foreground">Comunicações internas e notificações</p>
         </div>
 
-        <div className={cn("grid grid-cols-1 gap-4 lg:gap-6 h-[calc(100vh-150px)] min-h-0", listCollapsed ? "xl:grid-cols-[56px_minmax(0,1fr)]" : "xl:grid-cols-[minmax(260px,360px)_minmax(0,1fr)]")}>
+        <div className={cn("grid grid-cols-1 gap-4 lg:gap-6 h-[calc(100vh-150px)] min-h-[520px] overflow-hidden", listCollapsed ? "xl:grid-cols-[56px_minmax(0,1fr)]" : "xl:grid-cols-[minmax(260px,360px)_minmax(0,1fr)]")}>
           {/* Conversations List */}
           <div className="glass rounded-2xl p-3 sm:p-4 animate-fade-in overflow-hidden flex flex-col min-h-0">
             <Button variant="ghost" size="icon" className="mb-2 rounded-xl" onClick={() => setListCollapsed(!listCollapsed)}>
@@ -274,9 +277,6 @@ const Messages = () => {
                   </div>
                   <div className="hidden sm:flex items-center gap-1">
                     <Button variant="ghost" size="icon" className="rounded-xl h-8 w-8">
-                      <Phone className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="rounded-xl h-8 w-8">
                       <Video className="h-4 w-4" />
                     </Button>
                     <Button variant="ghost" size="icon" className="rounded-xl h-8 w-8">
@@ -295,24 +295,27 @@ const Messages = () => {
                       </Avatar>
                       <DialogHeader className="mt-3"><DialogTitle className="text-center">{currentConversation.name}</DialogTitle></DialogHeader>
                       <p className="text-sm text-muted-foreground">{currentConversation.phone ?? "(11) 99999-0000"}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">{currentConversation.online ? "Online agora" : `Visto por último ${currentConversation.time}`}</p>
-                      <div className="mt-5 grid grid-cols-4 gap-2">
-                        {[{ icon: Phone, label: "WhatsApp" }, { icon: Mail, label: "Email" }, { icon: Phone, label: "Ligação" }, { icon: Send, label: "Telegram" }].map((item) => (
+                      <div className="mt-1 flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                        <span className={cn("h-2.5 w-2.5 rounded-full", currentConversation.online ? "bg-emerald-500" : "bg-red-500")} />
+                        {currentConversation.online ? "Online agora" : `Visto por último ${currentConversation.time}`}
+                      </div>
+                      <div className="mt-5 grid grid-cols-3 gap-2">
+                        {[{ logo: whatsappLogo, label: "WhatsApp" }, { logo: gmailLogo, label: "Email" }, { logo: messengerLogo, label: "Messenger" }].map((item) => (
                           <Button key={item.label} variant="outline" className="h-20 flex-col rounded-xl gap-2">
-                            <item.icon className="h-5 w-5" />
+                            <img src={item.logo} alt="" className="h-6 w-6 object-contain" />
                             <span className="text-xs">{item.label}</span>
                           </Button>
                         ))}
                       </div>
                       <div className="mt-5 space-y-2 text-left text-sm">
                         <div className="rounded-xl border border-border p-3"><p className="text-xs text-muted-foreground">Email</p><p>{currentConversation.email ?? "contato@lotus.com"}</p></div>
-                        <div className="rounded-xl border border-border p-3"><p className="text-xs text-muted-foreground">Telegram</p><p>@lotuscontabil</p></div>
+                        <div className="rounded-xl border border-border p-3"><p className="text-xs text-muted-foreground">Messenger</p><p>@lotuscontabil</p></div>
                       </div>
                     </div>
                   </DialogContent>
                 </Dialog>
                 
-                <div className="flex-1 py-4 sm:py-6 space-y-4 overflow-y-auto sidebar-scroll min-h-0">
+                <div className="flex-1 py-4 sm:py-6 space-y-4 overflow-y-auto sidebar-scroll min-h-0 max-h-full">
                   {currentMessages.map((msg) => (
                     <div key={msg.id} className={cn("flex", msg.isMe ? "justify-end" : "justify-start")}>
                       <div className={cn(

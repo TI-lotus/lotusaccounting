@@ -62,6 +62,7 @@ const officeNavItems = [
 const clientNavItems = [
   { title: "Dashboard", icon: LayoutDashboard, href: "/" },
   { title: "Tarefas", icon: CheckSquare, href: "/tasks" },
+  { title: "Pagamentos", icon: CreditCard, href: "/payments" },
   { title: "Documentos", icon: FileText, href: "/documents" },
   { title: "Relatórios", icon: BarChart3, href: "/reports" },
   { title: "Mensagens", icon: MessageSquare, href: "/messages", badge: 2 },
@@ -159,7 +160,7 @@ export const AppSidebar = () => {
           "transition-all duration-300 overflow-hidden",
           isCollapsed ? "w-0 opacity-0 hidden" : "w-auto opacity-100"
         )}>
-          <LotusLogo size="lg" showText={!isCollapsed} />
+          <LotusLogo size="lg" showText={!isCollapsed} forceDarkLogo />
         </div>
         {isCollapsed && (
           <div className="mx-auto">

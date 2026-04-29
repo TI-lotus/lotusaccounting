@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
-import { CreditCard, Plus, ArrowUpRight, ArrowDownLeft, Calendar, LayoutDashboard, List } from "lucide-react";
+import { CreditCard, Plus, ArrowUpRight, ArrowDownLeft, Calendar, LayoutDashboard, List, Barcode, QrCode, Landmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { CalendarEventView } from "@/components/CalendarEventView";
+import { useViewMode } from "@/contexts/ViewModeContext";
 
 interface Payment {
   id: number;
@@ -47,6 +48,7 @@ const initialPayments: Payment[] = [
 ];
 
 const Payments = () => {
+  const { viewMode } = useViewMode();
   const [payments, setPayments] = useState<Payment[]>(initialPayments);
   const [filter, setFilter] = useState<"all" | "income" | "expense">("all");
   const [valueSort, setValueSort] = useState<"none" | "asc" | "desc">("none");
@@ -54,6 +56,8 @@ const Payments = () => {
   const [view, setView] = useState<"dashboard" | "list" | "calendar">("dashboard");
   const [dateRange, setDateRange] = useState({ start: "2026-01-01", end: "2026-01-31" });
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [direction, setDirection] = useState<"received" | "sent">("received");
+  const [selectedMethod, setSelectedMethod] = useState<"boleto" | "pix" | "bank" | null>(null);
   const [newPayment, setNewPayment] = useState({
     description: "",
     amount: "",
@@ -61,9 +65,10 @@ const Payments = () => {
     category: "",
   });
 
-  const filteredPayments = payments.filter((p) => {
-    if (filter === "all") return true;
-    return p.type === filter;
+  const filteredPayments = payments.filter((p, index) => {
+    const directionMatch = direction === "received" ? index % 2 === 0 : index % 2 !== 0;
+    const typeMatch = filter === "all" || p.type === filter;
+    return typeMatch && directionMatch;
   }).sort((a, b) => {
     if (valueSort === "asc") return a.amount - b.amount;
     if (valueSort === "desc") return b.amount - a.amount;
@@ -203,7 +208,38 @@ const Payments = () => {
               );
             })}
           </div>
+          <div className="flex rounded-2xl border border-border bg-card p-1">
+            <Button variant={direction === "received" ? "default" : "ghost"} size="sm" className="rounded-xl" onClick={() => setDirection("received")}>Recebidos</Button>
+            <Button variant={direction === "sent" ? "default" : "ghost"} size="sm" className="rounded-xl" onClick={() => setDirection("sent")}>Enviados</Button>
+          </div>
         </div>
+
+        {viewMode === "client" && (
+          <div className="glass rounded-2xl p-5 space-y-4 animate-fade-in">
+            <div>
+              <h2 className="text-lg font-semibold">Pagamento de honorários Lotus</h2>
+              <p className="text-sm text-muted-foreground">Escolha uma forma de pagamento e consulte o extrato mensal.</p>
+            </div>
+            <div className="grid gap-3 md:grid-cols-3">
+              {[
+                { id: "boleto", label: "Gerar boleto", icon: Barcode },
+                { id: "pix", label: "Pagar com Pix", icon: QrCode },
+                { id: "bank", label: "Pagar pelo banco", icon: Landmark },
+              ].map((method) => {
+                const Icon = method.icon;
+                return <Button key={method.id} variant={selectedMethod === method.id ? "default" : "outline"} className="h-20 rounded-xl flex-col" onClick={() => setSelectedMethod(method.id as typeof selectedMethod)}><Icon className="h-5 w-5" />{method.label}</Button>;
+              })}
+            </div>
+            {selectedMethod && (
+              <div className="grid gap-3 rounded-xl border border-border p-4 text-sm md:grid-cols-2">
+                <div><p className="text-muted-foreground">Razão social</p><p className="font-medium">LOTUS CONTABILIDADE LTDA</p></div>
+                <div><p className="text-muted-foreground">CNPJ</p><p className="font-medium">42.318.765/0001-09</p></div>
+                <div><p className="text-muted-foreground">E-mail financeiro</p><p className="font-medium">financeiro@lotus.com.br</p></div>
+                <div><p className="text-muted-foreground">Referência</p><p className="font-medium">Honorários contábeis mensais</p></div>
+              </div>
+            )}
+          </div>
+        )}
 
         {view === "dashboard" && <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="kpi-card animate-fade-in cursor-pointer hover:ring-2 ring-accent transition-all" onClick={() => setFilter("income")}>

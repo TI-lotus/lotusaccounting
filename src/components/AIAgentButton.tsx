@@ -1,7 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { AIAgentChat } from "./AIAgentChat";
 import liaIconImage from "@/assets/lia-assistant.png";
 
 interface AIAgentButtonProps {
@@ -17,6 +16,19 @@ export const AIAgentButton = ({ className, externalOpen, onExternalClose, initia
 
   const isOpen = externalOpen || chatOpen;
 
+  useEffect(() => {
+    if (document.querySelector('script[src="https://unpkg.com/@elevenlabs/convai-widget-embed"]')) return;
+    const script = document.createElement("script");
+    script.src = "https://unpkg.com/@elevenlabs/convai-widget-embed";
+    script.async = true;
+    script.type = "text/javascript";
+    document.body.appendChild(script);
+  }, []);
+
+  useEffect(() => {
+    if (isOpen && initialMessage?.trim()) onInitialMessageHandled?.();
+  }, [isOpen, initialMessage, onInitialMessageHandled]);
+
   const handleClose = () => {
     setChatOpen(false);
     onExternalClose?.();
@@ -24,9 +36,14 @@ export const AIAgentButton = ({ className, externalOpen, onExternalClose, initia
 
   return (
     <>
-      <AIAgentChat open={isOpen} onClose={handleClose} initialMessage={initialMessage} onInitialMessageHandled={onInitialMessageHandled} />
+      {isOpen && (
+        <div className="fixed bottom-24 right-6 z-50 animate-fade-in">
+          {/* @ts-expect-error custom element provided by ElevenLabs widget script */}
+          <elevenlabs-convai agent-id="agent_5801kqb432rmerkv08jnn0f60ypt" />
+        </div>
+      )}
       <Button
-        onClick={() => setChatOpen(!chatOpen)}
+        onClick={() => (isOpen ? handleClose() : setChatOpen(true))}
         className={cn(
           "fixed bottom-6 right-6 z-50",
           "h-14 w-14 rounded-full p-0",

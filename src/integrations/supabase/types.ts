@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_logs: {
+        Row: {
+          action: string | null
+          created_at: string | null
+          entity: string | null
+          entity_id: string | null
+          id: string
+          tenant_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action?: string | null
+          created_at?: string | null
+          entity?: string | null
+          entity_id?: string | null
+          id?: string
+          tenant_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string | null
+          created_at?: string | null
+          entity?: string | null
+          entity_id?: string | null
+          id?: string
+          tenant_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       companies: {
         Row: {
           cnpj: string | null
@@ -52,6 +82,90 @@ export type Database = {
           },
         ]
       }
+      contracts: {
+        Row: {
+          billing_cycle: string | null
+          company_id: string | null
+          created_at: string | null
+          id: string
+          monthly_fee: number | null
+          status: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          billing_cycle?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          id?: string
+          monthly_fee?: number | null
+          status?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          billing_cycle?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          id?: string
+          monthly_fee?: number | null
+          status?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contracts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversations: {
+        Row: {
+          channel: string | null
+          company_id: string | null
+          created_at: string | null
+          id: string
+          tenant_id: string | null
+        }
+        Insert: {
+          channel?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          id?: string
+          tenant_id?: string | null
+        }
+        Update: {
+          channel?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          id?: string
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documents: {
         Row: {
           company_id: string | null
@@ -59,6 +173,7 @@ export type Database = {
           document_type: string | null
           file_path: string | null
           id: string
+          status: string | null
           tenant_id: string | null
           uploaded_by: string | null
         }
@@ -68,6 +183,7 @@ export type Database = {
           document_type?: string | null
           file_path?: string | null
           id?: string
+          status?: string | null
           tenant_id?: string | null
           uploaded_by?: string | null
         }
@@ -77,6 +193,7 @@ export type Database = {
           document_type?: string | null
           file_path?: string | null
           id?: string
+          status?: string | null
           tenant_id?: string | null
           uploaded_by?: string | null
         }
@@ -104,9 +221,87 @@ export type Database = {
           },
         ]
       }
+      events: {
+        Row: {
+          created_at: string | null
+          id: string
+          payload: Json | null
+          tenant_id: string | null
+          type: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          payload?: Json | null
+          tenant_id?: string | null
+          type?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          payload?: Json | null
+          tenant_id?: string | null
+          type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          amount: number
+          company_id: string | null
+          created_at: string | null
+          due_date: string | null
+          id: string
+          status: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          amount: number
+          company_id?: string | null
+          created_at?: string | null
+          due_date?: string | null
+          id?: string
+          status?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          amount?: number
+          company_id?: string | null
+          created_at?: string | null
+          due_date?: string | null
+          id?: string
+          status?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           company_id: string | null
+          conversation_id: string | null
           created_at: string | null
           id: string
           message: string | null
@@ -115,6 +310,7 @@ export type Database = {
         }
         Insert: {
           company_id?: string | null
+          conversation_id?: string | null
           created_at?: string | null
           id?: string
           message?: string | null
@@ -123,6 +319,7 @@ export type Database = {
         }
         Update: {
           company_id?: string | null
+          conversation_id?: string | null
           created_at?: string | null
           id?: string
           message?: string | null
@@ -146,6 +343,54 @@ export type Database = {
           },
           {
             foreignKeyName: "messages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payments: {
+        Row: {
+          amount: number
+          created_at: string | null
+          id: string
+          invoice_id: string | null
+          method: string | null
+          paid_at: string | null
+          status: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          id?: string
+          invoice_id?: string | null
+          method?: string | null
+          paid_at?: string | null
+          status?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          id?: string
+          invoice_id?: string | null
+          method?: string | null
+          paid_at?: string | null
+          status?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -201,9 +446,13 @@ export type Database = {
           company_id: string | null
           created_at: string | null
           description: string | null
+          document_id: string | null
           due_date: string | null
           id: string
+          payment_id: string | null
+          priority: string | null
           status: string | null
+          task_type: string | null
           tenant_id: string | null
           title: string | null
         }
@@ -212,9 +461,13 @@ export type Database = {
           company_id?: string | null
           created_at?: string | null
           description?: string | null
+          document_id?: string | null
           due_date?: string | null
           id?: string
+          payment_id?: string | null
+          priority?: string | null
           status?: string | null
+          task_type?: string | null
           tenant_id?: string | null
           title?: string | null
         }
@@ -223,9 +476,13 @@ export type Database = {
           company_id?: string | null
           created_at?: string | null
           description?: string | null
+          document_id?: string | null
           due_date?: string | null
           id?: string
+          payment_id?: string | null
+          priority?: string | null
           status?: string | null
+          task_type?: string | null
           tenant_id?: string | null
           title?: string | null
         }

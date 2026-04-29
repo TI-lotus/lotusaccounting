@@ -9,9 +9,10 @@ interface LotusLogoProps {
   size?: "sm" | "md" | "lg";
   showText?: boolean;
   iconOnly?: boolean;
+  forceDarkLogo?: boolean;
 }
 
-export const LotusLogo = ({ className, size = "md", showText = true, iconOnly = false }: LotusLogoProps) => {
+export const LotusLogo = ({ className, size = "md", showText = true, iconOnly = false, forceDarkLogo = false }: LotusLogoProps) => {
   const { theme } = useTheme();
   const sizeClasses = {
     sm: "h-8",
@@ -19,7 +20,7 @@ export const LotusLogo = ({ className, size = "md", showText = true, iconOnly = 
     lg: "h-16",
   };
 
-  const logoSrc = iconOnly ? lotusIconImage : theme === "light" ? lotusWhiteModeImage : lotusLogoImage;
+  const logoSrc = iconOnly ? lotusIconImage : forceDarkLogo ? lotusLogoImage : theme === "light" ? lotusWhiteModeImage : lotusLogoImage;
 
   return (
     <div className={cn("flex items-center", className)}>

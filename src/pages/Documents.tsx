@@ -57,6 +57,13 @@ const months = [
 
 const years = ["2024", "2025", "2026"];
 
+const lotusDocumentTypes = [
+  "advertencia", "balanço patrimonial", "comprovante de pagamento", "documentos pessoais", "documentos dos sócios",
+  "documentos IRPF", "documentos para contratação", "exame admissional", "exame demissional", "exame periodico",
+  "extrato bancário", "folha de ponto", "impostos CRF", "impostos fiscais", "pedido de demissão",
+  "rescisão assinada", "informações de funcionário", "pendencias exigidas",
+];
+
 interface MockFile {
   id: string;
   name: string;
@@ -90,7 +97,7 @@ const Documents = () => {
   const [newDoc, setNewDoc] = useState({ name: "", client: "", type: "fatura" as DocumentType, amount: "" });
   const [selectedFile, setSelectedFile] = useState<MockFile | null>(null);
   const [extractedFileIds, setExtractedFileIds] = useState<string[]>([]);
-  const [activeTab, setActiveTab] = useState("faturas");
+  const [activeTab, setActiveTab] = useState("recebidos");
   const [view, setView] = useState<"dashboard" | "list" | "calendar">("dashboard");
   const [dateRange, setDateRange] = useState({ start: "2026-01-01", end: "2026-01-31" });
   const [viewerDoc, setViewerDoc] = useState<ViewableDocument | null>(null);
@@ -113,12 +120,13 @@ const Documents = () => {
     });
   };
 
-  const filteredDocuments = documents.filter((doc) => {
+  const filteredDocuments = documents.filter((doc, index) => {
     const statusMatch = filterStatus === "all" || doc.status === filterStatus;
     const monthMatch = doc.month === parseInt(filterMonth);
     const yearMatch = doc.year === parseInt(filterYear);
     const clientMatch = filterClient === "all" || doc.clientId === filterClient;
-    return statusMatch && monthMatch && yearMatch && clientMatch;
+    const directionMatch = activeTab === "recebidos" ? index % 2 === 0 : activeTab === "enviados" ? index % 2 !== 0 : true;
+    return statusMatch && monthMatch && yearMatch && clientMatch && directionMatch;
   });
 
   const handleAddDocument = () => {
@@ -212,6 +220,9 @@ const Documents = () => {
                     <Select value={newDoc.type} onValueChange={(value: DocumentType) => setNewDoc({ ...newDoc, type: value })}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
+                        {lotusDocumentTypes.map((label) => (
+                          <SelectItem key={label} value={label as DocumentType}>{label}</SelectItem>
+                        ))}
                         {Object.entries(documentTypeLabels).map(([key, label]) => (
                           <SelectItem key={key} value={key}>{label}</SelectItem>
                         ))}
@@ -291,11 +302,12 @@ const Documents = () => {
 
         {view !== "calendar" && <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="rounded-2xl">
-            <TabsTrigger value="faturas" className="rounded-xl">Faturas</TabsTrigger>
+            <TabsTrigger value="recebidos" className="rounded-xl">Recebidos</TabsTrigger>
+            <TabsTrigger value="enviados" className="rounded-xl">Enviados</TabsTrigger>
             <TabsTrigger value="arquivos" className="rounded-xl">Arquivos</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="faturas" className="space-y-4 mt-4">
+          <TabsContent value={activeTab === "enviados" ? "enviados" : "recebidos"} className="space-y-4 mt-4">
             {/* Filters */}
             <div className="flex flex-wrap gap-2 items-center animate-fade-in">
               <div className="flex gap-2">

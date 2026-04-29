@@ -18,7 +18,7 @@ import {
 import { 
   FileText, HeadphonesIcon, BarChart3, Mail, Bell, Calculator, FileSearch, Users, CreditCard,
   Calendar, AlertTriangle, TrendingUp, MessageSquare, FileCheck, Clock, Zap, Play, CheckCircle, XCircle,
-  Pencil, Filter, RotateCcw
+  Pencil, Filter, RotateCcw, Plus, Trash2, LayoutGrid, List
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -104,6 +104,15 @@ export default function Agents() {
     { id: "action", label: "Ação final", x: 85, y: 65 },
   ]);
   const [selectedWorkflowNode, setSelectedWorkflowNode] = useState<string | null>(null);
+  const [agentView, setAgentView] = useState<"grid" | "list">("grid");
+
+  const addWorkflowNode = () => {
+    setWorkflowNodes((nodes) => [...nodes, { id: `node-${Date.now()}`, label: `Novo node ${nodes.length + 1}`, x: 50, y: 50 }]);
+  };
+
+  const deleteWorkflowNode = (nodeId: string) => {
+    setWorkflowNodes((nodes) => nodes.filter((node) => node.id !== nodeId));
+  };
 
   const handleWorkflowDrop = (event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -184,10 +193,16 @@ export default function Agents() {
           </TabsList>
 
           <TabsContent value="agents" className="space-y-6 mt-6">
+            <div className="flex justify-end">
+              <div className="flex rounded-xl border border-border bg-card p-1">
+                <Button variant={agentView === "grid" ? "default" : "ghost"} size="sm" className="rounded-lg" onClick={() => setAgentView("grid")}><LayoutGrid className="h-4 w-4" />Grade</Button>
+                <Button variant={agentView === "list" ? "default" : "ghost"} size="sm" className="rounded-lg" onClick={() => setAgentView("list")}><List className="h-4 w-4" />Lista</Button>
+              </div>
+            </div>
             {(Object.keys(groupedAgents) as Agent["category"][]).map((category) => (
               <div key={category} className="space-y-4">
                 <h2 className="text-lg font-medium">{categoryLabels[category]}</h2>
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <div className={cn("grid gap-4", agentView === "grid" ? "md:grid-cols-2 lg:grid-cols-3" : "grid-cols-1")}>
                   {groupedAgents[category].map((agent) => {
                     const Icon = agent.icon;
                     const status = statusConfig[agent.status];
@@ -199,7 +214,7 @@ export default function Agents() {
                           agent.enabled ? "border-primary/20 bg-card" : "border-border bg-muted/30"
                         )}
                       >
-                        <CardHeader className="pb-3">
+                          <CardHeader className={cn("pb-3", agentView === "list" && "pb-4")}>
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex items-center gap-3">
                               <div className={cn("p-2 rounded-lg", agent.enabled ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground")}>
@@ -221,7 +236,7 @@ export default function Agents() {
                             </div>
                           </div>
                         </CardHeader>
-                        <CardContent>
+                        <CardContent className={cn(agentView === "list" && "pt-0")}>
                           <CardDescription className="text-sm">{agent.description}</CardDescription>
                           {agent.enabled && agent.actionsToday > 0 && (
                             <div className="mt-3 pt-3 border-t border-border">
@@ -239,6 +254,7 @@ export default function Agents() {
 
           <TabsContent value="workflow" className="mt-6 space-y-4">
             <div className="flex justify-end gap-2">
+              <Button variant="outline" className="rounded-xl gap-2" onClick={addWorkflowNode}><Plus className="h-4 w-4" />Adicionar node</Button>
               <Button variant="outline" className="rounded-xl gap-2"><FileCheck className="h-4 w-4" />Salvar alterações</Button>
               <Button className="rounded-xl gap-2"><Play className="h-4 w-4" />Executar workflow</Button>
             </div>
@@ -250,10 +266,13 @@ export default function Agents() {
                 })}
               </svg>
               {workflowNodes.map((node) => (
-                <button key={node.id} draggable onDragStart={(event) => event.dataTransfer.setData("node-id", node.id)} onClick={() => setSelectedWorkflowNode(node.label)} className="absolute w-36 -translate-x-1/2 -translate-y-1/2 cursor-grab rounded-xl border border-border bg-background p-4 text-left shadow-soft hover:ring-2 hover:ring-primary active:cursor-grabbing" style={{ left: `${node.x}%`, top: `${node.y}%` }}>
+                <div key={node.id} draggable onDragStart={(event) => event.dataTransfer.setData("node-id", node.id)} className="absolute w-36 -translate-x-1/2 -translate-y-1/2 cursor-grab rounded-xl border border-border bg-background p-4 text-left shadow-soft hover:ring-2 hover:ring-primary active:cursor-grabbing" style={{ left: `${node.x}%`, top: `${node.y}%` }}>
+                  <button className="absolute right-1 top-1 rounded-lg p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive" onClick={() => deleteWorkflowNode(node.id)}><Trash2 className="h-3.5 w-3.5" /></button>
+                  <button className="text-left" onClick={() => setSelectedWorkflowNode(node.label)}>
                   <p className="font-medium text-sm">{node.label}</p>
                   <p className="text-xs text-muted-foreground mt-1">Arraste para mover</p>
-                </button>
+                  </button>
+                </div>
               ))}
             </div>
           </TabsContent>

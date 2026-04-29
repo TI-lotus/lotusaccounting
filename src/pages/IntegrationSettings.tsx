@@ -156,6 +156,14 @@ const IntegrationSettings = () => {
     { id: "output", label: "Retorno", x: 80, y: 62 },
   ]);
 
+  const addWorkflowNode = () => {
+    setWorkflowNodes((nodes) => [...nodes, { id: `node-${Date.now()}`, label: `Novo node ${nodes.length + 1}`, x: 50, y: 50 }]);
+  };
+
+  const deleteWorkflowNode = (nodeId: string) => {
+    setWorkflowNodes((nodes) => nodes.filter((node) => node.id !== nodeId));
+  };
+
   const handleNodeDrop = (event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     const nodeId = event.dataTransfer.getData("node-id");
@@ -284,6 +292,7 @@ const IntegrationSettings = () => {
 
           <TabsContent value="workflow" className="space-y-4 mt-6">
             <div className="flex justify-end gap-2">
+              <Button variant="outline" className="rounded-xl gap-2" onClick={addWorkflowNode}><Plus className="h-4 w-4" />Adicionar node</Button>
               <Button variant="outline" className="rounded-xl gap-2"><Save className="h-4 w-4" />Salvar alterações</Button>
               <Button className="rounded-xl gap-2"><Play className="h-4 w-4" />Executar</Button>
             </div>
@@ -295,10 +304,13 @@ const IntegrationSettings = () => {
                 })}
               </svg>
               {workflowNodes.map((node) => (
-                <button key={node.id} draggable onDragStart={(event) => event.dataTransfer.setData("node-id", node.id)} onClick={() => setSelectedNode(node.label)} className="absolute w-36 -translate-x-1/2 -translate-y-1/2 cursor-grab rounded-xl border border-border bg-background p-4 text-left shadow-soft hover:ring-2 hover:ring-primary active:cursor-grabbing" style={{ left: `${node.x}%`, top: `${node.y}%` }}>
-                  <p className="font-medium text-sm">{node.label}</p>
-                  <p className="text-xs text-muted-foreground mt-1">Clique para editar</p>
-                </button>
+                <div key={node.id} draggable onDragStart={(event) => event.dataTransfer.setData("node-id", node.id)} className="absolute w-36 -translate-x-1/2 -translate-y-1/2 cursor-grab rounded-xl border border-border bg-background p-4 text-left shadow-soft hover:ring-2 hover:ring-primary active:cursor-grabbing" style={{ left: `${node.x}%`, top: `${node.y}%` }}>
+                  <button className="absolute right-1 top-1 rounded-lg p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive" onClick={() => deleteWorkflowNode(node.id)}><Trash2 className="h-3.5 w-3.5" /></button>
+                  <button className="text-left" onClick={() => setSelectedNode(node.label)}>
+                    <p className="font-medium text-sm">{node.label}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Clique para editar</p>
+                  </button>
+                </div>
               ))}
             </div>
             <Dialog open={!!selectedNode} onOpenChange={(open) => !open && setSelectedNode(null)}>

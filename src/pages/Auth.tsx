@@ -57,7 +57,7 @@ const Auth = () => {
       <section className="w-full max-w-md glass rounded-3xl p-6 shadow-soft-lg">
         <div className="flex flex-col items-center text-center gap-3 mb-6">
           <div className="h-14 flex items-center justify-center">
-            <LotusLogo className="h-12" />
+            <LotusLogo className="h-12" iconOnly />
           </div>
           <div>
             <h1 className="text-2xl font-semibold">Acesse sua conta</h1>

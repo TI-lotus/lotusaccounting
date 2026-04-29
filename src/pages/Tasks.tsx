@@ -18,13 +18,7 @@ import { useData } from "@/contexts/DataContext";
 import { TaskData, TaskStatus, TaskPriority, TaskType } from "@/types";
 import { filterTasks } from "@/lib/taskUtils";
 import { useViewMode } from "@/contexts/ViewModeContext";
-
-const kanbanColumns: { status: TaskStatus; label: string; color: string; icon: React.ReactNode }[] = [
-  { status: "overdue", label: "Atrasadas", color: "border-red-500/40", icon: <AlertTriangle className="h-4 w-4 text-red-500" /> },
-  { status: "pending", label: "Pendentes", color: "border-amber-500/40", icon: <Circle className="h-4 w-4 text-amber-500" /> },
-  { status: "in_progress", label: "Em Andamento", color: "border-primary/40", icon: <Clock className="h-4 w-4 text-primary" /> },
-  { status: "completed", label: "Concluídas", color: "border-emerald-500/40", icon: <CheckCircle2 className="h-4 w-4 text-emerald-500" /> },
-];
+import { CalendarEventView } from "@/components/CalendarEventView";
 
 const Tasks = () => {
   const { tasks, addTask, updateTaskStatus, clients } = useData();
@@ -34,7 +28,8 @@ const Tasks = () => {
   const [assigneeFilter, setAssigneeFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [viewType, setViewType] = useState<"list" | "kanban">(viewMode === "client" ? "kanban" : "list");
+  const [viewType, setViewType] = useState<"list" | "grid" | "calendar">(viewMode === "client" ? "grid" : "list");
+  const [dateRange, setDateRange] = useState({ start: "2026-01-01", end: "2026-01-31" });
   const [newTask, setNewTask] = useState({
     title: "", description: "", priority: "medium" as TaskPriority,
     dueDate: "", category: "", clientId: "", assignedToId: "u2",
@@ -162,8 +157,11 @@ const Tasks = () => {
               <Button variant={viewType === "list" ? "default" : "ghost"} size="sm" className="rounded-none rounded-l-xl" onClick={() => setViewType("list")}>
                 <LayoutList className="h-4 w-4" />
               </Button>
-              <Button variant={viewType === "kanban" ? "default" : "ghost"} size="sm" className="rounded-none rounded-r-xl" onClick={() => setViewType("kanban")}>
+              <Button variant={viewType === "grid" ? "default" : "ghost"} size="sm" className="rounded-none rounded-r-xl" onClick={() => setViewType("grid")}>
                 <Columns3 className="h-4 w-4" />
+              </Button>
+              <Button variant={viewType === "calendar" ? "default" : "ghost"} size="sm" className="rounded-none" onClick={() => setViewType("calendar")}>
+                <Calendar className="h-4 w-4" />
               </Button>
             </div>
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -298,32 +296,28 @@ const Tasks = () => {
           </div>
         </div>
 
-        {/* Kanban View */}
-        {viewType === "kanban" ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-fade-in">
-            {kanbanColumns.map((col) => {
-              const columnTasks = filteredTasks.filter(t => t.status === col.status);
-              return (
-                <div key={col.status} className={cn("rounded-xl border-t-2 bg-muted/30 flex flex-col", col.color)}>
-                  <div className="flex items-center gap-2 p-3 border-b border-border/50">
-                    {col.icon}
-                    <h3 className="text-sm font-semibold">{col.label}</h3>
-                    <Badge variant="secondary" className="ml-auto text-xs rounded-full">{columnTasks.length}</Badge>
-                  </div>
-                  <div className="space-y-2 p-2 min-h-[250px] max-h-[60vh] overflow-y-auto custom-scroll flex-1">
-                    {columnTasks.map((task) => (
-                      <KanbanCard key={task.id} task={task} />
-                    ))}
-                    {columnTasks.length === 0 && (
-                      <div className="flex flex-col items-center justify-center py-12 text-muted-foreground/50">
-                        <Circle className="h-8 w-8 mb-2" />
-                        <p className="text-xs">Nenhuma tarefa</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+        {viewMode === "client" && (
+          <div className="glass rounded-2xl p-4 text-sm text-muted-foreground animate-fade-in">
+            As tarefas do cliente reúnem dados, documentos e pagamentos enviados para a Lotus.
+          </div>
+        )}
+
+        {viewType === "calendar" ? (
+          <CalendarEventView
+            title="Calendário de tarefas"
+            dateRange={dateRange}
+            onDateRangeChange={setDateRange}
+            events={filteredTasks.map((task, index) => ({
+              day: ((index * 3) % 30) + 1,
+              title: task.title,
+              subtitle: `${task.category} • ${task.clientName ?? "Lotus"}`,
+              time: "10:00",
+              status: task.status === "completed" ? "Concluída" : task.status === "overdue" ? "Atrasada" : "Pendente",
+            }))}
+          />
+        ) : viewType === "grid" ? (
+          <div className="grid grid-cols-1 gap-4 animate-fade-in md:grid-cols-2 xl:grid-cols-3">
+            {filteredTasks.map((task) => <KanbanCard key={task.id} task={task} />)}
           </div>
         ) : (
           /* List View */

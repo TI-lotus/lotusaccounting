@@ -2,8 +2,9 @@ import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Users, Gift, DollarSign, Copy, Share2, TrendingUp, CheckCircle, MousePointerClick, Wallet } from "lucide-react";
+import { Users, Gift, DollarSign, Copy, Share2, TrendingUp, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 const AffiliationProgram = () => {
   const affiliateCode = "LOTUS-ABC123";
@@ -12,21 +13,22 @@ const AffiliationProgram = () => {
   const stats = [
     { label: "Indicações", value: "12", icon: Users, change: "+3 este mês" },
     { label: "Conversões", value: "8", icon: CheckCircle, change: "67% taxa" },
-    { label: "Comissões", value: "R$ 2.400", icon: DollarSign, change: "+R$ 600" },
+    { label: "Comissões", value: "R$ 2.160", icon: DollarSign, change: "+R$ 360" },
   ];
 
   const referrals = [
-    { name: "Maria Silva", date: "15 Jan 2026", status: "Ativo", commission: "R$ 300" },
-    { name: "João Santos", date: "12 Jan 2026", status: "Ativo", commission: "R$ 300" },
+    { name: "Maria Silva", date: "15 Jan 2026", status: "Ativo", commission: "R$ 80" },
+    { name: "João Santos", date: "12 Jan 2026", status: "Ativo", commission: "R$ 160" },
     { name: "Ana Costa", date: "08 Jan 2026", status: "Pendente", commission: "-" },
-    { name: "Carlos Lima", date: "02 Jan 2026", status: "Ativo", commission: "R$ 300" },
+    { name: "Carlos Lima", date: "02 Jan 2026", status: "Ativo", commission: "R$ 280" },
   ];
 
   const performance = [
-    { label: "Cliques no link", value: "1.284", icon: MousePointerClick, change: "+18%" },
-    { label: "Leads qualificados", value: "96", icon: Users, change: "+12" },
-    { label: "Ganhos pendentes", value: "R$ 900", icon: Wallet, change: "3 conversões" },
-    { label: "Ganhos pagos", value: "R$ 1.500", icon: DollarSign, change: "este mês" },
+    { label: "1ª indicação", indicacoes: 1, comissao: 80, cliques: 180, leads: 12 },
+    { label: "2ª indicação", indicacoes: 2, comissao: 160, cliques: 320, leads: 25 },
+    { label: "3ª indicação", indicacoes: 3, comissao: 200, cliques: 470, leads: 39 },
+    { label: "4ª indicação", indicacoes: 4, comissao: 280, cliques: 690, leads: 58 },
+    { label: "5ª+ indicação", indicacoes: 5, comissao: 360, cliques: 940, leads: 82 },
   ];
 
   const copyToClipboard = (text: string) => {
@@ -67,18 +69,25 @@ const AffiliationProgram = () => {
         <Card>
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2"><TrendingUp className="h-5 w-5" />Dashboard de Performance</CardTitle>
-            <CardDescription>Acompanhe conversões e ganhos do programa</CardDescription>
+            <CardDescription>Comissão progressiva por indicação convertida</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 md:grid-cols-4">
-              {performance.map((item) => (
-                <div key={item.label} className="rounded-xl border border-border p-4">
-                  <item.icon className="h-5 w-5 text-gilver mb-3" />
-                  <p className="text-sm text-muted-foreground">{item.label}</p>
-                  <p className="text-xl font-semibold mt-1">{item.value}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{item.change}</p>
-                </div>
-              ))}
+            <div className="h-[320px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={performance} margin={{ top: 10, right: 12, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="affiliateCommissions" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.35} />
+                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                  <XAxis dataKey="label" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
+                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `R$ ${value}`} />
+                  <Tooltip formatter={(value) => [`R$ ${value}`, "Comissão"]} contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 12 }} />
+                  <Area type="monotone" dataKey="comissao" stroke="hsl(var(--primary))" strokeWidth={3} fill="url(#affiliateCommissions)" />
+                </AreaChart>
+              </ResponsiveContainer>
             </div>
           </CardContent>
         </Card>
@@ -91,7 +100,7 @@ const AffiliationProgram = () => {
               Seu Link de Indicação
             </CardTitle>
             <CardDescription>
-              Compartilhe seu link e ganhe R$ 300 por cada cliente convertido
+              Compartilhe seu link e ganhe de R$ 80 a R$ 360 por cliente convertido
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -119,8 +128,8 @@ const AffiliationProgram = () => {
               <div className="flex-1">
                 <h3 className="font-semibold">Como funciona?</h3>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Você ganha R$ 300 de comissão para cada cliente que se cadastrar usando seu link 
-                  e permanecer ativo por pelo menos 30 dias. As comissões são pagas mensalmente.
+                  A comissão cresce por sequência: R$ 80 na primeira indicação, R$ 160 na segunda,
+                  R$ 200 na terceira, R$ 280 na quarta e R$ 360 a partir da quinta.
                 </p>
               </div>
             </div>
