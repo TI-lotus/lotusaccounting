@@ -38,10 +38,8 @@ export const AIAgentButton = ({ className, externalOpen, onExternalClose, initia
     <>
       {isOpen && (
         <div className="fixed bottom-24 right-6 z-50 animate-fade-in">
-          {/** Widget oficial da assistente Lia no ElevenLabs. */}
-          {"elevenlabs-convai" &&
-            // @ts-expect-error custom element provided by ElevenLabs widget script
-            <elevenlabs-convai agent-id="agent_5801kqb432rmerkv08jnn0f60ypt" />}
+          {/* @ts-expect-error custom element provided by ElevenLabs widget script */}
+          <elevenlabs-convai agent-id="agent_5801kqb432rmerkv08jnn0f60ypt" />
         </div>
       )}
       <Button
