@@ -159,7 +159,7 @@ export const AppSidebar = () => {
           "transition-all duration-300 overflow-hidden",
           isCollapsed ? "w-0 opacity-0 hidden" : "w-auto opacity-100"
         )}>
-          <LotusLogo size="lg" showText={!isCollapsed} />
+          <LotusLogo size="lg" showText={!isCollapsed} forceDarkLogo />
         </div>
         {isCollapsed && (
           <div className="mx-auto">
