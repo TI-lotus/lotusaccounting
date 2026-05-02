@@ -1,4 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 type UserProfileState = {
   firstName: string;
@@ -17,27 +19,68 @@ type UserProfileContextValue = UserProfileState & {
 };
 
 const defaultProfile: UserProfileState = {
-  firstName: "John",
-  lastName: "Doe",
-  email: "john@lotus.com",
-  cpf: "123.456.789-00",
+  firstName: "",
+  lastName: "",
+  email: "",
+  cpf: "",
   avatarUrl: "",
-  companyName: "Lotus Serviços Financeiros",
-  cnpj: "12.345.678/0001-90",
+  companyName: "",
+  cnpj: "",
 };
+
+// Only these non-sensitive fields are persisted to localStorage.
+// Sensitive identifiers (cpf, cnpj, email) are loaded from the backend on demand.
+const PERSISTED_KEYS = ["firstName", "lastName", "avatarUrl", "companyName"] as const;
+const STORAGE_KEY = "lotus-user-profile";
 
 const UserProfileContext = createContext<UserProfileContextValue | undefined>(undefined);
 
 export const UserProfileProvider = ({ children }: { children: React.ReactNode }) => {
+  const { user } = useAuth();
   const [profile, setProfile] = useState<UserProfileState>(() => {
     if (typeof window === "undefined") return defaultProfile;
-    const stored = localStorage.getItem("lotus-user-profile");
-    return stored ? { ...defaultProfile, ...JSON.parse(stored) } : defaultProfile;
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      return stored ? { ...defaultProfile, ...JSON.parse(stored) } : defaultProfile;
+    } catch {
+      return defaultProfile;
+    }
   });
 
+  // Persist only non-sensitive fields
   useEffect(() => {
-    localStorage.setItem("lotus-user-profile", JSON.stringify(profile));
+    const safe: Partial<UserProfileState> = {};
+    for (const key of PERSISTED_KEYS) safe[key] = profile[key];
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(safe));
   }, [profile]);
+
+  // Load sensitive identifiers from backend after auth
+  useEffect(() => {
+    if (!user) {
+      setProfile((current) => ({ ...current, email: "", cpf: "", cnpj: "" }));
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("profiles" as never)
+        .select("full_name, company_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (cancelled) return;
+      const full = (data as { full_name?: string } | null)?.full_name ?? "";
+      const [firstName = "", ...rest] = full.split(" ");
+      setProfile((current) => ({
+        ...current,
+        email: user.email ?? "",
+        firstName: current.firstName || firstName,
+        lastName: current.lastName || rest.join(" "),
+      }));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   const value = useMemo<UserProfileContextValue>(() => {
     const fullName = `${profile.firstName} ${profile.lastName}`.trim();

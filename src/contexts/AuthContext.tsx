@@ -78,10 +78,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (error) throw error;
     },
     signUp: async ({ email, password, fullName, accountType, cpf }) => {
+      // Do NOT include cpf in user metadata — it would be embedded in JWTs
+      // (which live in localStorage). Sensitive identifiers belong in the
+      // RLS-protected profiles table only.
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: { emailRedirectTo: window.location.origin, data: { full_name: fullName, account_type: accountType, cpf } },
+        options: { emailRedirectTo: window.location.origin, data: { full_name: fullName, account_type: accountType } },
       });
       if (error) throw error;
       if (data.user) {
