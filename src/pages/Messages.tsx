@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
-import { MessageSquare, Send, Search, Video, MoreVertical, Paperclip, Bot, Building2, Users, Image, FileText, Sheet, FileType, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { MessageSquare, Send, Search, Video, MoreVertical, Paperclip, Bot, Building2, Users, Image, FileText, Sheet, FileType } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -96,7 +96,6 @@ const Messages = () => {
   const [selectedConversation, setSelectedConversation] = useState<number | null>(null);
   const [newMessage, setNewMessage] = useState("");
   const [activeRoleFilter, setActiveRoleFilter] = useState<ChatRole | "all">("all");
-  const [listCollapsed, setListCollapsed] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -140,21 +139,9 @@ const Messages = () => {
           <p className="text-muted-foreground">Comunicações internas e notificações</p>
         </div>
 
-        <div className={cn("grid grid-cols-1 gap-4 lg:gap-6 h-[calc(100vh-150px)] min-h-[520px] overflow-hidden", listCollapsed ? "xl:grid-cols-[56px_minmax(0,1fr)]" : "xl:grid-cols-[minmax(260px,360px)_minmax(0,1fr)]")}>
+        <div className="grid grid-cols-1 gap-4 lg:gap-6 h-[calc(100vh-150px)] min-h-[520px] overflow-hidden xl:grid-cols-[minmax(260px,360px)_minmax(0,1fr)]">
           {/* Conversations List */}
           <div className="glass rounded-2xl p-3 sm:p-4 animate-fade-in overflow-hidden flex flex-col min-h-0">
-            <Button variant="ghost" size="icon" className="mb-2 rounded-xl" onClick={() => setListCollapsed(!listCollapsed)}>
-              {listCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
-            </Button>
-            {listCollapsed ? (
-              <div className="flex flex-col items-center gap-2">
-                <Button variant="ghost" size="icon" className="rounded-xl"><Search className="h-4 w-4" /></Button>
-                {availableRoles.map(role => {
-                  const Icon = roleConfig[role].icon;
-                  return <Button key={role} variant={activeRoleFilter === role ? "default" : "ghost"} size="icon" className="rounded-xl" onClick={() => setActiveRoleFilter(role)}><Icon className="h-4 w-4" /></Button>;
-                })}
-              </div>
-            ) : <>
             <div className="relative mb-3">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Buscar mensagens..." className="pl-10 rounded-xl" />
