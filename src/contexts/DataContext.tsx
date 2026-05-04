@@ -65,9 +65,9 @@ const mockDocuments: DocumentData[] = [
 interface DataContextType {
   // Clients
   clients: ClientData[];
-  addClient: (client: Omit<ClientData, "id" | "createdAt">) => void;
-  updateClient: (id: string, updates: Partial<ClientData>) => void;
-  deleteClient: (id: string) => void;
+  addClient: (client: Omit<ClientData, "id" | "createdAt">) => Promise<void> | void;
+  updateClient: (id: string, updates: Partial<ClientData>) => Promise<void> | void;
+  deleteClient: (id: string) => Promise<void> | void;
 
   // Tasks
   tasks: TaskData[];
