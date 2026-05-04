@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { UserCog, Plus, Search, MoreHorizontal, Mail, Phone, Shield, ShieldCheck, ShieldAlert, CheckSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -75,19 +76,49 @@ const Staff = () => {
     m.department.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleAdd = () => {
+  // Load persisted users on mount
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase.from("users").select("id, name, role, created_at");
+      if (cancelled || !data?.length) return;
+      const dbStaff: StaffMember[] = data.map((row) => ({
+        id: row.id,
+        name: row.name ?? "Sem nome",
+        email: "",
+        phone: "",
+        role: (row.role === "admin" ? "admin" : "collaborator") as "admin" | "collaborator",
+        department: "",
+        status: "active",
+        tasksAssigned: 0,
+        tasksCompleted: 0,
+        permissions: { clients: true, payments: false, documents: true, reports: false, integrations: false, agents: false },
+      }));
+      setStaff((prev) => {
+        const ids = new Set(prev.map((s) => s.id));
+        return [...dbStaff.filter((s) => !ids.has(s.id)), ...prev];
+      });
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const handleAdd = async () => {
     if (!newMember.name || !newMember.email) {
       toast.error("Preencha nome e email");
       return;
     }
+    const id = crypto.randomUUID();
     const member: StaffMember = {
-      id: crypto.randomUUID(),
+      id,
       ...newMember,
       status: "active",
       tasksAssigned: 0,
       tasksCompleted: 0,
       permissions: { clients: true, payments: false, documents: true, reports: false, integrations: false, agents: false },
     };
+    // Persist basic fields to users table (id, name, role).
+    const { error } = await supabase.from("users").insert({ id, name: newMember.name, role: newMember.role });
+    if (error) toast.error("Salvo apenas localmente: " + error.message);
     setStaff(prev => [member, ...prev]);
     setNewMember({ name: "", email: "", phone: "", role: "collaborator", department: "" });
     setDialogOpen(false);

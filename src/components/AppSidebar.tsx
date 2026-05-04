@@ -193,12 +193,7 @@ export const AppSidebar = () => {
         </div>
       )}
 
-      {/* Company Selector for Client Mode */}
-      {viewMode === "client" && !isCollapsed && (
-        <div className="px-3 pt-2">
-          <CompanySelector />
-        </div>
-      )}
+      {/* Company selector intentionally hidden in client view */}
 
       {/* Main Navigation */}
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto sidebar-scroll">

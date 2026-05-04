@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react";
 import {
   ClientData,
   TaskData,
@@ -10,6 +10,7 @@ import {
 } from "@/types";
 import { computeTaskStatuses, sortTasks, filterTasks } from "@/lib/taskUtils";
 import { executeDocumentPipeline } from "@/lib/workflowPipeline";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 // =============================================
@@ -64,9 +65,9 @@ const mockDocuments: DocumentData[] = [
 interface DataContextType {
   // Clients
   clients: ClientData[];
-  addClient: (client: Omit<ClientData, "id" | "createdAt">) => void;
-  updateClient: (id: string, updates: Partial<ClientData>) => void;
-  deleteClient: (id: string) => void;
+  addClient: (client: Omit<ClientData, "id" | "createdAt">) => Promise<void> | void;
+  updateClient: (id: string, updates: Partial<ClientData>) => Promise<void> | void;
+  deleteClient: (id: string) => Promise<void> | void;
 
   // Tasks
   tasks: TaskData[];
@@ -100,22 +101,71 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [pipelineHistory, setPipelineHistory] = useState<PipelineExecution[]>([]);
 
+  // Load persisted clients (companies table) on mount; merge with mocks.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase.from("companies").select("id, name, cnpj, email, phone, created_at");
+      if (cancelled || error || !data?.length) return;
+      const dbClients: ClientData[] = data.map((row) => ({
+        id: row.id,
+        name: row.name,
+        cnpj: row.cnpj ?? "",
+        taxRegime: "simples_nacional",
+        responsibleUserId: "u2",
+        responsibleUserName: "Ana Costa",
+        serviceFee: 0,
+        city: "",
+        state: "",
+        status: "active",
+        email: row.email ?? "",
+        phone: row.phone ?? "",
+        createdAt: row.created_at ?? new Date().toISOString(),
+      }));
+      // Prepend persisted clients above mocks, dedup by id
+      setClients((prev) => {
+        const existingIds = new Set(prev.map((c) => c.id));
+        const merged = [...dbClients.filter((c) => !existingIds.has(c.id)), ...prev];
+        return merged;
+      });
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   // --- Clients ---
-  const addClient = useCallback((client: Omit<ClientData, "id" | "createdAt">) => {
+  const addClient = useCallback(async (client: Omit<ClientData, "id" | "createdAt">) => {
+    const { data, error } = await supabase
+      .from("companies")
+      .insert({ name: client.name, cnpj: client.cnpj, email: client.email, phone: client.phone })
+      .select("id, created_at")
+      .maybeSingle();
+
+    if (error) {
+      toast.error("Não foi possível salvar no banco. Salvando localmente.");
+    }
     const newClient: ClientData = {
       ...client,
-      id: crypto.randomUUID(),
-      createdAt: new Date().toISOString(),
+      id: data?.id ?? crypto.randomUUID(),
+      createdAt: data?.created_at ?? new Date().toISOString(),
     };
     setClients(prev => [newClient, ...prev]);
   }, []);
 
-  const updateClient = useCallback((id: string, updates: Partial<ClientData>) => {
+  const updateClient = useCallback(async (id: string, updates: Partial<ClientData>) => {
     setClients(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
+    const dbPatch: Record<string, unknown> = {};
+    if (updates.name !== undefined) dbPatch.name = updates.name;
+    if (updates.cnpj !== undefined) dbPatch.cnpj = updates.cnpj;
+    if (updates.email !== undefined) dbPatch.email = updates.email;
+    if (updates.phone !== undefined) dbPatch.phone = updates.phone;
+    if (Object.keys(dbPatch).length) {
+      await supabase.from("companies").update(dbPatch).eq("id", id);
+    }
   }, []);
 
-  const deleteClient = useCallback((id: string) => {
+  const deleteClient = useCallback(async (id: string) => {
     setClients(prev => prev.filter(c => c.id !== id));
+    await supabase.from("companies").delete().eq("id", id);
   }, []);
 
   // --- Tasks ---
