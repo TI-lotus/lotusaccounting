@@ -25,6 +25,8 @@ import {
 import { toast } from "sonner";
 import { CalendarEventView } from "@/components/CalendarEventView";
 import { useViewMode } from "@/contexts/ViewModeContext";
+import { useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Payment {
   id: number;
@@ -79,21 +81,66 @@ const Payments = () => {
   const totalExpense = payments.filter((p) => p.type === "expense").reduce((sum, p) => sum + p.amount, 0);
   const netFlow = totalIncome - totalExpense;
 
-  const handleAddPayment = () => {
+  // Load persisted invoices/payments from Supabase on mount
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const [{ data: invoices }, { data: paymentsData }] = await Promise.all([
+        supabase.from("invoices").select("id, amount, status, due_date, created_at"),
+        supabase.from("payments").select("id, amount, status, method, paid_at, created_at"),
+      ]);
+      if (cancelled) return;
+      const fmt = (iso: string | null) => new Date(iso ?? Date.now()).toLocaleDateString("pt-BR", { day: "numeric", month: "short", year: "numeric" });
+      const fromInvoices: Payment[] = (invoices ?? []).map((row) => ({
+        id: parseInt(row.id.replace(/\D/g, "").slice(0, 9) || `${Date.now()}`, 10),
+        description: `Fatura ${row.id.slice(0, 6)}`,
+        amount: Number(row.amount),
+        type: "income",
+        status: row.status === "paid" ? "completed" : "pending",
+        date: fmt(row.due_date ?? row.created_at),
+        category: "Faturas",
+      }));
+      const fromPayments: Payment[] = (paymentsData ?? []).map((row) => ({
+        id: parseInt(row.id.replace(/\D/g, "").slice(0, 9) || `${Date.now()}`, 10),
+        description: `Pagamento ${row.id.slice(0, 6)}`,
+        amount: Number(row.amount),
+        type: "expense",
+        status: row.status === "completed" ? "completed" : "pending",
+        date: fmt(row.paid_at ?? row.created_at),
+        category: row.method ?? "Outros",
+      }));
+      if (fromInvoices.length || fromPayments.length) {
+        setPayments((prev) => [...fromInvoices, ...fromPayments, ...prev]);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const handleAddPayment = async () => {
     if (!newPayment.description || !newPayment.amount) {
       toast.error("Preencha descrição e valor");
       return;
     }
 
+    const amount = parseFloat(newPayment.amount);
     const payment: Payment = {
       id: Date.now(),
       description: newPayment.description,
-      amount: parseFloat(newPayment.amount),
+      amount,
       type: newPayment.type,
       status: "pending",
       date: new Date().toLocaleDateString("pt-BR", { day: "numeric", month: "short", year: "numeric" }),
       category: newPayment.category || "Outros",
     };
+
+    // Persist to Supabase
+    if (newPayment.type === "income") {
+      const { error } = await supabase.from("invoices").insert({ amount, status: "pending" });
+      if (error) toast.error("Salvo apenas localmente: " + error.message);
+    } else {
+      const { error } = await supabase.from("payments").insert({ amount, status: "pending", method: newPayment.category || null });
+      if (error) toast.error("Salvo apenas localmente: " + error.message);
+    }
 
     setPayments([payment, ...payments]);
     setNewPayment({ description: "", amount: "", type: "income", category: "" });
