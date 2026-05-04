@@ -226,7 +226,6 @@ const Messages = () => {
                 </div>
               ))}
             </div>
-            </>}
           </div>
 
           {/* Message Thread */}
