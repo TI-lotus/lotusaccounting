@@ -67,7 +67,7 @@ export const CalendarEventView = ({ title, events, dateRange, onDateRangeChange 
         <CalendarRangeControls dateRange={dateRange} onDateRangeChange={onDateRangeChange} />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,480px)_minmax(0,1fr)]">
         {/* Calendar grid - compact squares */}
         <div className="grid grid-cols-7 gap-1.5 text-center text-xs">
           {weekDays.map((day) => <div key={day} className="py-1.5 font-medium text-muted-foreground">{day}</div>)}
