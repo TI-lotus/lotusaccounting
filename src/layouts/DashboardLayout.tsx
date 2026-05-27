@@ -11,14 +11,12 @@ interface DashboardLayoutProps {
 
 export const DashboardLayout = ({ children, className }: DashboardLayoutProps) => {
   return (
-    <div className="min-h-screen flex w-full bg-background">
+    <div className="min-h-screen flex flex-col w-full bg-background">
+      <TopBar />
       <AppSidebar />
-      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
-        <TopBar />
-        <main className={cn("flex-1 p-6", className)}>
-          {children}
-        </main>
-      </div>
+      <main className={cn("flex-1 p-6", className)}>
+        {children}
+      </main>
       <AIAgentButton />
     </div>
   );

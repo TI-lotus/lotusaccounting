@@ -1,8 +1,6 @@
 import { cn } from "@/lib/utils";
 import lotusLogoImage from "@/assets/lotus-logo.png";
 import lotusIconImage from "@/assets/lotus-icon.png";
-import lotusWhiteModeImage from "@/assets/lotus-white-mode.png";
-import { useTheme } from "@/hooks/useTheme";
 
 interface LotusLogoProps {
   className?: string;
@@ -12,15 +10,14 @@ interface LotusLogoProps {
   forceDarkLogo?: boolean;
 }
 
-export const LotusLogo = ({ className, size = "md", showText = true, iconOnly = false, forceDarkLogo = false }: LotusLogoProps) => {
-  const { theme } = useTheme();
+export const LotusLogo = ({ className, size = "md", iconOnly = false }: LotusLogoProps) => {
   const sizeClasses = {
-    sm: "h-8",
-    md: "h-10",
-    lg: "h-16",
+    sm: "h-7",
+    md: "h-9",
+    lg: "h-12",
   };
 
-  const logoSrc = iconOnly ? lotusIconImage : forceDarkLogo ? lotusLogoImage : theme === "light" ? lotusWhiteModeImage : lotusLogoImage;
+  const logoSrc = iconOnly ? lotusIconImage : lotusLogoImage;
 
   return (
     <div className={cn("flex items-center", className)}>

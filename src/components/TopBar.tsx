@@ -1,14 +1,19 @@
 import { useState, useRef, useEffect } from "react";
-import { Search, Bell, FileText, Users, MessageSquare, BarChart3, CheckSquare, Plug, X, Sparkles, CalendarClock, MailCheck, Bot, UserPlus, CreditCard } from "lucide-react";
+import { Search, Bell, FileText, Users, MessageSquare, BarChart3, CheckSquare, Plug, X, Sparkles, CalendarClock, MailCheck, Bot, UserPlus, CreditCard, ChevronDown, Building2, User, Settings, Crown, LogOut } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
+import { LotusLogo } from "./LotusLogo";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { useViewMode } from "@/contexts/ViewModeContext";
+import { useUserProfile } from "@/contexts/UserProfileContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface SearchResult {
   category: string;
@@ -128,8 +133,15 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
   const [showResults, setShowResults] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
   const navigate = useNavigate();
-  const { viewMode } = useViewMode();
+  const { viewMode, setViewMode } = useViewMode();
+  const profile = useUserProfile();
+  const { signOut } = useAuth();
   const wrapperRef = useRef<HTMLDivElement>(null);
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/auth", { replace: true });
+  };
 
   const searchData = viewMode === "office" ? officeSearchData : clientSearchData;
 
@@ -181,18 +193,21 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
       )}
       <header
         className={cn(
-          "h-16 border-b border-border bg-background/80 backdrop-blur-xl",
+          "h-16 border-b border-sidebar-border bg-sidebar text-sidebar-foreground",
           "flex items-center justify-between px-6 sticky top-0",
           isDropdownVisible ? "z-50" : "z-40",
           className
         )}
       >
-        <div className="flex items-center gap-4 flex-1 max-w-md relative ml-2 my-2" ref={wrapperRef}>
+        <div className="flex items-center gap-6 mr-4">
+          <LotusLogo size="md" />
+        </div>
+        <div className="flex items-center gap-4 flex-1 max-w-md relative" ref={wrapperRef}>
           <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-sidebar-foreground/60" />
             <Input
               placeholder="Digite / para começar uma conversa com a Lia"
-              className="pl-10 h-10 bg-muted/50 border-0 focus-visible:ring-1 rounded-2xl"
+              className="pl-10 h-10 bg-sidebar-accent/60 border-sidebar-border text-sidebar-foreground placeholder:text-sidebar-foreground/50 focus-visible:ring-1 focus-visible:ring-sidebar-ring rounded-2xl"
               value={query}
               onChange={(e) => {
                 setQuery(e.target.value);
@@ -270,7 +285,7 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
         <div className="flex items-center gap-2">
           <Popover open={notificationOpen} onOpenChange={setNotificationOpen}>
             <PopoverTrigger asChild>
-              <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-xl hover:bg-accent">
+              <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-xl text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground">
                 <Bell className="h-4 w-4" />
                 <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-destructive rounded-full" />
               </Button>
@@ -314,6 +329,53 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
             </PopoverContent>
           </Popover>
           <ThemeToggle />
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-xl hover:bg-sidebar-accent transition-colors">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={profile.avatarUrl} />
+                  <AvatarFallback className="bg-gilver text-sidebar-primary-foreground font-medium text-xs">
+                    {profile.initials}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="hidden md:block text-left leading-tight">
+                  <p className="text-xs font-medium truncate max-w-[140px] text-sidebar-foreground">{profile.fullName}</p>
+                  <p className="text-[10px] text-sidebar-foreground/60 truncate max-w-[140px]">{profile.email}</p>
+                </div>
+                <ChevronDown className="h-4 w-4 text-sidebar-foreground/70" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56 z-[99999]">
+              <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
+                Alternar Visualização
+              </DropdownMenuLabel>
+              <DropdownMenuRadioGroup value={viewMode} onValueChange={(v) => setViewMode(v as "office" | "client")}>
+                <DropdownMenuRadioItem value="office" className="cursor-pointer">
+                  <Building2 className="h-4 w-4 mr-2" />
+                  Escritório
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="client" className="cursor-pointer">
+                  <User className="h-4 w-4 mr-2" />
+                  Cliente
+                </DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => navigate("/settings")}>
+                <Settings className="h-4 w-4 mr-2" />
+                Configurações
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate("/upgrade")}>
+                <Crown className="h-4 w-4 mr-2" />
+                Upgrade
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={handleSignOut}>
+                <LogOut className="h-4 w-4 mr-2" />
+                Sair
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </header>
     </>
