@@ -68,9 +68,9 @@ export const CalendarEventView = ({ title, events, dateRange, onDateRangeChange 
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-        {/* Calendar grid */}
-        <div className="grid grid-cols-7 gap-2 text-center text-sm">
-          {weekDays.map((day) => <div key={day} className="py-2 font-medium text-muted-foreground">{day}</div>)}
+        {/* Calendar grid - compact squares */}
+        <div className="grid grid-cols-7 gap-1.5 text-center text-xs">
+          {weekDays.map((day) => <div key={day} className="py-1.5 font-medium text-muted-foreground">{day}</div>)}
           {Array.from({ length: 35 }, (_, index) => {
             const day = index + 1;
             const isSunday = index % 7 === 6;
@@ -82,16 +82,16 @@ export const CalendarEventView = ({ title, events, dateRange, onDateRangeChange 
                 key={day}
                 onClick={() => setSelectedDay(day)}
                 className={cn(
-                  "aspect-square min-h-0 rounded-xl border border-border p-2 text-left transition-colors",
+                  "aspect-square min-h-0 rounded-md border border-border p-1 flex flex-col items-start justify-start transition-colors",
                   isSunday && "bg-muted/30 text-muted-foreground/60",
-                  dayEvents.length && !isSelected && "bg-accent/30 ring-1 ring-primary hover:bg-accent/50",
+                  dayEvents.length && !isSelected && "bg-accent/30 ring-1 ring-primary/40 hover:bg-accent/50",
                   isSelected && "bg-primary/10 ring-2 ring-primary",
                 )}
               >
-                <span className="text-xs font-medium">{day <= 31 ? day : ""}</span>
-                {dayEvents.slice(0, 1).map((event) => (
-                  <p key={event.title} className="mt-2 truncate text-xs text-muted-foreground">{event.title}</p>
-                ))}
+                <span className="text-[11px] font-semibold leading-none">{day <= 31 ? day : ""}</span>
+                {dayEvents.length > 0 && (
+                  <span className="mt-auto self-center h-1.5 w-1.5 rounded-full bg-primary" />
+                )}
               </button>
             );
           })}
