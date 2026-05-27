@@ -1,14 +1,19 @@
 import { useState, useRef, useEffect } from "react";
-import { Search, Bell, FileText, Users, MessageSquare, BarChart3, CheckSquare, Plug, X, Sparkles, CalendarClock, MailCheck, Bot, UserPlus, CreditCard } from "lucide-react";
+import { Search, Bell, FileText, Users, MessageSquare, BarChart3, CheckSquare, Plug, X, Sparkles, CalendarClock, MailCheck, Bot, UserPlus, CreditCard, ChevronDown, Building2, User, Settings, Crown, LogOut } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
+import { LotusLogo } from "./LotusLogo";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { useViewMode } from "@/contexts/ViewModeContext";
+import { useUserProfile } from "@/contexts/UserProfileContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface SearchResult {
   category: string;
@@ -128,8 +133,15 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
   const [showResults, setShowResults] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
   const navigate = useNavigate();
-  const { viewMode } = useViewMode();
+  const { viewMode, setViewMode } = useViewMode();
+  const profile = useUserProfile();
+  const { signOut } = useAuth();
   const wrapperRef = useRef<HTMLDivElement>(null);
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/auth", { replace: true });
+  };
 
   const searchData = viewMode === "office" ? officeSearchData : clientSearchData;
 
@@ -181,13 +193,16 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
       )}
       <header
         className={cn(
-          "h-16 border-b border-border bg-background/80 backdrop-blur-xl",
+          "h-16 border-b border-sidebar-border bg-sidebar text-sidebar-foreground",
           "flex items-center justify-between px-6 sticky top-0",
           isDropdownVisible ? "z-50" : "z-40",
           className
         )}
       >
-        <div className="flex items-center gap-4 flex-1 max-w-md relative ml-2 my-2" ref={wrapperRef}>
+        <div className="flex items-center gap-6 mr-4">
+          <LotusLogo size="md" />
+        </div>
+        <div className="flex items-center gap-4 flex-1 max-w-md relative" ref={wrapperRef}>
           <div className="relative w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
