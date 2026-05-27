@@ -1,4 +1,4 @@
-import { useLocation, Link, useNavigate } from "react-router-dom";
+import { useLocation, Link } from "react-router-dom";
 import {
   LayoutDashboard,
   Users,
@@ -7,43 +7,14 @@ import {
   BarChart3,
   Plug,
   MessageSquare,
-  Settings,
-  ChevronLeft,
-  ChevronRight,
-  LogOut,
   Search,
   Gift,
-  Crown,
-  ChevronDown,
   Bot,
-  Building2,
-  User,
   CheckSquare,
   UserCog,
 } from "lucide-react";
-import { LotusLogo } from "./LotusLogo";
 import { cn } from "@/lib/utils";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-  DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-} from "@/components/ui/dropdown-menu";
 import { useViewMode } from "@/contexts/ViewModeContext";
-import { CompanySelector } from "./CompanySelector";
-import { useUserProfile } from "@/contexts/UserProfileContext";
-import { useAuth } from "@/contexts/AuthContext";
 
 const officeNavItems = [
   { title: "Dashboard", icon: LayoutDashboard, href: "/" },
@@ -69,206 +40,40 @@ const clientNavItems = [
 ];
 
 export const AppSidebar = () => {
-  const { viewMode, setViewMode, isCollapsed, setIsCollapsed } = useViewMode();
-  const profile = useUserProfile();
-  const { signOut } = useAuth();
+  const { viewMode } = useViewMode();
   const location = useLocation();
-  const navigate = useNavigate();
-
-  const handleSignOut = async () => {
-    await signOut();
-    navigate("/auth", { replace: true });
-  };
-
   const navItems = viewMode === "office" ? officeNavItems : clientNavItems;
 
-  const NavItem = ({ item }: { item: typeof officeNavItems[0] }) => {
-    const isActive = location.pathname === item.href;
-    const Icon = item.icon;
-
-    const content = (
-      <Link
-        to={item.href}
-        className={cn(
-          "group relative flex items-center transition-all duration-150",
-          isCollapsed 
-            ? "justify-center w-10 h-10 mx-auto rounded-full hover:bg-sidebar-accent text-sidebar-foreground/70 hover:text-sidebar-foreground"
-            : "nav-link",
-          isActive && (isCollapsed ? "bg-sidebar-primary text-sidebar-primary-foreground" : "active")
-        )}
-      >
-        <Icon className={cn("h-5 w-5 shrink-0", isActive && "text-sidebar-primary-foreground")} />
-        <span
-          className={cn(
-            "transition-all duration-300 whitespace-nowrap",
-            isCollapsed ? "opacity-0 w-0 overflow-hidden" : "opacity-100"
-          )}
-        >
-          {item.title}
-        </span>
-        {item.badge && !isCollapsed && (
-          <span className="ml-auto bg-gilver text-sidebar-primary-foreground text-xs font-medium px-2 py-0.5 rounded-full">
-            {item.badge}
-          </span>
-        )}
-        {item.badge && isCollapsed && (
-          <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-xs font-medium w-4 h-4 flex items-center justify-center rounded-full">
-            {item.badge}
-          </span>
-        )}
-      </Link>
-    );
-
-    if (isCollapsed) {
-      return (
-        <Tooltip delayDuration={0}>
-          <TooltipTrigger asChild>{content}</TooltipTrigger>
-          <TooltipContent side="right" className="font-medium z-[99999]">
-            {item.title}
-          </TooltipContent>
-        </Tooltip>
-      );
-    }
-
-    return content;
-  };
-
   return (
-    <aside
-      className={cn(
-        "h-screen sticky top-0 flex flex-col relative",
-        "bg-[hsl(0,0%,7%)] border-r border-[hsl(0,0%,15%)]",
-        "transition-all duration-300 ease-out",
-        isCollapsed ? "w-[72px]" : "w-[260px]"
-      )}
+    <nav
+      className="sticky top-16 z-30 w-full bg-sidebar border-b border-sidebar-border"
     >
-      {/* Collapse/Expand arrow between sidebar and main */}
-      <button
-        onClick={() => setIsCollapsed(!isCollapsed)}
-        className={cn(
-          "absolute -right-3 top-7 h-6 w-6 rounded-full flex items-center justify-center",
-          "bg-gilver text-[hsl(0,0%,9%)] shadow-md",
-          "transition-all duration-200 hover:scale-110 z-[99999]"
-        )}
-      >
-        {isCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
-      </button>
-
-      {/* Header - dark like sidebar */}
-      <div className="h-20 flex items-center justify-center px-4 border-b border-[hsl(0,0%,15%)] bg-[hsl(0,0%,5%)]">
-        <div className={cn(
-          "transition-all duration-300 overflow-hidden",
-          isCollapsed ? "w-0 opacity-0 hidden" : "w-auto opacity-100"
-        )}>
-          <LotusLogo size="lg" showText={!isCollapsed} forceDarkLogo />
-        </div>
-        {isCollapsed && (
-          <div className="mx-auto">
-            <LotusLogo size="md" iconOnly />
-          </div>
-        )}
-      </div>
-
-      {/* View Mode Indicator */}
-      {!isCollapsed && (
-        <div className="px-3 pt-3">
-          <div className={cn(
-            "flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium",
-            viewMode === "office" 
-              ? "bg-[hsl(0,0%,15%)] text-[hsl(40,45%,57%)]" 
-              : "bg-[hsl(40,20%,18%)] text-[hsl(40,45%,75%)]"
-          )}>
-            {viewMode === "office" ? (
-              <>
-                <Building2 className="h-3.5 w-3.5" />
-                Modo Escritório
-              </>
-            ) : (
-              <>
-                <User className="h-3.5 w-3.5" />
-                Modo Cliente
-              </>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Company selector intentionally hidden in client view */}
-
-      {/* Main Navigation */}
-      <nav className="flex-1 p-3 space-y-1 overflow-y-auto sidebar-scroll">
-        {navItems.map((item) => (
-          <NavItem key={item.href} item={item} />
-        ))}
-      </nav>
-
-      <Separator className="mx-3 bg-[hsl(0,0%,15%)]" />
-
-      {/* User Profile with Dropdown */}
-      <div className={cn(
-        "p-3 border-t border-[hsl(0,0%,15%)]",
-        isCollapsed ? "flex justify-center" : ""
-      )}>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className={cn(
-              "w-full flex items-center gap-3 p-2 rounded-xl",
-              "hover:bg-[hsl(0,0%,15%)] transition-colors cursor-pointer text-left",
-              isCollapsed && "justify-center"
-            )}>
-              <Avatar className="h-9 w-9 shrink-0">
-                <AvatarImage src={profile.avatarUrl} />
-                <AvatarFallback className="bg-gilver text-[hsl(0,0%,9%)] font-medium text-sm">
-                  {profile.initials}
-                </AvatarFallback>
-              </Avatar>
-              <div className={cn(
-                "flex-1 min-w-0 transition-all duration-300",
-                isCollapsed ? "opacity-0 w-0 overflow-hidden" : "opacity-100"
-              )}>
-                <p className="text-sm font-medium truncate text-[hsl(0,0%,90%)]">
-                  {profile.fullName}
-                </p>
-                <p className="text-xs text-[hsl(0,0%,55%)] truncate">
-                  {profile.email}
-                </p>
-              </div>
-              {!isCollapsed && (
-                <ChevronDown className="h-4 w-4 text-[hsl(0,0%,55%)] shrink-0" />
+      <div className="flex items-center gap-1 overflow-x-auto px-4 py-2 custom-scroll">
+        {navItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = location.pathname === item.href;
+          return (
+            <Link
+              key={item.href}
+              to={item.href}
+              className={cn(
+                "relative flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors",
+                isActive
+                  ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                  : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground"
               )}
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56 z-[99999]">
-            <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
-              Alternar Visualização
-            </DropdownMenuLabel>
-            <DropdownMenuRadioGroup value={viewMode} onValueChange={(v) => setViewMode(v as "office" | "client")}>
-              <DropdownMenuRadioItem value="office" className="cursor-pointer">
-                <Building2 className="h-4 w-4 mr-2" />
-                Escritório
-              </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value="client" className="cursor-pointer">
-                <User className="h-4 w-4 mr-2" />
-                Cliente
-              </DropdownMenuRadioItem>
-            </DropdownMenuRadioGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => navigate("/settings")}>
-              <Settings className="h-4 w-4 mr-2" />
-              Configurações
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate("/upgrade")}>
-              <Crown className="h-4 w-4 mr-2" />
-              Upgrade
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={handleSignOut}>
-              <LogOut className="h-4 w-4 mr-2" />
-              Sair
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+            >
+              <Icon className="h-4 w-4 shrink-0" />
+              <span>{item.title}</span>
+              {item.badge && (
+                <span className="ml-1 bg-gilver text-sidebar-primary-foreground text-[10px] font-semibold px-1.5 py-0.5 rounded-full">
+                  {item.badge}
+                </span>
+              )}
+            </Link>
+          );
+        })}
       </div>
-    </aside>
+    </nav>
   );
 };
