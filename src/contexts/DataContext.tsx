@@ -253,7 +253,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   return (
     <DataContext.Provider value={{
       clients, addClient, updateClient, deleteClient,
-      tasks, addTask, updateTaskStatus, deleteTask,
+      tasks, addTask, updateTask, updateTaskStatus, deleteTask,
       documents, addDocument, updateDocument, deleteDocument,
       processFileUpload,
       notifications, markNotificationRead,
