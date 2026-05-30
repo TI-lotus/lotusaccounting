@@ -127,7 +127,16 @@ const Auth = () => {
               </button>
             </p>
           </form>
+        </div>
       </section>
+      <aside className="hidden lg:flex items-center justify-center bg-sidebar text-sidebar-foreground p-12">
+        <p className="font-sans text-4xl xl:text-5xl leading-tight tracking-tight max-w-lg" style={{ fontFamily: "'Inter', sans-serif" }}>
+          Transformando números em{" "}
+          <span className="italic text-gilver" style={{ fontFamily: "'Playfair Display', serif" }}>
+            decisões
+          </span>
+        </p>
+      </aside>
     </main>
   );
 };
