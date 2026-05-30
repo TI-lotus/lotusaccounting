@@ -72,6 +72,7 @@ interface DataContextType {
   // Tasks
   tasks: TaskData[];
   addTask: (task: Omit<TaskData, "id" | "createdAt" | "completedAt">) => void;
+  updateTask: (id: string, updates: Partial<TaskData>) => void;
   updateTaskStatus: (id: string, status: TaskStatus) => void;
   deleteTask: (id: string) => void;
 
