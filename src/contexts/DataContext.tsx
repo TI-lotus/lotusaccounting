@@ -194,6 +194,10 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     });
   }, []);
 
+  const updateTask = useCallback((id: string, updates: Partial<TaskData>) => {
+    setTasks(prev => sortTasks(prev.map(t => t.id === id ? { ...t, ...updates } : t)));
+  }, []);
+
   const deleteTask = useCallback((id: string) => {
     setTasks(prev => prev.filter(t => t.id !== id));
   }, []);
