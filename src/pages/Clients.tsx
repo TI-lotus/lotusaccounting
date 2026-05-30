@@ -235,40 +235,30 @@ const Clients = () => {
             </div>
           </div>
 
-          <div className={cn("grid gap-4", viewMode === "grid" ? "sm:grid-cols-2 xl:grid-cols-3" : "grid-cols-1")}>
+          <div className={cn("grid gap-3", viewMode === "grid" ? "sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "grid-cols-1")}>
             {filteredClients.map((client, index) => (
               <div
                 key={client.id}
-                className={cn("rounded-2xl border border-border p-5 hover:bg-accent/40 transition-colors flex", viewMode === "grid" ? "aspect-square flex-col" : "items-center gap-4")}
+                className={cn("rounded-xl border border-border p-4 hover:bg-accent/40 transition-colors flex", viewMode === "grid" ? "flex-col" : "items-center gap-4")}
                 style={{ animationDelay: `${index * 50}ms` }}
               >
-                <div className="flex items-start justify-between gap-3">
-                <Avatar className="h-12 w-12 ring-2 ring-accent">
-                  <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(client.name)}`} />
-                  <AvatarFallback className="bg-accent text-accent-foreground font-medium">
-                    {client.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
-                  </AvatarFallback>
-                </Avatar>
-                <Badge variant={client.status === 'active' ? 'default' : client.status === 'pending' ? 'secondary' : 'outline'}>{client.status === 'active' ? 'Ativo' : client.status === 'pending' ? 'Pendente' : 'Inativo'}</Badge>
+                <div className="flex items-start justify-between gap-2">
+                  <p className="font-semibold truncate text-sm">{client.name}</p>
+                  <Badge variant={client.status === 'active' ? 'default' : client.status === 'pending' ? 'secondary' : 'outline'} className="text-[10px] shrink-0">{client.status === 'active' ? 'Ativo' : client.status === 'pending' ? 'Pendente' : 'Inativo'}</Badge>
                 </div>
-                <div className="mt-4 flex-1 min-w-0">
-                  <p className="font-semibold truncate">{client.name}</p>
-                  <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                    <span className="flex items-center gap-1 truncate">
-                      <Mail className="h-3 w-3" />
-                      {client.email}
-                    </span>
+                <div className="mt-2 flex-1 min-w-0">
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground truncate">
+                    <Mail className="h-3 w-3 shrink-0" />
+                    <span className="truncate">{client.email}</span>
                   </div>
-                  <div className="flex flex-wrap items-center gap-2 mt-3">
-                    <Badge variant="outline" className="text-xs">{client.cnpj}</Badge>
-                    <Badge variant="outline" className="text-xs">{taxRegimeLabels[client.taxRegime]}</Badge>
-                    <Badge variant="outline" className="text-xs">{getClientSize(client)}</Badge>
+                  <div className="flex flex-wrap items-center gap-1 mt-2">
+                    <Badge variant="outline" className="text-[10px]">{taxRegimeLabels[client.taxRegime]}</Badge>
+                    <Badge variant="outline" className="text-[10px]">{getClientSize(client)}</Badge>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-3">Responsável: {client.responsibleUserName}</p>
-                  <p className="text-xs text-muted-foreground">Desde {new Date(client.createdAt).toLocaleDateString("pt-BR")}</p>
+                  <p className="text-[11px] text-muted-foreground mt-2 truncate">Resp.: {client.responsibleUserName}</p>
                 </div>
-                <div className="flex items-center justify-between pt-4 border-t border-border">
-                  <div><p className="font-semibold">R$ {client.serviceFee.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p><p className="text-xs text-muted-foreground">{client.city}/{client.state}</p></div>
+                <div className="flex items-center justify-between pt-3 mt-2 border-t border-border">
+                  <div><p className="font-semibold text-sm">R$ {client.serviceFee.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p><p className="text-[10px] text-muted-foreground">{client.city}/{client.state}</p></div>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon" className="rounded-lg">

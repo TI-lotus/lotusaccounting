@@ -31,8 +31,10 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useData } from "@/contexts/DataContext";
 
 interface StaffMember {
   id: string;
@@ -63,10 +65,12 @@ const initialStaff: StaffMember[] = [
 ];
 
 const Staff = () => {
+  const { tasks, updateTask } = useData();
   const [staff, setStaff] = useState<StaffMember[]>(initialStaff);
   const [searchTerm, setSearchTerm] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [permDialogOpen, setPermDialogOpen] = useState(false);
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<StaffMember | null>(null);
   const [newMember, setNewMember] = useState({ name: "", email: "", phone: "", role: "collaborator" as "admin" | "collaborator", department: "" });
 
@@ -262,7 +266,7 @@ const Staff = () => {
                     <DropdownMenuItem className="gap-2" onClick={() => { setSelectedMember(member); setPermDialogOpen(true); }}>
                       <Shield className="h-4 w-4" />Permissões
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="gap-2">
+                    <DropdownMenuItem className="gap-2" onClick={() => { setSelectedMember(member); setAssignDialogOpen(true); }}>
                       <CheckSquare className="h-4 w-4" />Atribuir Tarefa
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
@@ -303,6 +307,57 @@ const Staff = () => {
                 ))}
               </div>
             )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Assign Tasks Dialog */}
+        <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
+          <DialogContent className="sm:max-w-[480px]">
+            <DialogHeader>
+              <DialogTitle>Atribuir Tarefas — {selectedMember?.name}</DialogTitle>
+              <DialogDescription>
+                Marque para atrelar o colaborador como responsável. Desmarque para removê-lo.
+              </DialogDescription>
+            </DialogHeader>
+            {selectedMember && (
+              <div className="max-h-[420px] overflow-y-auto custom-scroll space-y-2 py-2">
+                {tasks.length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-6">Nenhuma tarefa cadastrada.</p>
+                )}
+                {tasks.map((task) => {
+                  const isAssigned = task.assignedToId === selectedMember.id;
+                  return (
+                    <label
+                      key={task.id}
+                      className="flex items-start gap-3 rounded-xl border border-border p-3 hover:bg-accent/40 cursor-pointer"
+                    >
+                      <Checkbox
+                        checked={isAssigned}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            updateTask(task.id, { assignedToId: selectedMember.id, assignedToName: selectedMember.name });
+                            toast.success(`Tarefa atribuída a ${selectedMember.name}`);
+                          } else {
+                            updateTask(task.id, { assignedToId: "", assignedToName: "Sem responsável" });
+                            toast.success(`${selectedMember.name} removido da tarefa`);
+                          }
+                        }}
+                        className="mt-0.5"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{task.title}</p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {isAssigned ? "Atribuída a este colaborador" : `Responsável: ${task.assignedToName || "—"}`}
+                        </p>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+            <DialogFooter>
+              <Button onClick={() => setAssignDialogOpen(false)} className="rounded-xl">Concluir</Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>

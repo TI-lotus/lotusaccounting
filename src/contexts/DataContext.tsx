@@ -72,6 +72,7 @@ interface DataContextType {
   // Tasks
   tasks: TaskData[];
   addTask: (task: Omit<TaskData, "id" | "createdAt" | "completedAt">) => void;
+  updateTask: (id: string, updates: Partial<TaskData>) => void;
   updateTaskStatus: (id: string, status: TaskStatus) => void;
   deleteTask: (id: string) => void;
 
@@ -193,6 +194,10 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     });
   }, []);
 
+  const updateTask = useCallback((id: string, updates: Partial<TaskData>) => {
+    setTasks(prev => sortTasks(prev.map(t => t.id === id ? { ...t, ...updates } : t)));
+  }, []);
+
   const deleteTask = useCallback((id: string) => {
     setTasks(prev => prev.filter(t => t.id !== id));
   }, []);
@@ -248,7 +253,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   return (
     <DataContext.Provider value={{
       clients, addClient, updateClient, deleteClient,
-      tasks, addTask, updateTaskStatus, deleteTask,
+      tasks, addTask, updateTask, updateTaskStatus, deleteTask,
       documents, addDocument, updateDocument, deleteDocument,
       processFileUpload,
       notifications, markNotificationRead,
