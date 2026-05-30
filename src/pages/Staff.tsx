@@ -65,10 +65,12 @@ const initialStaff: StaffMember[] = [
 ];
 
 const Staff = () => {
+  const { tasks, updateTask } = useData();
   const [staff, setStaff] = useState<StaffMember[]>(initialStaff);
   const [searchTerm, setSearchTerm] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [permDialogOpen, setPermDialogOpen] = useState(false);
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<StaffMember | null>(null);
   const [newMember, setNewMember] = useState({ name: "", email: "", phone: "", role: "collaborator" as "admin" | "collaborator", department: "" });
 
