@@ -194,15 +194,15 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
       <header
         className={cn(
           "h-16 border-b border-sidebar-border bg-sidebar text-sidebar-foreground",
-          "flex items-center justify-between px-6 sticky top-0",
+          "flex items-center justify-between px-3 md:px-6 gap-2 md:gap-4 sticky top-0",
           isDropdownVisible ? "z-50" : "z-40",
           className
         )}
       >
-        <div className="flex items-center gap-6 mr-4">
-          <LotusLogo size="md" />
+        <div className="flex items-center shrink-0">
+          <LotusLogo size="lg" />
         </div>
-        <div className="flex items-center gap-4 flex-1 max-w-md relative" ref={wrapperRef}>
+        <div className="flex items-center gap-2 md:gap-4 flex-1 max-w-md relative" ref={wrapperRef}>
           <div className="relative w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-sidebar-foreground/60" />
             <Input
