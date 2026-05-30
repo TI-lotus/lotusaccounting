@@ -266,7 +266,7 @@ const Staff = () => {
                     <DropdownMenuItem className="gap-2" onClick={() => { setSelectedMember(member); setPermDialogOpen(true); }}>
                       <Shield className="h-4 w-4" />Permissões
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="gap-2">
+                    <DropdownMenuItem className="gap-2" onClick={() => { setSelectedMember(member); setAssignDialogOpen(true); }}>
                       <CheckSquare className="h-4 w-4" />Atribuir Tarefa
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
