@@ -282,7 +282,10 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
             )}
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 md:gap-2 shrink-0">
+          <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground" onClick={() => navigate("/messages")}>
+            <MessageSquare className="h-4 w-4" />
+          </Button>
           <Popover open={notificationOpen} onOpenChange={setNotificationOpen}>
             <PopoverTrigger asChild>
               <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-xl text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground">
