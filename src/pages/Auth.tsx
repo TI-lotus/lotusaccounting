@@ -50,11 +50,12 @@ const Auth = () => {
   };
 
   return (
-    <main className="min-h-screen bg-background flex items-center justify-center p-6 relative">
-      <div className="absolute right-6 top-6">
+    <main className="min-h-screen bg-background grid lg:grid-cols-2 relative">
+      <div className="absolute right-6 top-6 z-10">
         <ThemeToggle />
       </div>
-      <section className="w-full max-w-md glass rounded-3xl p-6 shadow-soft-lg">
+      <section className="flex items-center justify-center p-6 lg:p-10">
+        <div className="w-full max-w-md glass rounded-3xl p-6 shadow-soft-lg">
         <div className="flex flex-col items-center text-center gap-3 mb-6">
           <div className="h-14 flex items-center justify-center">
             <LotusLogo className="h-12" iconOnly />
