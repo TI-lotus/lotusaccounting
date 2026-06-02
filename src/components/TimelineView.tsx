@@ -118,9 +118,9 @@ export const TimelineView = ({ title, events }: TimelineViewProps) => {
 
         {mode === "week" && (
           <div className="flex flex-1 min-w-0">
-            {Array.from({ length: 7 }, (_, i) => i + 1).map((d) => (
+            {Array.from({ length: 7 }, (_, i) => ({ d: i + 1, label: weekDayLabels[i] })).map(({ d, label }) => (
               <div key={d} className="flex-1 min-w-0">
-                <div className="px-2 py-1 text-[10px] uppercase text-center text-muted-foreground">{weekDayLabels[i]}</div>
+                <div className="px-2 py-1 text-[10px] uppercase text-center text-muted-foreground">{label}</div>
                 {renderDayColumn(d)}
               </div>
             ))}
