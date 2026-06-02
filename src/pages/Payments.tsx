@@ -348,9 +348,9 @@ const Payments = () => {
                     <span>{payment.category}</span>
                   </div>
                 </div>
-                <Badge 
+                <Badge
                   variant={payment.status === 'completed' ? 'default' : 'secondary'}
-                  className="cursor-pointer"
+                  className={cn("cursor-pointer", payment.status === 'completed' && "bg-emerald-100 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950 dark:text-emerald-400")}
                 >
                   {payment.status === 'completed' ? 'Concluído' : 'Pendente'}
                 </Badge>
