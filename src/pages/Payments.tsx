@@ -324,30 +324,6 @@ const Payments = () => {
                   <SelectItem value="oldest">Mais antigo</SelectItem>
                 </SelectContent>
               </Select>
-              <Button
-                variant={filter === "all" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setFilter("all")}
-                className="rounded-lg"
-              >
-                Todos
-              </Button>
-              <Button
-                variant={filter === "income" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setFilter("income")}
-                className="rounded-lg"
-              >
-                Entradas
-              </Button>
-              <Button
-                variant={filter === "expense" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setFilter("expense")}
-                className="rounded-lg"
-              >
-                Saídas
-              </Button>
             </div>
           </div>
           <div className="space-y-3">
@@ -359,17 +335,10 @@ const Payments = () => {
                 onClick={() => handleToggleStatus(payment.id)}
               >
                 <div className={cn(
-                  "p-2 rounded-xl",
-                  payment.type === 'income' 
-                    ? "bg-emerald-100 dark:bg-emerald-950" 
-                    : "bg-red-100 dark:bg-red-950"
-                )}>
-                  {payment.type === 'income' ? (
-                    <ArrowDownLeft className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                  ) : (
-                    <ArrowUpRight className="h-4 w-4 text-red-600 dark:text-red-400" />
-                  )}
-                </div>
+                  "p-2 rounded-xl w-2 h-8 shrink-0",
+                  payment.type === 'income' ? "bg-emerald-500" : "bg-red-500"
+                )} />
+
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate">{payment.description}</p>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
