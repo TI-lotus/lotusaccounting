@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { KPICard } from "@/components/dashboard/KPICard";
 import { RevenueChart } from "@/components/dashboard/RevenueChart";
@@ -7,6 +8,11 @@ import { useViewMode } from "@/contexts/ViewModeContext";
 import { useData } from "@/contexts/DataContext";
 import { useUserProfile } from "@/contexts/UserProfileContext";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import { toast } from "sonner";
 import {
   DollarSign,
   TrendingUp,
@@ -15,9 +21,82 @@ import {
   CheckSquare,
   Clock,
   AlertCircle,
+  Sparkles,
+  ArrowRight,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+
+const liaImprovements = [
+  { id: "i1", title: "Automatizar lembretes de DAS", desc: "Reduz 30% do retrabalho mensal com envio automático 5 dias antes do vencimento." },
+  { id: "i2", title: "Reconciliar Pix com faturas", desc: "Conectar Pix Itaú para conciliar automaticamente 12 entradas pendentes." },
+  { id: "i3", title: "Categorizar despesas recorrentes", desc: "A Lia identificou 8 despesas que podem ser auto-categorizadas." },
+  { id: "i4", title: "Revisar margens dos clientes", desc: "3 clientes estão com honorários abaixo da média de mercado para o porte." },
+  { id: "i5", title: "Ativar alerta de inadimplência", desc: "Notifica antes que o cliente passe de 15 dias em atraso." },
+];
+
+const LiaInsights = () => {
+  const [open, setOpen] = useState(false);
+  const [selected, setSelected] = useState<Record<string, boolean>>({});
+
+  const toggle = (id: string) => setSelected((s) => ({ ...s, [id]: !s[id] }));
+  const applyImprovements = () => {
+    const count = Object.values(selected).filter(Boolean).length;
+    toast.success(count > 0 ? `${count} melhoria(s) aplicada(s) pela Lia` : "Nenhuma melhoria selecionada");
+    setOpen(false);
+  };
+
+  return (
+    <>
+      <div
+        className="rounded-2xl p-5 text-primary-foreground animate-fade-in"
+        style={{ background: "linear-gradient(135deg, hsl(30 50% 70%) 0%, hsl(30 41% 55%) 100%)" }}
+      >
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div className="flex items-start gap-3 min-w-0">
+            <div className="rounded-xl bg-white/20 p-2 shrink-0">
+              <Sparkles className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <h3 className="text-lg font-semibold">Insights da Lia</h3>
+              <p className="text-sm opacity-90 mt-1">
+                Receita 12% acima da média trimestral. 23 faturas vencendo nos próximos 7 dias. A Lia sugere automatizar lembretes para reduzir inadimplência em até 40%.
+              </p>
+            </div>
+          </div>
+          <Button variant="secondary" className="rounded-xl shrink-0 gap-2" onClick={() => setOpen(true)}>
+            Saiba mais <ArrowRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-[560px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Sparkles className="h-5 w-5 text-gilver" />Melhorias sugeridas pela Lia</DialogTitle>
+            <DialogDescription>Selecione as melhorias que deseja aplicar agora.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2 max-h-[400px] overflow-y-auto custom-scroll">
+            {liaImprovements.map((imp) => (
+              <label key={imp.id} className="flex items-start gap-3 rounded-xl border border-border p-3 hover:bg-accent/40 cursor-pointer">
+                <Checkbox checked={!!selected[imp.id]} onCheckedChange={() => toggle(imp.id)} className="mt-0.5" />
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">{imp.title}</p>
+                  <p className="text-xs text-muted-foreground">{imp.desc}</p>
+                </div>
+              </label>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" className="rounded-xl" onClick={() => setOpen(false)}>Cancelar</Button>
+            <Button className="rounded-xl" onClick={applyImprovements}>Aplicar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+};
+
 
 const ClientDashboard = () => {
   const profile = useUserProfile();
