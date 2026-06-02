@@ -244,7 +244,7 @@ const Clients = () => {
               >
                 <div className="flex items-start justify-between gap-2">
                   <p className="font-semibold truncate text-sm">{client.name}</p>
-                  <Badge variant={client.status === 'active' ? 'default' : client.status === 'pending' ? 'secondary' : 'outline'} className="text-[10px] shrink-0">{client.status === 'active' ? 'Ativo' : client.status === 'pending' ? 'Pendente' : 'Inativo'}</Badge>
+                  <Badge variant={client.status === 'active' ? 'default' : client.status === 'pending' ? 'secondary' : 'outline'} className={cn("text-[10px] shrink-0", client.status === 'active' && "bg-emerald-100 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950 dark:text-emerald-400")}>{client.status === 'active' ? 'Ativo' : client.status === 'pending' ? 'Pendente' : 'Inativo'}</Badge>
                 </div>
                 <div className="mt-2 flex-1 min-w-0">
                   <div className="flex items-center gap-1 text-xs text-muted-foreground truncate">
