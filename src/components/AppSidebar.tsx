@@ -27,7 +27,7 @@ const officeNavItems = [
   { title: "Agentes", icon: Bot, href: "/agents" },
   { title: "Afiliados", icon: Gift, href: "/affiliation" },
   { title: "Integrações", icon: Plug, href: "/integrations" },
-  { title: "Mensagens", icon: MessageSquare, href: "/messages", badge: 3 },
+  
 ];
 
 const clientNavItems = [
@@ -36,7 +36,7 @@ const clientNavItems = [
   { title: "Pagamentos", icon: CreditCard, href: "/payments" },
   { title: "Documentos", icon: FileText, href: "/documents" },
   { title: "Relatórios", icon: BarChart3, href: "/reports" },
-  { title: "Mensagens", icon: MessageSquare, href: "/messages", badge: 2 },
+  
 ];
 
 export const AppSidebar = () => {
