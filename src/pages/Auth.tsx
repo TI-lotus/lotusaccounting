@@ -4,7 +4,6 @@ import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { LotusLogo } from "@/components/LotusLogo";
@@ -18,19 +17,23 @@ const Auth = () => {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({ email: "", password: "", fullName: "", accountType: "client", cpf: "" });
+  const [form, setForm] = useState({ email: "", password: "", confirmPassword: "", fullName: "" });
 
   if (session) return <Navigate to="/" replace />;
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (mode === "signup" && form.password !== form.confirmPassword) {
+      toast.error("As senhas não coincidem");
+      return;
+    }
     setLoading(true);
     try {
       if (mode === "signin") {
         await signIn(form.email, form.password);
         toast.success("Login realizado com sucesso");
       } else {
-        await signUp(form);
+        await signUp({ email: form.email, password: form.password, fullName: form.fullName, accountType: "client" });
         toast.success("Conta criada com sucesso");
       }
       navigate("/");
@@ -50,45 +53,29 @@ const Auth = () => {
   };
 
   return (
-    <main className="min-h-screen bg-background grid lg:grid-cols-2 relative">
+    <main className="h-screen overflow-hidden bg-background grid lg:grid-cols-2 relative">
       <div className="absolute right-6 top-6 z-10">
         <ThemeToggle />
       </div>
-      <section className="flex items-center justify-center p-6 lg:p-10">
+
+      {/* Form pane — fixed to screen height, centered */}
+      <section className="h-screen flex items-center justify-center p-6 lg:p-10 overflow-y-auto">
         <div className="w-full max-w-md glass rounded-3xl p-6 shadow-soft-lg">
-        <div className="flex flex-col items-center text-center gap-3 mb-6">
-          <div className="h-14 flex items-center justify-center">
-            <LotusLogo className="h-12" iconOnly />
+          <div className="flex flex-col items-center text-center gap-3 mb-6">
+            <div className="h-14 flex items-center justify-center">
+              <LotusLogo className="h-12" iconOnly />
+            </div>
+            <div>
+              <h1 className="text-2xl font-semibold">{mode === "signin" ? "Acesse sua conta" : "Criar conta"}</h1>
+              <p className="text-sm text-muted-foreground">Entre ou crie seu acesso na Lotus</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-semibold">Acesse sua conta</h1>
-            <p className="text-sm text-muted-foreground">Entre ou crie seu acesso na Lotus</p>
-          </div>
-        </div>
 
           <form onSubmit={submit} className="mt-5 space-y-4">
             {mode === "signup" && (
-              <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="fullName">Nome completo</Label>
-                <Input id="fullName" value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} required={mode === "signup"} />
-              </div>
-              <div className="space-y-2">
-                <Label>Tipo de conta</Label>
-                <Select value={form.accountType} onValueChange={(accountType) => setForm({ ...form, accountType })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="client">Cliente</SelectItem>
-                    <SelectItem value="collaborator">Colaborador</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              {form.accountType === "client" && (
-                <div className="space-y-2">
-                  <Label htmlFor="cpf">CPF</Label>
-                  <Input id="cpf" inputMode="numeric" value={form.cpf} onChange={(e) => setForm({ ...form, cpf: e.target.value.replace(/\D/g, "") })} required placeholder="Somente números" />
-                </div>
-              )}
+                <Input id="fullName" value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} required />
               </div>
             )}
 
@@ -105,6 +92,13 @@ const Auth = () => {
                 </button>
               </div>
             </div>
+
+            {mode === "signup" && (
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirmar senha</Label>
+                <Input id="confirmPassword" type={showPassword ? "text" : "password"} value={form.confirmPassword} onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })} required minLength={6} />
+              </div>
+            )}
 
             <Button type="submit" className="w-full rounded-2xl" disabled={loading}>
               {loading && <Loader2 className="h-4 w-4 animate-spin" />}
@@ -129,10 +123,18 @@ const Auth = () => {
           </form>
         </div>
       </section>
-      <aside className="hidden lg:flex items-center justify-center bg-sidebar text-sidebar-foreground p-12">
-        <p className="font-sans text-4xl xl:text-5xl leading-tight tracking-tight max-w-lg" style={{ fontFamily: "'Inter', sans-serif" }}>
+
+      {/* Slogan banner — fixed to screen height */}
+      <aside
+        className="hidden lg:flex h-screen items-center justify-center text-sidebar-foreground p-12 text-center"
+        style={{ background: "linear-gradient(135deg, hsl(222 55% 10%) 0%, hsl(222 50% 16%) 55%, hsl(222 45% 22%) 100%)" }}
+      >
+        <p
+          className="text-2xl xl:text-3xl leading-snug tracking-tight max-w-md mx-auto"
+          style={{ fontFamily: "'Inter', sans-serif" }}
+        >
           Transformando números em{" "}
-          <span className="italic text-gilver" style={{ fontFamily: "'Playfair Display', serif" }}>
+          <span className="italic" style={{ fontFamily: "'Playfair Display', serif" }}>
             decisões
           </span>
         </p>
