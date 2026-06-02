@@ -68,13 +68,13 @@ export const CalendarEventView = ({ title, events, dateRange, onDateRangeChange 
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,480px)_minmax(0,1fr)]">
-        {/* Calendar grid - compact squares */}
         <div className="grid grid-cols-7 gap-1.5 text-center text-xs">
           {weekDays.map((day) => <div key={day} className="py-1.5 font-medium text-muted-foreground">{day}</div>)}
           {Array.from({ length: 35 }, (_, index) => {
             const day = index + 1;
             const isSunday = index % 7 === 6;
             const dayEvents = isSunday ? [] : sanitizedEvents.filter((event) => event.day === day);
+            const hasEvents = dayEvents.length > 0;
             const isSelected = day === selectedDay;
             return (
               <button
@@ -82,22 +82,19 @@ export const CalendarEventView = ({ title, events, dateRange, onDateRangeChange 
                 key={day}
                 onClick={() => setSelectedDay(day)}
                 className={cn(
-                  "aspect-square min-h-0 rounded-md border border-border p-1 flex flex-col items-start justify-start transition-colors",
-                  isSunday && "bg-muted/30 text-muted-foreground/60",
-                  dayEvents.length && !isSelected && "bg-accent/30 ring-1 ring-primary/40 hover:bg-accent/50",
-                  isSelected && "bg-primary/10 ring-2 ring-primary",
+                  "aspect-square min-h-0 rounded-md p-1 flex items-center justify-center transition-colors border",
+                  isSunday && "bg-muted/30 text-muted-foreground/60 border-border",
+                  !isSunday && !hasEvents && "border-border hover:bg-accent/40",
+                  hasEvents && !isSelected && "border-[hsl(var(--gilver))] text-foreground hover:bg-[hsl(var(--gilver)/0.15)]",
+                  isSelected && "border-[hsl(var(--gilver))] bg-[hsl(var(--gilver))] text-primary-foreground",
                 )}
               >
                 <span className="text-[11px] font-semibold leading-none">{day <= 31 ? day : ""}</span>
-                {dayEvents.length > 0 && (
-                  <span className="mt-auto self-center h-1.5 w-1.5 rounded-full bg-primary" />
-                )}
               </button>
             );
           })}
         </div>
 
-        {/* Side panel with selected day's events */}
         <aside className="rounded-xl border border-border p-4">
           <div className="mb-3 flex items-baseline justify-between">
             <h4 className="text-base font-semibold">Dia {selectedDay}</h4>
