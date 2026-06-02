@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
-import { CreditCard, Plus, ArrowUpRight, ArrowDownLeft, Calendar, LayoutDashboard, List, Barcode, QrCode, Landmark } from "lucide-react";
+import { Plus, Calendar, List, Barcode, QrCode, Landmark, Clock3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { CalendarEventView } from "@/components/CalendarEventView";
+import { TimelineView } from "@/components/TimelineView";
 import { useViewMode } from "@/contexts/ViewModeContext";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -52,13 +53,11 @@ const initialPayments: Payment[] = [
 const Payments = () => {
   const { viewMode } = useViewMode();
   const [payments, setPayments] = useState<Payment[]>(initialPayments);
-  const [filter, setFilter] = useState<"all" | "income" | "expense">("all");
   const [valueSort, setValueSort] = useState<"none" | "asc" | "desc">("none");
   const [dateSort, setDateSort] = useState<"newest" | "oldest">("newest");
-  const [view, setView] = useState<"dashboard" | "list" | "calendar">("dashboard");
+  const [view, setView] = useState<"list" | "calendar" | "timeline">("list");
   const [dateRange, setDateRange] = useState({ start: "2026-01-01", end: "2026-01-31" });
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [direction, setDirection] = useState<"received" | "sent">("received");
   const [selectedMethod, setSelectedMethod] = useState<"boleto" | "pix" | "bank" | null>(null);
   const [newPayment, setNewPayment] = useState({
     description: "",
@@ -67,19 +66,11 @@ const Payments = () => {
     category: "",
   });
 
-  const filteredPayments = payments.filter((p, index) => {
-    const directionMatch = direction === "received" ? index % 2 === 0 : index % 2 !== 0;
-    const typeMatch = filter === "all" || p.type === filter;
-    return typeMatch && directionMatch;
-  }).sort((a, b) => {
+  const filteredPayments = payments.slice().sort((a, b) => {
     if (valueSort === "asc") return a.amount - b.amount;
     if (valueSort === "desc") return b.amount - a.amount;
     return dateSort === "newest" ? b.id - a.id : a.id - b.id;
   });
-
-  const totalIncome = payments.filter((p) => p.type === "income").reduce((sum, p) => sum + p.amount, 0);
-  const totalExpense = payments.filter((p) => p.type === "expense").reduce((sum, p) => sum + p.amount, 0);
-  const netFlow = totalIncome - totalExpense;
 
   // Load persisted invoices/payments from Supabase on mount
   useEffect(() => {
@@ -239,12 +230,12 @@ const Payments = () => {
           </Dialog>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 animate-fade-in">
+        <div className="flex flex-wrap items-center gap-3 animate-fade-in">
           <div className="flex rounded-2xl border border-border bg-card p-1">
             {[
-              { value: "dashboard", label: "Dashboard", icon: LayoutDashboard },
               { value: "list", label: "Lista", icon: List },
               { value: "calendar", label: "Calendário", icon: Calendar },
+              { value: "timeline", label: "Timeline", icon: Clock3 },
             ].map((item) => {
               const Icon = item.icon;
               return (
@@ -254,10 +245,6 @@ const Payments = () => {
                 </Button>
               );
             })}
-          </div>
-          <div className="flex rounded-2xl border border-border bg-card p-1">
-            <Button variant={direction === "received" ? "default" : "ghost"} size="sm" className="rounded-xl" onClick={() => setDirection("received")}>Recebidos</Button>
-            <Button variant={direction === "sent" ? "default" : "ghost"} size="sm" className="rounded-xl" onClick={() => setDirection("sent")}>Enviados</Button>
           </div>
         </div>
 
@@ -288,47 +275,19 @@ const Payments = () => {
           </div>
         )}
 
-        {view === "dashboard" && <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="kpi-card animate-fade-in cursor-pointer hover:ring-2 ring-accent transition-all" onClick={() => setFilter("income")}>
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-emerald-100 dark:bg-emerald-950">
-                <ArrowDownLeft className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Entradas</p>
-                <p className="text-xl font-semibold text-emerald-600 dark:text-emerald-400">
-                  R$ {totalIncome.toLocaleString("pt-BR")}
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="kpi-card animate-fade-in cursor-pointer hover:ring-2 ring-accent transition-all" onClick={() => setFilter("expense")}>
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-red-100 dark:bg-red-950">
-                <ArrowUpRight className="h-5 w-5 text-red-600 dark:text-red-400" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Saídas</p>
-                <p className="text-xl font-semibold text-red-600 dark:text-red-400">
-                  R$ {totalExpense.toLocaleString("pt-BR")}
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="kpi-card animate-fade-in cursor-pointer hover:ring-2 ring-accent transition-all" onClick={() => setFilter("all")}>
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-accent">
-                <CreditCard className="h-5 w-5 text-accent-foreground" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Saldo Líquido</p>
-                <p className={cn("text-xl font-semibold", netFlow >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400")}>
-                  {netFlow >= 0 ? "+" : ""}R$ {netFlow.toLocaleString("pt-BR")}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>}
+        {view === "timeline" && (
+          <TimelineView
+            title="Timeline financeira"
+            events={payments.map((payment, index) => ({
+              day: ((index * 2) % 30) + 1,
+              title: payment.description,
+              subtitle: payment.category,
+              time: `${9 + (index % 8)}:00`,
+              amount: `${payment.type === "income" ? "+" : "-"}R$ ${payment.amount.toLocaleString("pt-BR")}`,
+              status: payment.status === "completed" ? "Concluído" : "Pendente",
+            }))}
+          />
+        )}
 
         {view === "calendar" && (
           <CalendarEventView
@@ -365,30 +324,6 @@ const Payments = () => {
                   <SelectItem value="oldest">Mais antigo</SelectItem>
                 </SelectContent>
               </Select>
-              <Button
-                variant={filter === "all" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setFilter("all")}
-                className="rounded-lg"
-              >
-                Todos
-              </Button>
-              <Button
-                variant={filter === "income" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setFilter("income")}
-                className="rounded-lg"
-              >
-                Entradas
-              </Button>
-              <Button
-                variant={filter === "expense" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setFilter("expense")}
-                className="rounded-lg"
-              >
-                Saídas
-              </Button>
             </div>
           </div>
           <div className="space-y-3">
@@ -400,17 +335,10 @@ const Payments = () => {
                 onClick={() => handleToggleStatus(payment.id)}
               >
                 <div className={cn(
-                  "p-2 rounded-xl",
-                  payment.type === 'income' 
-                    ? "bg-emerald-100 dark:bg-emerald-950" 
-                    : "bg-red-100 dark:bg-red-950"
-                )}>
-                  {payment.type === 'income' ? (
-                    <ArrowDownLeft className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                  ) : (
-                    <ArrowUpRight className="h-4 w-4 text-red-600 dark:text-red-400" />
-                  )}
-                </div>
+                  "p-2 rounded-xl w-2 h-8 shrink-0",
+                  payment.type === 'income' ? "bg-emerald-500" : "bg-red-500"
+                )} />
+
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate">{payment.description}</p>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -420,9 +348,9 @@ const Payments = () => {
                     <span>{payment.category}</span>
                   </div>
                 </div>
-                <Badge 
+                <Badge
                   variant={payment.status === 'completed' ? 'default' : 'secondary'}
-                  className="cursor-pointer"
+                  className={cn("cursor-pointer", payment.status === 'completed' && "bg-emerald-100 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950 dark:text-emerald-400")}
                 >
                   {payment.status === 'completed' ? 'Concluído' : 'Pendente'}
                 </Badge>
