@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
-import { CreditCard, Plus, ArrowUpRight, ArrowDownLeft, Calendar, LayoutDashboard, List, Barcode, QrCode, Landmark } from "lucide-react";
+import { Plus, Calendar, List, Barcode, QrCode, Landmark, Clock3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { CalendarEventView } from "@/components/CalendarEventView";
+import { TimelineView } from "@/components/TimelineView";
 import { useViewMode } from "@/contexts/ViewModeContext";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -52,13 +53,11 @@ const initialPayments: Payment[] = [
 const Payments = () => {
   const { viewMode } = useViewMode();
   const [payments, setPayments] = useState<Payment[]>(initialPayments);
-  const [filter, setFilter] = useState<"all" | "income" | "expense">("all");
   const [valueSort, setValueSort] = useState<"none" | "asc" | "desc">("none");
   const [dateSort, setDateSort] = useState<"newest" | "oldest">("newest");
-  const [view, setView] = useState<"dashboard" | "list" | "calendar">("dashboard");
+  const [view, setView] = useState<"list" | "calendar" | "timeline">("list");
   const [dateRange, setDateRange] = useState({ start: "2026-01-01", end: "2026-01-31" });
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [direction, setDirection] = useState<"received" | "sent">("received");
   const [selectedMethod, setSelectedMethod] = useState<"boleto" | "pix" | "bank" | null>(null);
   const [newPayment, setNewPayment] = useState({
     description: "",
@@ -67,19 +66,11 @@ const Payments = () => {
     category: "",
   });
 
-  const filteredPayments = payments.filter((p, index) => {
-    const directionMatch = direction === "received" ? index % 2 === 0 : index % 2 !== 0;
-    const typeMatch = filter === "all" || p.type === filter;
-    return typeMatch && directionMatch;
-  }).sort((a, b) => {
+  const filteredPayments = payments.slice().sort((a, b) => {
     if (valueSort === "asc") return a.amount - b.amount;
     if (valueSort === "desc") return b.amount - a.amount;
     return dateSort === "newest" ? b.id - a.id : a.id - b.id;
   });
-
-  const totalIncome = payments.filter((p) => p.type === "income").reduce((sum, p) => sum + p.amount, 0);
-  const totalExpense = payments.filter((p) => p.type === "expense").reduce((sum, p) => sum + p.amount, 0);
-  const netFlow = totalIncome - totalExpense;
 
   // Load persisted invoices/payments from Supabase on mount
   useEffect(() => {
