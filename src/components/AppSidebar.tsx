@@ -65,11 +65,6 @@ export const AppSidebar = () => {
             >
               <Icon className="h-4 w-4 shrink-0" />
               <span>{item.title}</span>
-              {item.badge && (
-                <span className="ml-1 bg-gilver text-sidebar-primary-foreground text-[10px] font-semibold px-1.5 py-0.5 rounded-full">
-                  {item.badge}
-                </span>
-              )}
             </Link>
           );
         })}
