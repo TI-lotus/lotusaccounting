@@ -230,12 +230,12 @@ const Payments = () => {
           </Dialog>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 animate-fade-in">
+        <div className="flex flex-wrap items-center gap-3 animate-fade-in">
           <div className="flex rounded-2xl border border-border bg-card p-1">
             {[
-              { value: "dashboard", label: "Dashboard", icon: LayoutDashboard },
               { value: "list", label: "Lista", icon: List },
               { value: "calendar", label: "Calendário", icon: Calendar },
+              { value: "timeline", label: "Timeline", icon: Clock3 },
             ].map((item) => {
               const Icon = item.icon;
               return (
@@ -245,10 +245,6 @@ const Payments = () => {
                 </Button>
               );
             })}
-          </div>
-          <div className="flex rounded-2xl border border-border bg-card p-1">
-            <Button variant={direction === "received" ? "default" : "ghost"} size="sm" className="rounded-xl" onClick={() => setDirection("received")}>Recebidos</Button>
-            <Button variant={direction === "sent" ? "default" : "ghost"} size="sm" className="rounded-xl" onClick={() => setDirection("sent")}>Enviados</Button>
           </div>
         </div>
 
@@ -279,47 +275,19 @@ const Payments = () => {
           </div>
         )}
 
-        {view === "dashboard" && <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="kpi-card animate-fade-in cursor-pointer hover:ring-2 ring-accent transition-all" onClick={() => setFilter("income")}>
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-emerald-100 dark:bg-emerald-950">
-                <ArrowDownLeft className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Entradas</p>
-                <p className="text-xl font-semibold text-emerald-600 dark:text-emerald-400">
-                  R$ {totalIncome.toLocaleString("pt-BR")}
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="kpi-card animate-fade-in cursor-pointer hover:ring-2 ring-accent transition-all" onClick={() => setFilter("expense")}>
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-red-100 dark:bg-red-950">
-                <ArrowUpRight className="h-5 w-5 text-red-600 dark:text-red-400" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Saídas</p>
-                <p className="text-xl font-semibold text-red-600 dark:text-red-400">
-                  R$ {totalExpense.toLocaleString("pt-BR")}
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="kpi-card animate-fade-in cursor-pointer hover:ring-2 ring-accent transition-all" onClick={() => setFilter("all")}>
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-accent">
-                <CreditCard className="h-5 w-5 text-accent-foreground" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Saldo Líquido</p>
-                <p className={cn("text-xl font-semibold", netFlow >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400")}>
-                  {netFlow >= 0 ? "+" : ""}R$ {netFlow.toLocaleString("pt-BR")}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>}
+        {view === "timeline" && (
+          <TimelineView
+            title="Timeline financeira"
+            events={payments.map((payment, index) => ({
+              day: ((index * 2) % 30) + 1,
+              title: payment.description,
+              subtitle: payment.category,
+              time: `${9 + (index % 8)}:00`,
+              amount: `${payment.type === "income" ? "+" : "-"}R$ ${payment.amount.toLocaleString("pt-BR")}`,
+              status: payment.status === "completed" ? "Concluído" : "Pendente",
+            }))}
+          />
+        )}
 
         {view === "calendar" && (
           <CalendarEventView
