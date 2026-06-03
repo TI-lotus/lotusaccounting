@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
-import { Plus, Calendar, List, Barcode, QrCode, Landmark, Clock3 } from "lucide-react";
+import { Plus, Calendar, List, Barcode, QrCode, CreditCard, Clock3, ArrowDownCircle, ArrowUpCircle, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -55,10 +55,13 @@ const Payments = () => {
   const [payments, setPayments] = useState<Payment[]>(initialPayments);
   const [valueSort, setValueSort] = useState<"none" | "asc" | "desc">("none");
   const [dateSort, setDateSort] = useState<"newest" | "oldest">("newest");
+  const [typeFilter, setTypeFilter] = useState<"all" | "income" | "expense">("all");
   const [view, setView] = useState<"list" | "calendar" | "timeline">("list");
   const [dateRange, setDateRange] = useState({ start: "2026-01-01", end: "2026-01-31" });
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [selectedMethod, setSelectedMethod] = useState<"boleto" | "pix" | "bank" | null>(null);
+  const [selectedMethod, setSelectedMethod] = useState<"boleto" | "pix" | "card" | null>(null);
+  const [methodModalOpen, setMethodModalOpen] = useState(false);
+  const [cardData, setCardData] = useState({ number: "", name: "", expiry: "", cvv: "" });
   const [newPayment, setNewPayment] = useState({
     description: "",
     amount: "",
@@ -66,11 +69,14 @@ const Payments = () => {
     category: "",
   });
 
-  const filteredPayments = payments.slice().sort((a, b) => {
-    if (valueSort === "asc") return a.amount - b.amount;
-    if (valueSort === "desc") return b.amount - a.amount;
-    return dateSort === "newest" ? b.id - a.id : a.id - b.id;
-  });
+  const filteredPayments = payments
+    .filter(p => typeFilter === "all" || p.type === typeFilter)
+    .slice()
+    .sort((a, b) => {
+      if (valueSort === "asc") return a.amount - b.amount;
+      if (valueSort === "desc") return b.amount - a.amount;
+      return dateSort === "newest" ? b.id - a.id : a.id - b.id;
+    });
 
   // Load persisted invoices/payments from Supabase on mount
   useEffect(() => {
