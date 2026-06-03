@@ -72,17 +72,11 @@ const Auth = () => {
           </div>
 
           <form onSubmit={submit} className="mt-5 space-y-4">
-            {mode === "signup" && (
-              <div className="space-y-2">
-                <Label htmlFor="fullName">Nome completo</Label>
-                <Input id="fullName" value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} required />
-              </div>
-            )}
-
             <div className="space-y-2">
               <Label htmlFor="email">E-mail</Label>
               <Input id="email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="password">Senha</Label>
               <div className="relative">
@@ -130,13 +124,10 @@ const Auth = () => {
         style={{ background: "linear-gradient(135deg, hsl(222 55% 10%) 0%, hsl(222 50% 16%) 55%, hsl(222 45% 22%) 100%)" }}
       >
         <p
-          className="text-2xl xl:text-3xl leading-snug tracking-tight max-w-md mx-auto"
+          className="text-lg xl:text-xl leading-snug tracking-tight max-w-sm mx-auto text-sidebar-foreground"
           style={{ fontFamily: "'Inter', sans-serif" }}
         >
-          Transformando números em{" "}
-          <span className="italic" style={{ fontFamily: "'Playfair Display', serif" }}>
-            decisões
-          </span>
+          Transformando números em <span className="italic" style={{ fontFamily: "'Playfair Display', serif" }}>decisões</span>
         </p>
       </aside>
     </main>
