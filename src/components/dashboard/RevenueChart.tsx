@@ -36,7 +36,7 @@ interface RevenueChartProps {
 const formatBRL = (value: number) => `R$ ${(value / 1000).toLocaleString("pt-BR")}k`;
 const GREEN = "hsl(142, 70%, 45%)";
 const RED = "hsl(0, 72%, 51%)";
-const YELLOW = "hsl(45, 90%, 55%)";
+const YELLOW = "hsl(30, 41%, 60%)"; // brand gold #d2b58a
 
 export const RevenueChart = ({ className }: RevenueChartProps) => {
   const [mode, setMode] = useState<Mode>("revenue");
