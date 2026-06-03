@@ -119,13 +119,24 @@ interface TopBarProps {
   onOpenAI?: (message?: string) => void;
 }
 
-const notificationGroups = [
-  { label: "Documentos recebidos", icon: FileText, items: [{ label: "NF-e de Acme Corporation recebida", href: "/documents" }, { label: "DAS de TechStart pronto para revisão", href: "/documents" }] },
-  { label: "Vencimentos", icon: CalendarClock, items: [{ label: "Guia DAS vence em 20 Abr", href: "/tasks" }, { label: "Fatura #1231 vence esta semana", href: "/payments" }] },
-  { label: "Relatórios", icon: MailCheck, items: [{ label: "DRE mensal gerado para Março", href: "/reports" }] },
-  { label: "Agentes", icon: Bot, items: [{ label: "Lia aguardando revisão de classificação", href: "/agents" }] },
-  { label: "Pagamentos Recebidos", icon: CreditCard, items: [{ label: "Pagamento de R$ 12.500,00 conciliado", href: "/payments" }] },
-  { label: "Solicitações de acesso", icon: UserPlus, items: [] },
+interface NotificationItem {
+  id: string;
+  label: string;
+  href: string;
+  category: string;
+  categoryLabel: string;
+  icon: React.ElementType;
+  createdAt: number; // unix ms
+  read: boolean;
+}
+
+const initialNotifications: NotificationItem[] = [
+  { id: "n1", label: "NF-e de Acme Corporation recebida", href: "/documents", category: "documents", categoryLabel: "Documentos", icon: FileText, createdAt: Date.now() - 1000 * 60 * 12, read: false },
+  { id: "n2", label: "DAS de TechStart pronto para revisão", href: "/documents", category: "documents", categoryLabel: "Documentos", icon: FileText, createdAt: Date.now() - 1000 * 60 * 60 * 3, read: false },
+  { id: "n3", label: "Guia DAS vence em 20 Abr", href: "/tasks", category: "due", categoryLabel: "Vencimentos", icon: CalendarClock, createdAt: Date.now() - 1000 * 60 * 60 * 26, read: true },
+  { id: "n4", label: "Fatura #1231 vence esta semana", href: "/payments", category: "due", categoryLabel: "Vencimentos", icon: CalendarClock, createdAt: Date.now() - 1000 * 60 * 60 * 50, read: false },
+  { id: "n5", label: "DRE mensal gerado para Março", href: "/reports", category: "reports", categoryLabel: "Relatórios", icon: MailCheck, createdAt: Date.now() - 1000 * 60 * 60 * 72, read: true },
+  { id: "n6", label: "Pagamento de R$ 12.500,00 conciliado", href: "/payments", category: "payments", categoryLabel: "Pagamentos", icon: CreditCard, createdAt: Date.now() - 1000 * 60 * 90, read: false },
 ];
 
 export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
