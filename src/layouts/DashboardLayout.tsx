@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import { AppSidebar } from "@/components/AppSidebar";
 import { TopBar } from "@/components/TopBar";
-import { AIAgentButton } from "@/components/AIAgentButton";
+import { ChatBox } from "@/components/ChatBox";
 import { cn } from "@/lib/utils";
 
 interface DashboardLayoutProps {
@@ -17,7 +17,7 @@ export const DashboardLayout = ({ children, className }: DashboardLayoutProps) =
       <main className={cn("flex-1 p-6", className)}>
         {children}
       </main>
-      <AIAgentButton />
+      <ChatBox />
     </div>
   );
 };
