@@ -21,6 +21,7 @@ import {
   Pencil, Filter, RotateCcw, Plus, Trash2, LayoutGrid, List
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { WorkflowFlow } from "@/components/WorkflowFlow";
 
 interface Agent {
   id: string;
@@ -252,29 +253,8 @@ export default function Agents() {
             ))}
           </TabsContent>
 
-          <TabsContent value="workflow" className="mt-6 space-y-4">
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" className="rounded-xl gap-2" onClick={addWorkflowNode}><Plus className="h-4 w-4" />Adicionar node</Button>
-              <Button variant="outline" className="rounded-xl gap-2"><FileCheck className="h-4 w-4" />Salvar alterações</Button>
-              <Button className="rounded-xl gap-2"><Play className="h-4 w-4" />Executar workflow</Button>
-            </div>
-            <div className="relative h-[460px] rounded-2xl border border-border bg-card overflow-hidden" onDragOver={(event) => event.preventDefault()} onDrop={handleWorkflowDrop} style={{ backgroundImage: "radial-gradient(hsl(var(--muted-foreground) / 0.25) 1px, transparent 1px)", backgroundSize: "18px 18px" }}>
-              <svg className="absolute inset-0 h-full w-full" aria-hidden="true">
-                {workflowNodes.slice(0, -1).map((node, index) => {
-                  const next = workflowNodes[index + 1];
-                  return <line key={node.id} x1={`${node.x}%`} y1={`${node.y}%`} x2={`${next.x}%`} y2={`${next.y}%`} stroke="hsl(var(--primary))" strokeWidth="2" strokeDasharray="6 6" />;
-                })}
-              </svg>
-              {workflowNodes.map((node) => (
-                <div key={node.id} draggable onDragStart={(event) => event.dataTransfer.setData("node-id", node.id)} className="absolute w-36 -translate-x-1/2 -translate-y-1/2 cursor-grab rounded-xl border border-border bg-background p-4 text-left shadow-soft hover:ring-2 hover:ring-primary active:cursor-grabbing" style={{ left: `${node.x}%`, top: `${node.y}%` }}>
-                  <button className="absolute right-1 top-1 rounded-lg p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive" onClick={() => deleteWorkflowNode(node.id)}><Trash2 className="h-3.5 w-3.5" /></button>
-                  <button className="text-left" onClick={() => setSelectedWorkflowNode(node.label)}>
-                  <p className="font-medium text-sm">{node.label}</p>
-                  <p className="text-xs text-muted-foreground mt-1">Arraste para mover</p>
-                  </button>
-                </div>
-              ))}
-            </div>
+          <TabsContent value="workflow" className="mt-6">
+            <WorkflowFlow />
           </TabsContent>
 
           <TabsContent value="executions" className="mt-6 space-y-4">
