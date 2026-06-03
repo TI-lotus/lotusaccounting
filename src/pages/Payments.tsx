@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
-import { Plus, Calendar, List, Barcode, QrCode, Landmark, Clock3 } from "lucide-react";
+import { Plus, Calendar, List, Barcode, QrCode, CreditCard, Clock3, ArrowDownCircle, ArrowUpCircle, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -55,10 +55,13 @@ const Payments = () => {
   const [payments, setPayments] = useState<Payment[]>(initialPayments);
   const [valueSort, setValueSort] = useState<"none" | "asc" | "desc">("none");
   const [dateSort, setDateSort] = useState<"newest" | "oldest">("newest");
+  const [typeFilter, setTypeFilter] = useState<"all" | "income" | "expense">("all");
   const [view, setView] = useState<"list" | "calendar" | "timeline">("list");
   const [dateRange, setDateRange] = useState({ start: "2026-01-01", end: "2026-01-31" });
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [selectedMethod, setSelectedMethod] = useState<"boleto" | "pix" | "bank" | null>(null);
+  const [selectedMethod, setSelectedMethod] = useState<"boleto" | "pix" | "card" | null>(null);
+  const [methodModalOpen, setMethodModalOpen] = useState(false);
+  const [cardData, setCardData] = useState({ number: "", name: "", expiry: "", cvv: "" });
   const [newPayment, setNewPayment] = useState({
     description: "",
     amount: "",
@@ -66,11 +69,14 @@ const Payments = () => {
     category: "",
   });
 
-  const filteredPayments = payments.slice().sort((a, b) => {
-    if (valueSort === "asc") return a.amount - b.amount;
-    if (valueSort === "desc") return b.amount - a.amount;
-    return dateSort === "newest" ? b.id - a.id : a.id - b.id;
-  });
+  const filteredPayments = payments
+    .filter(p => typeFilter === "all" || p.type === typeFilter)
+    .slice()
+    .sort((a, b) => {
+      if (valueSort === "asc") return a.amount - b.amount;
+      if (valueSort === "desc") return b.amount - a.amount;
+      return dateSort === "newest" ? b.id - a.id : a.id - b.id;
+    });
 
   // Load persisted invoices/payments from Supabase on mount
   useEffect(() => {
@@ -246,6 +252,15 @@ const Payments = () => {
               );
             })}
           </div>
+          <div className="flex rounded-2xl border border-border bg-card p-1">
+            <Button variant={typeFilter === "all" ? "default" : "ghost"} size="sm" className="rounded-xl" onClick={() => setTypeFilter("all")}>Todos</Button>
+            <Button variant={typeFilter === "income" ? "default" : "ghost"} size="sm" className="rounded-xl" onClick={() => setTypeFilter("income")}>
+              <ArrowDownCircle className="h-4 w-4" />Entradas
+            </Button>
+            <Button variant={typeFilter === "expense" ? "default" : "ghost"} size="sm" className="rounded-xl" onClick={() => setTypeFilter("expense")}>
+              <ArrowUpCircle className="h-4 w-4" />Saídas
+            </Button>
+          </div>
         </div>
 
         {viewMode === "client" && (
@@ -258,22 +273,111 @@ const Payments = () => {
               {[
                 { id: "boleto", label: "Gerar boleto", icon: Barcode },
                 { id: "pix", label: "Pagar com Pix", icon: QrCode },
-                { id: "bank", label: "Pagar pelo banco", icon: Landmark },
+                { id: "card", label: "Pagar com cartão", icon: CreditCard },
               ].map((method) => {
                 const Icon = method.icon;
-                return <Button key={method.id} variant={selectedMethod === method.id ? "default" : "outline"} className="h-20 rounded-xl flex-col" onClick={() => setSelectedMethod(method.id as typeof selectedMethod)}><Icon className="h-5 w-5" />{method.label}</Button>;
+                return (
+                  <Button
+                    key={method.id}
+                    variant="outline"
+                    className="h-20 rounded-xl flex-col"
+                    onClick={() => { setSelectedMethod(method.id as typeof selectedMethod); setMethodModalOpen(true); }}
+                  >
+                    <Icon className="h-5 w-5" />{method.label}
+                  </Button>
+                );
               })}
             </div>
-            {selectedMethod && (
-              <div className="grid gap-3 rounded-xl border border-border p-4 text-sm md:grid-cols-2">
-                <div><p className="text-muted-foreground">Razão social</p><p className="font-medium">LOTUS CONTABILIDADE LTDA</p></div>
-                <div><p className="text-muted-foreground">CNPJ</p><p className="font-medium">42.318.765/0001-09</p></div>
-                <div><p className="text-muted-foreground">E-mail financeiro</p><p className="font-medium">financeiro@lotus.com.br</p></div>
-                <div><p className="text-muted-foreground">Referência</p><p className="font-medium">Honorários contábeis mensais</p></div>
-              </div>
-            )}
           </div>
         )}
+
+        {/* Payment method modal */}
+        <Dialog open={methodModalOpen} onOpenChange={setMethodModalOpen}>
+          <DialogContent className="sm:max-w-[460px]">
+            <DialogHeader>
+              <DialogTitle>
+                {selectedMethod === "boleto" && "Pagamento via Boleto"}
+                {selectedMethod === "pix" && "Pagamento via Pix"}
+                {selectedMethod === "card" && "Pagamento com Cartão"}
+              </DialogTitle>
+              <DialogDescription>
+                {selectedMethod === "boleto" && "Use o código de barras abaixo para pagar em qualquer banco."}
+                {selectedMethod === "pix" && "Escaneie o QR code ou copie a chave Pix."}
+                {selectedMethod === "card" && "Preencha os dados do seu cartão de crédito."}
+              </DialogDescription>
+            </DialogHeader>
+
+            {selectedMethod === "boleto" && (
+              <div className="space-y-4">
+                <div className="rounded-xl border border-border p-4 bg-card">
+                  <div className="flex items-end gap-px h-16 mb-3" aria-label="código de barras">
+                    {Array.from({ length: 60 }).map((_, i) => (
+                      <div key={i} style={{ width: Math.random() > 0.5 ? 2 : 3, height: "100%", background: Math.random() > 0.3 ? "hsl(var(--foreground))" : "transparent" }} />
+                    ))}
+                  </div>
+                  <p className="text-sm font-mono text-center break-all">23793.38128 60028.123456 78901.234567 8 92340000150000</p>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Valor</span>
+                  <span className="font-semibold">R$ 1.500,00</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Vencimento</span>
+                  <span className="font-semibold">10/02/2026</span>
+                </div>
+                <Button className="w-full rounded-xl gap-2" onClick={() => { navigator.clipboard.writeText("23793381286002812345678901234567892340000150000"); toast.success("Código copiado!"); }}>
+                  <Copy className="h-4 w-4" />Copiar código de barras
+                </Button>
+              </div>
+            )}
+
+            {selectedMethod === "pix" && (
+              <div className="space-y-4">
+                <div className="flex justify-center">
+                  <div className="rounded-xl border border-border p-4 bg-white">
+                    <div className="w-48 h-48 grid grid-cols-[repeat(20,1fr)] gap-px" aria-label="QR code Pix">
+                      {Array.from({ length: 400 }).map((_, i) => (
+                        <div key={i} style={{ background: Math.random() > 0.5 ? "#000" : "#fff" }} />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <div className="rounded-xl border border-border p-3 bg-muted/40 text-xs font-mono break-all">
+                  00020126360014BR.GOV.BCB.PIX0114+551199999999952040000530398654041500.005802BR5925LOTUS CONTABILIDADE LTDA6009SAO PAULO62070503***6304ABCD
+                </div>
+                <Button className="w-full rounded-xl gap-2" onClick={() => { navigator.clipboard.writeText("00020126360014BR.GOV.BCB.PIX..."); toast.success("Chave Pix copiada!"); }}>
+                  <Copy className="h-4 w-4" />Copiar chave Pix
+                </Button>
+              </div>
+            )}
+
+            {selectedMethod === "card" && (
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label>Número do cartão</Label>
+                  <Input placeholder="0000 0000 0000 0000" value={cardData.number} onChange={(e) => setCardData({ ...cardData, number: e.target.value })} className="rounded-xl" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Nome impresso</Label>
+                  <Input placeholder="Nome como está no cartão" value={cardData.name} onChange={(e) => setCardData({ ...cardData, name: e.target.value })} className="rounded-xl" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label>Validade</Label>
+                    <Input placeholder="MM/AA" value={cardData.expiry} onChange={(e) => setCardData({ ...cardData, expiry: e.target.value })} className="rounded-xl" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>CVV</Label>
+                    <Input placeholder="123" value={cardData.cvv} onChange={(e) => setCardData({ ...cardData, cvv: e.target.value })} className="rounded-xl" />
+                  </div>
+                </div>
+                <Button className="w-full rounded-xl mt-2" onClick={() => { toast.success("Pagamento autorizado!"); setMethodModalOpen(false); }}>
+                  Pagar R$ 1.500,00
+                </Button>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
 
         {view === "timeline" && (
           <TimelineView

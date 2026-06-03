@@ -316,8 +316,27 @@ const Tasks = () => {
             }))}
           />
         ) : viewType === "grid" ? (
-          <div className="grid grid-cols-1 gap-4 animate-fade-in md:grid-cols-2 xl:grid-cols-3">
-            {filteredTasks.map((task) => <KanbanCard key={task.id} task={task} />)}
+          <div className="grid grid-cols-1 gap-4 animate-fade-in md:grid-cols-2 xl:grid-cols-4">
+            {([
+              { key: "overdue", label: "Atraso", color: "text-red-600", bg: "bg-red-500/10" },
+              { key: "pending", label: "Pendente", color: "text-amber-600", bg: "bg-amber-500/10" },
+              { key: "in_progress", label: "Em andamento", color: "text-primary", bg: "bg-primary/10" },
+              { key: "completed", label: "Concluído", color: "text-emerald-600", bg: "bg-emerald-500/10" },
+            ] as const).map((col) => {
+              const colTasks = filteredTasks.filter((t) => t.status === col.key);
+              return (
+                <div key={col.key} className="rounded-2xl border border-border bg-card/50 p-3 space-y-3 min-h-[300px]">
+                  <div className={cn("flex items-center justify-between rounded-xl px-3 py-2", col.bg)}>
+                    <h3 className={cn("text-sm font-semibold", col.color)}>{col.label}</h3>
+                    <Badge variant="secondary" className="rounded-full text-xs">{colTasks.length}</Badge>
+                  </div>
+                  <div className="space-y-2">
+                    {colTasks.map((task) => <KanbanCard key={task.id} task={task} />)}
+                    {colTasks.length === 0 && <p className="text-xs text-muted-foreground text-center py-6">Vazio</p>}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         ) : (
           /* List View */

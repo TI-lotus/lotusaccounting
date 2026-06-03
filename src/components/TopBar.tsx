@@ -119,13 +119,24 @@ interface TopBarProps {
   onOpenAI?: (message?: string) => void;
 }
 
-const notificationGroups = [
-  { label: "Documentos recebidos", icon: FileText, items: [{ label: "NF-e de Acme Corporation recebida", href: "/documents" }, { label: "DAS de TechStart pronto para revisão", href: "/documents" }] },
-  { label: "Vencimentos", icon: CalendarClock, items: [{ label: "Guia DAS vence em 20 Abr", href: "/tasks" }, { label: "Fatura #1231 vence esta semana", href: "/payments" }] },
-  { label: "Relatórios", icon: MailCheck, items: [{ label: "DRE mensal gerado para Março", href: "/reports" }] },
-  { label: "Agentes", icon: Bot, items: [{ label: "Lia aguardando revisão de classificação", href: "/agents" }] },
-  { label: "Pagamentos Recebidos", icon: CreditCard, items: [{ label: "Pagamento de R$ 12.500,00 conciliado", href: "/payments" }] },
-  { label: "Solicitações de acesso", icon: UserPlus, items: [] },
+interface NotificationItem {
+  id: string;
+  label: string;
+  href: string;
+  category: string;
+  categoryLabel: string;
+  icon: React.ElementType;
+  createdAt: number; // unix ms
+  read: boolean;
+}
+
+const initialNotifications: NotificationItem[] = [
+  { id: "n1", label: "NF-e de Acme Corporation recebida", href: "/documents", category: "documents", categoryLabel: "Documentos", icon: FileText, createdAt: Date.now() - 1000 * 60 * 12, read: false },
+  { id: "n2", label: "DAS de TechStart pronto para revisão", href: "/documents", category: "documents", categoryLabel: "Documentos", icon: FileText, createdAt: Date.now() - 1000 * 60 * 60 * 3, read: false },
+  { id: "n3", label: "Guia DAS vence em 20 Abr", href: "/tasks", category: "due", categoryLabel: "Vencimentos", icon: CalendarClock, createdAt: Date.now() - 1000 * 60 * 60 * 26, read: true },
+  { id: "n4", label: "Fatura #1231 vence esta semana", href: "/payments", category: "due", categoryLabel: "Vencimentos", icon: CalendarClock, createdAt: Date.now() - 1000 * 60 * 60 * 50, read: false },
+  { id: "n5", label: "DRE mensal gerado para Março", href: "/reports", category: "reports", categoryLabel: "Relatórios", icon: MailCheck, createdAt: Date.now() - 1000 * 60 * 60 * 72, read: true },
+  { id: "n6", label: "Pagamento de R$ 12.500,00 conciliado", href: "/payments", category: "payments", categoryLabel: "Pagamentos", icon: CreditCard, createdAt: Date.now() - 1000 * 60 * 90, read: false },
 ];
 
 export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
@@ -138,12 +149,33 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
   const { signOut } = useAuth();
   const wrapperRef = useRef<HTMLDivElement>(null);
 
+  const [notifications, setNotifications] = useState<NotificationItem[]>(initialNotifications);
+  const [notifSort, setNotifSort] = useState<"newest" | "oldest">("newest");
+  const [notifCategory, setNotifCategory] = useState<string>("all");
+  const [notifRead, setNotifRead] = useState<"all" | "unread" | "read">("all");
+
   const handleSignOut = async () => {
     await signOut();
     navigate("/auth", { replace: true });
   };
 
   const searchData = viewMode === "office" ? officeSearchData : clientSearchData;
+
+  const categories = Array.from(new Map(notifications.map(n => [n.category, n.categoryLabel])).entries());
+  const filteredNotifications = notifications
+    .filter(n => notifCategory === "all" || n.category === notifCategory)
+    .filter(n => notifRead === "all" || (notifRead === "unread" ? !n.read : n.read))
+    .sort((a, b) => notifSort === "newest" ? b.createdAt - a.createdAt : a.createdAt - b.createdAt);
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  const formatRelative = (ts: number) => {
+    const diff = Date.now() - ts;
+    const m = Math.round(diff / 60000);
+    if (m < 60) return `${m} min`;
+    const h = Math.round(m / 60);
+    if (h < 24) return `${h}h`;
+    return `${Math.round(h / 24)}d`;
+  };
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -290,44 +322,64 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
             <PopoverTrigger asChild>
               <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-xl text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground">
                 <Bell className="h-4 w-4" />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-destructive rounded-full" />
+                {unreadCount > 0 && <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-destructive rounded-full" />}
               </Button>
             </PopoverTrigger>
-            <PopoverContent align="end" className="w-96 rounded-2xl p-0 overflow-hidden z-[99999]">
-              <div className="p-4 border-b border-border">
-                <h3 className="font-semibold text-sm">Notificações</h3>
-                <p className="text-xs text-muted-foreground">Avisos separados por área</p>
+            <PopoverContent align="end" className="w-[400px] rounded-2xl p-0 overflow-hidden z-[99999]">
+              <div className="p-4 border-b border-border flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold text-sm">Notificações</h3>
+                  <p className="text-xs text-muted-foreground">{unreadCount} não lidas</p>
+                </div>
+                <Button variant="ghost" size="sm" className="text-xs rounded-lg" onClick={() => setNotifications(prev => prev.map(n => ({ ...n, read: true })))}>
+                  Marcar todas
+                </Button>
               </div>
-              <div className="max-h-[420px] overflow-y-auto custom-scroll px-2 pb-2">
-                <Accordion type="multiple" className="space-y-1">
-                {notificationGroups.map((item) => {
-                  const Icon = item.icon;
+              <div className="p-3 border-b border-border flex flex-wrap gap-2">
+                <select value={notifSort} onChange={(e) => setNotifSort(e.target.value as "newest" | "oldest")} className="text-xs rounded-lg border border-border bg-background px-2 py-1">
+                  <option value="newest">Mais recentes</option>
+                  <option value="oldest">Mais antigas</option>
+                </select>
+                <select value={notifCategory} onChange={(e) => setNotifCategory(e.target.value)} className="text-xs rounded-lg border border-border bg-background px-2 py-1">
+                  <option value="all">Todas categorias</option>
+                  {categories.map(([cat, label]) => <option key={cat} value={cat}>{label}</option>)}
+                </select>
+                <select value={notifRead} onChange={(e) => setNotifRead(e.target.value as "all" | "unread" | "read")} className="text-xs rounded-lg border border-border bg-background px-2 py-1">
+                  <option value="all">Todas</option>
+                  <option value="unread">Não lidas</option>
+                  <option value="read">Lidas</option>
+                </select>
+              </div>
+              <div className="max-h-[420px] overflow-y-auto custom-scroll divide-y divide-border">
+                {filteredNotifications.length === 0 && (
+                  <p className="text-center text-sm text-muted-foreground py-8">Nenhuma notificação</p>
+                )}
+                {filteredNotifications.map((n) => {
+                  const Icon = n.icon;
                   return (
-                    <AccordionItem key={item.label} value={item.label} className="border-0">
-                      <AccordionTrigger className="rounded-xl px-3 py-3 hover:bg-accent hover:no-underline">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="rounded-xl bg-muted p-2 text-muted-foreground">
-                            <Icon className="h-4 w-4" />
-                          </div>
-                          <p className="text-sm font-medium truncate">{item.label}</p>
-                          <Badge variant="secondary" className="rounded-full">{item.items.length}</Badge>
+                    <button
+                      key={n.id}
+                      onClick={() => {
+                        setNotifications(prev => prev.map(x => x.id === n.id ? { ...x, read: true } : x));
+                        navigate(n.href);
+                        setNotificationOpen(false);
+                      }}
+                      className={cn("w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-accent transition-colors", !n.read && "bg-primary/5")}
+                    >
+                      <div className="rounded-xl bg-muted p-2 text-muted-foreground shrink-0">
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className={cn("text-sm leading-snug", !n.read && "font-medium")}>{n.label}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Badge variant="outline" className="text-[10px] py-0 px-1.5 rounded-md">{n.categoryLabel}</Badge>
+                          <span className="text-[10px] text-muted-foreground">{formatRelative(n.createdAt)} atrás</span>
                         </div>
-                      </AccordionTrigger>
-                      <AccordionContent className="px-3 pb-3">
-                        {item.items.length ? (
-                          <div className="space-y-2">
-                            {item.items.map((notification) => (
-                              <button key={notification.label} className="w-full rounded-xl bg-muted/50 px-3 py-2 text-left text-sm transition-colors hover:bg-accent" onClick={() => { navigate(notification.href); setNotificationOpen(false); }}>
-                                {notification.label}
-                              </button>
-                            ))}
-                          </div>
-                        ) : null}
-                      </AccordionContent>
-                    </AccordionItem>
+                      </div>
+                      {!n.read && <span className="w-2 h-2 rounded-full bg-primary mt-2 shrink-0" />}
+                    </button>
                   );
                 })}
-                </Accordion>
               </div>
             </PopoverContent>
           </Popover>
