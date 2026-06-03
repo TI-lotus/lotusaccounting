@@ -322,44 +322,64 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
             <PopoverTrigger asChild>
               <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-xl text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground">
                 <Bell className="h-4 w-4" />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-destructive rounded-full" />
+                {unreadCount > 0 && <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-destructive rounded-full" />}
               </Button>
             </PopoverTrigger>
-            <PopoverContent align="end" className="w-96 rounded-2xl p-0 overflow-hidden z-[99999]">
-              <div className="p-4 border-b border-border">
-                <h3 className="font-semibold text-sm">Notificações</h3>
-                <p className="text-xs text-muted-foreground">Avisos separados por área</p>
+            <PopoverContent align="end" className="w-[400px] rounded-2xl p-0 overflow-hidden z-[99999]">
+              <div className="p-4 border-b border-border flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold text-sm">Notificações</h3>
+                  <p className="text-xs text-muted-foreground">{unreadCount} não lidas</p>
+                </div>
+                <Button variant="ghost" size="sm" className="text-xs rounded-lg" onClick={() => setNotifications(prev => prev.map(n => ({ ...n, read: true })))}>
+                  Marcar todas
+                </Button>
               </div>
-              <div className="max-h-[420px] overflow-y-auto custom-scroll px-2 pb-2">
-                <Accordion type="multiple" className="space-y-1">
-                {notificationGroups.map((item) => {
-                  const Icon = item.icon;
+              <div className="p-3 border-b border-border flex flex-wrap gap-2">
+                <select value={notifSort} onChange={(e) => setNotifSort(e.target.value as "newest" | "oldest")} className="text-xs rounded-lg border border-border bg-background px-2 py-1">
+                  <option value="newest">Mais recentes</option>
+                  <option value="oldest">Mais antigas</option>
+                </select>
+                <select value={notifCategory} onChange={(e) => setNotifCategory(e.target.value)} className="text-xs rounded-lg border border-border bg-background px-2 py-1">
+                  <option value="all">Todas categorias</option>
+                  {categories.map(([cat, label]) => <option key={cat} value={cat}>{label}</option>)}
+                </select>
+                <select value={notifRead} onChange={(e) => setNotifRead(e.target.value as "all" | "unread" | "read")} className="text-xs rounded-lg border border-border bg-background px-2 py-1">
+                  <option value="all">Todas</option>
+                  <option value="unread">Não lidas</option>
+                  <option value="read">Lidas</option>
+                </select>
+              </div>
+              <div className="max-h-[420px] overflow-y-auto custom-scroll divide-y divide-border">
+                {filteredNotifications.length === 0 && (
+                  <p className="text-center text-sm text-muted-foreground py-8">Nenhuma notificação</p>
+                )}
+                {filteredNotifications.map((n) => {
+                  const Icon = n.icon;
                   return (
-                    <AccordionItem key={item.label} value={item.label} className="border-0">
-                      <AccordionTrigger className="rounded-xl px-3 py-3 hover:bg-accent hover:no-underline">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="rounded-xl bg-muted p-2 text-muted-foreground">
-                            <Icon className="h-4 w-4" />
-                          </div>
-                          <p className="text-sm font-medium truncate">{item.label}</p>
-                          <Badge variant="secondary" className="rounded-full">{item.items.length}</Badge>
+                    <button
+                      key={n.id}
+                      onClick={() => {
+                        setNotifications(prev => prev.map(x => x.id === n.id ? { ...x, read: true } : x));
+                        navigate(n.href);
+                        setNotificationOpen(false);
+                      }}
+                      className={cn("w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-accent transition-colors", !n.read && "bg-primary/5")}
+                    >
+                      <div className="rounded-xl bg-muted p-2 text-muted-foreground shrink-0">
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className={cn("text-sm leading-snug", !n.read && "font-medium")}>{n.label}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Badge variant="outline" className="text-[10px] py-0 px-1.5 rounded-md">{n.categoryLabel}</Badge>
+                          <span className="text-[10px] text-muted-foreground">{formatRelative(n.createdAt)} atrás</span>
                         </div>
-                      </AccordionTrigger>
-                      <AccordionContent className="px-3 pb-3">
-                        {item.items.length ? (
-                          <div className="space-y-2">
-                            {item.items.map((notification) => (
-                              <button key={notification.label} className="w-full rounded-xl bg-muted/50 px-3 py-2 text-left text-sm transition-colors hover:bg-accent" onClick={() => { navigate(notification.href); setNotificationOpen(false); }}>
-                                {notification.label}
-                              </button>
-                            ))}
-                          </div>
-                        ) : null}
-                      </AccordionContent>
-                    </AccordionItem>
+                      </div>
+                      {!n.read && <span className="w-2 h-2 rounded-full bg-primary mt-2 shrink-0" />}
+                    </button>
                   );
                 })}
-                </Accordion>
               </div>
             </PopoverContent>
           </Popover>
