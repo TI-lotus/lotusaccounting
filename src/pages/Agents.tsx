@@ -368,16 +368,6 @@ export default function Agents() {
             </div>
           </DialogContent>
         </Dialog>
-        <Dialog open={!!selectedWorkflowNode} onOpenChange={(open) => !open && setSelectedWorkflowNode(null)}>
-          <DialogContent className="rounded-2xl">
-            <DialogHeader><DialogTitle>{selectedWorkflowNode}</DialogTitle></DialogHeader>
-            <div className="space-y-4 pt-2">
-              <div className="space-y-2"><Label>Nome do node</Label><Input defaultValue={selectedWorkflowNode ?? ""} className="rounded-xl" /></div>
-              <div className="space-y-2"><Label>Ação do agente</Label><Textarea defaultValue={'Analisar entrada e executar próxima etapa com validação.'} className="rounded-xl" /></div>
-              <Button className="w-full rounded-xl" onClick={() => setSelectedWorkflowNode(null)}>Salvar node</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
       </div>
     </DashboardLayout>
   );
