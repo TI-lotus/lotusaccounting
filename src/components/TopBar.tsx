@@ -149,12 +149,33 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
   const { signOut } = useAuth();
   const wrapperRef = useRef<HTMLDivElement>(null);
 
+  const [notifications, setNotifications] = useState<NotificationItem[]>(initialNotifications);
+  const [notifSort, setNotifSort] = useState<"newest" | "oldest">("newest");
+  const [notifCategory, setNotifCategory] = useState<string>("all");
+  const [notifRead, setNotifRead] = useState<"all" | "unread" | "read">("all");
+
   const handleSignOut = async () => {
     await signOut();
     navigate("/auth", { replace: true });
   };
 
   const searchData = viewMode === "office" ? officeSearchData : clientSearchData;
+
+  const categories = Array.from(new Map(notifications.map(n => [n.category, n.categoryLabel])).entries());
+  const filteredNotifications = notifications
+    .filter(n => notifCategory === "all" || n.category === notifCategory)
+    .filter(n => notifRead === "all" || (notifRead === "unread" ? !n.read : n.read))
+    .sort((a, b) => notifSort === "newest" ? b.createdAt - a.createdAt : a.createdAt - b.createdAt);
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  const formatRelative = (ts: number) => {
+    const diff = Date.now() - ts;
+    const m = Math.round(diff / 60000);
+    if (m < 60) return `${m} min`;
+    const h = Math.round(m / 60);
+    if (h < 24) return `${h}h`;
+    return `${Math.round(h / 24)}d`;
+  };
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
