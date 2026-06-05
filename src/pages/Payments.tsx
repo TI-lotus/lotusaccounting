@@ -28,9 +28,10 @@ import { TimelineView } from "@/components/TimelineView";
 import { useViewMode } from "@/contexts/ViewModeContext";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useData } from "@/contexts/DataContext";
 
 interface Payment {
-  id: number;
+  id: string;
   description: string;
   amount: number;
   type: "income" | "expense";
@@ -39,20 +40,10 @@ interface Payment {
   category: string;
 }
 
-const initialPayments: Payment[] = [
-  { id: 1, description: "Fatura #1234 - Acme Corp", amount: 12500, type: "income", status: "completed", date: "12 Jan, 2026", category: "Serviços" },
-  { id: 2, description: "Licença de Software - Adobe", amount: 899, type: "expense", status: "completed", date: "11 Jan, 2026", category: "Software" },
-  { id: 3, description: "Fatura #1231 - TechStart", amount: 8750, type: "income", status: "pending", date: "10 Jan, 2026", category: "Serviços" },
-  { id: 4, description: "Material de Escritório", amount: 450, type: "expense", status: "completed", date: "10 Jan, 2026", category: "Suprimentos" },
-  { id: 5, description: "Fatura #1228 - Global Finance", amount: 15000, type: "income", status: "completed", date: "9 Jan, 2026", category: "Consultoria" },
-  { id: 6, description: "Aluguel do Escritório", amount: 4500, type: "expense", status: "completed", date: "5 Jan, 2026", category: "Instalações" },
-  { id: 7, description: "Fatura #1225 - DataFlow", amount: 22000, type: "income", status: "completed", date: "3 Jan, 2026", category: "Serviços" },
-  { id: 8, description: "Marketing Digital", amount: 2800, type: "expense", status: "pending", date: "2 Jan, 2026", category: "Marketing" },
-];
-
 const Payments = () => {
   const { viewMode } = useViewMode();
-  const [payments, setPayments] = useState<Payment[]>(initialPayments);
+  const { tenantId } = useData();
+  const [payments, setPayments] = useState<Payment[]>([]);
   const [valueSort, setValueSort] = useState<"none" | "asc" | "desc">("none");
   const [dateSort, setDateSort] = useState<"newest" | "oldest">("newest");
   const [typeFilter, setTypeFilter] = useState<"all" | "income" | "expense">("all");
@@ -75,81 +66,67 @@ const Payments = () => {
     .sort((a, b) => {
       if (valueSort === "asc") return a.amount - b.amount;
       if (valueSort === "desc") return b.amount - a.amount;
-      return dateSort === "newest" ? b.id - a.id : a.id - b.id;
+      return dateSort === "newest"
+        ? new Date(b.date).getTime() - new Date(a.date).getTime()
+        : new Date(a.date).getTime() - new Date(b.date).getTime();
     });
 
-  // Load persisted invoices/payments from Supabase on mount
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const [{ data: invoices }, { data: paymentsData }] = await Promise.all([
-        supabase.from("invoices").select("id, amount, status, due_date, created_at"),
-        supabase.from("payments").select("id, amount, status, method, paid_at, created_at"),
-      ]);
-      if (cancelled) return;
-      const fmt = (iso: string | null) => new Date(iso ?? Date.now()).toLocaleDateString("pt-BR", { day: "numeric", month: "short", year: "numeric" });
-      const fromInvoices: Payment[] = (invoices ?? []).map((row) => ({
-        id: parseInt(row.id.replace(/\D/g, "").slice(0, 9) || `${Date.now()}`, 10),
-        description: `Fatura ${row.id.slice(0, 6)}`,
-        amount: Number(row.amount),
-        type: "income",
-        status: row.status === "paid" ? "completed" : "pending",
-        date: fmt(row.due_date ?? row.created_at),
-        category: "Faturas",
-      }));
-      const fromPayments: Payment[] = (paymentsData ?? []).map((row) => ({
-        id: parseInt(row.id.replace(/\D/g, "").slice(0, 9) || `${Date.now()}`, 10),
-        description: `Pagamento ${row.id.slice(0, 6)}`,
-        amount: Number(row.amount),
-        type: "expense",
-        status: row.status === "completed" ? "completed" : "pending",
-        date: fmt(row.paid_at ?? row.created_at),
-        category: row.method ?? "Outros",
-      }));
-      if (fromInvoices.length || fromPayments.length) {
-        setPayments((prev) => [...fromInvoices, ...fromPayments, ...prev]);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, []);
+  const fmt = (iso: string | null) => new Date(iso ?? Date.now()).toLocaleDateString("pt-BR", { day: "numeric", month: "short", year: "numeric" });
+
+  const loadPayments = async () => {
+    const { data, error } = await supabase
+      .from("payments")
+      .select("id, amount, status, method, direction, description, category, paid_at, due_date, created_at")
+      .order("created_at", { ascending: false });
+    if (error) { toast.error("Erro ao carregar: " + error.message); return; }
+    setPayments((data ?? []).map((row: any) => ({
+      id: row.id,
+      description: row.description ?? `Pagamento ${row.id.slice(0, 6)}`,
+      amount: Number(row.amount),
+      type: row.direction === "saida" ? "expense" : "income",
+      status: row.status === "completed" || row.status === "paid" ? "completed" : "pending",
+      date: fmt(row.paid_at ?? row.due_date ?? row.created_at),
+      category: row.category ?? row.method ?? "Outros",
+    })));
+  };
+
+  useEffect(() => { void loadPayments(); }, [tenantId]);
 
   const handleAddPayment = async () => {
     if (!newPayment.description || !newPayment.amount) {
       toast.error("Preencha descrição e valor");
       return;
     }
+    if (!tenantId) { toast.error("Tenant não encontrado"); return; }
 
     const amount = parseFloat(newPayment.amount);
-    const payment: Payment = {
-      id: Date.now(),
-      description: newPayment.description,
+    const { error } = await supabase.from("payments").insert({
+      tenant_id: tenantId,
       amount,
-      type: newPayment.type,
       status: "pending",
-      date: new Date().toLocaleDateString("pt-BR", { day: "numeric", month: "short", year: "numeric" }),
+      direction: newPayment.type === "income" ? "entrada" : "saida",
+      description: newPayment.description,
       category: newPayment.category || "Outros",
-    };
+    });
+    if (error) { toast.error("Erro ao salvar: " + error.message); return; }
 
-    // Persist to Supabase
-    if (newPayment.type === "income") {
-      const { error } = await supabase.from("invoices").insert({ amount, status: "pending" });
-      if (error) toast.error("Salvo apenas localmente: " + error.message);
-    } else {
-      const { error } = await supabase.from("payments").insert({ amount, status: "pending", method: newPayment.category || null });
-      if (error) toast.error("Salvo apenas localmente: " + error.message);
-    }
-
-    setPayments([payment, ...payments]);
     setNewPayment({ description: "", amount: "", type: "income", category: "" });
     setDialogOpen(false);
     toast.success("Pagamento registrado com sucesso!");
+    void loadPayments();
   };
 
-  const handleToggleStatus = (id: number) => {
-    setPayments(payments.map((p) => 
-      p.id === id ? { ...p, status: p.status === "completed" ? "pending" : "completed" } : p
-    ));
-    toast.success("Status atualizado!");
+  const handleToggleStatus = async (id: string) => {
+    const p = payments.find((x) => x.id === id);
+    if (!p) return;
+    const nextStatus: "completed" | "pending" = p.status === "completed" ? "pending" : "completed";
+    setPayments(payments.map((x) => x.id === id ? { ...x, status: nextStatus } : x));
+    const { error } = await supabase.from("payments").update({
+      status: nextStatus,
+      paid_at: nextStatus === "completed" ? new Date().toISOString() : null,
+    }).eq("id", id);
+    if (error) toast.error("Erro: " + error.message);
+    else toast.success("Status atualizado!");
   };
 
   return (
