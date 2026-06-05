@@ -46,30 +46,48 @@ export type Database = {
       }
       companies: {
         Row: {
+          city: string | null
           cnpj: string | null
           created_at: string | null
           email: string | null
           id: string
           name: string
           phone: string | null
+          responsible_user_id: string | null
+          service_fee: number | null
+          state: string | null
+          status: string | null
+          tax_regime: string | null
           tenant_id: string | null
         }
         Insert: {
+          city?: string | null
           cnpj?: string | null
           created_at?: string | null
           email?: string | null
           id?: string
           name: string
           phone?: string | null
+          responsible_user_id?: string | null
+          service_fee?: number | null
+          state?: string | null
+          status?: string | null
+          tax_regime?: string | null
           tenant_id?: string | null
         }
         Update: {
+          city?: string | null
           cnpj?: string | null
           created_at?: string | null
           email?: string | null
           id?: string
           name?: string
           phone?: string | null
+          responsible_user_id?: string | null
+          service_fee?: number | null
+          state?: string | null
+          status?: string | null
+          tax_regime?: string | null
           tenant_id?: string | null
         }
         Relationships: [
@@ -134,6 +152,7 @@ export type Database = {
           created_at: string | null
           id: string
           tenant_id: string | null
+          title: string | null
         }
         Insert: {
           channel?: string | null
@@ -141,6 +160,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           tenant_id?: string | null
+          title?: string | null
         }
         Update: {
           channel?: string | null
@@ -148,6 +168,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           tenant_id?: string | null
+          title?: string | null
         }
         Relationships: [
           {
@@ -168,34 +189,61 @@ export type Database = {
       }
       documents: {
         Row: {
+          amount: number | null
+          classification_confidence: number | null
+          classified_automatically: boolean | null
           company_id: string | null
           created_at: string | null
+          doc_date: string | null
           document_type: string | null
           file_path: string | null
           id: string
+          month: number | null
+          name: string | null
+          original_file_name: string | null
+          read_at: string | null
           status: string | null
           tenant_id: string | null
           uploaded_by: string | null
+          year: number | null
         }
         Insert: {
+          amount?: number | null
+          classification_confidence?: number | null
+          classified_automatically?: boolean | null
           company_id?: string | null
           created_at?: string | null
+          doc_date?: string | null
           document_type?: string | null
           file_path?: string | null
           id?: string
+          month?: number | null
+          name?: string | null
+          original_file_name?: string | null
+          read_at?: string | null
           status?: string | null
           tenant_id?: string | null
           uploaded_by?: string | null
+          year?: number | null
         }
         Update: {
+          amount?: number | null
+          classification_confidence?: number | null
+          classified_automatically?: boolean | null
           company_id?: string | null
           created_at?: string | null
+          doc_date?: string | null
           document_type?: string | null
           file_path?: string | null
           id?: string
+          month?: number | null
+          name?: string | null
+          original_file_name?: string | null
+          read_at?: string | null
           status?: string | null
           tenant_id?: string | null
           uploaded_by?: string | null
+          year?: number | null
         }
         Relationships: [
           {
@@ -353,7 +401,12 @@ export type Database = {
       payments: {
         Row: {
           amount: number
+          category: string | null
+          company_id: string | null
           created_at: string | null
+          description: string | null
+          direction: string | null
+          due_date: string | null
           id: string
           invoice_id: string | null
           method: string | null
@@ -363,7 +416,12 @@ export type Database = {
         }
         Insert: {
           amount: number
+          category?: string | null
+          company_id?: string | null
           created_at?: string | null
+          description?: string | null
+          direction?: string | null
+          due_date?: string | null
           id?: string
           invoice_id?: string | null
           method?: string | null
@@ -373,7 +431,12 @@ export type Database = {
         }
         Update: {
           amount?: number
+          category?: string | null
+          company_id?: string | null
           created_at?: string | null
+          description?: string | null
+          direction?: string | null
+          due_date?: string | null
           id?: string
           invoice_id?: string | null
           method?: string | null
@@ -443,8 +506,11 @@ export type Database = {
       tasks: {
         Row: {
           assigned_to: string | null
+          category: string | null
           company_id: string | null
+          completed_at: string | null
           created_at: string | null
+          created_by: string | null
           description: string | null
           document_id: string | null
           due_date: string | null
@@ -458,8 +524,11 @@ export type Database = {
         }
         Insert: {
           assigned_to?: string | null
+          category?: string | null
           company_id?: string | null
+          completed_at?: string | null
           created_at?: string | null
+          created_by?: string | null
           description?: string | null
           document_id?: string | null
           due_date?: string | null
@@ -473,8 +542,11 @@ export type Database = {
         }
         Update: {
           assigned_to?: string | null
+          category?: string | null
           company_id?: string | null
+          completed_at?: string | null
           created_at?: string | null
+          created_by?: string | null
           description?: string | null
           document_id?: string | null
           due_date?: string | null
@@ -515,18 +587,21 @@ export type Database = {
           created_at: string | null
           id: string
           name: string
+          owner_user_id: string | null
           slug: string
         }
         Insert: {
           created_at?: string | null
           id?: string
           name: string
+          owner_user_id?: string | null
           slug: string
         }
         Update: {
           created_at?: string | null
           id?: string
           name?: string
+          owner_user_id?: string | null
           slug?: string
         }
         Relationships: []
