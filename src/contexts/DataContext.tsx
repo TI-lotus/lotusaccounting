@@ -187,7 +187,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         city: client.city || null,
         state: client.state || null,
         status: client.status || "active",
-        responsible_user_id: client.responsibleUserId || null,
+        responsible_user_id: asUuid(client.responsibleUserId),
       })
       .select("*")
       .maybeSingle();
@@ -206,7 +206,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     if (updates.city !== undefined) patch.city = updates.city;
     if (updates.state !== undefined) patch.state = updates.state;
     if (updates.status !== undefined) patch.status = updates.status;
-    if (updates.responsibleUserId !== undefined) patch.responsible_user_id = updates.responsibleUserId || null;
+    if (updates.responsibleUserId !== undefined) patch.responsible_user_id = asUuid(updates.responsibleUserId);
 
     setClients((prev) => prev.map((c) => (c.id === id ? { ...c, ...updates } : c)));
     if (Object.keys(patch).length) {
@@ -235,8 +235,8 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         priority: task.priority,
         due_date: task.dueDate ? new Date(task.dueDate).toISOString() : null,
         category: task.category || null,
-        company_id: task.clientId || null,
-        assigned_to: task.assignedToId || null,
+        company_id: asUuid(task.clientId),
+        assigned_to: asUuid(task.assignedToId),
         created_by: user?.id ?? null,
       })
       .select("*")
@@ -259,8 +259,8 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     if (updates.priority !== undefined) patch.priority = updates.priority;
     if (updates.dueDate !== undefined) patch.due_date = new Date(updates.dueDate).toISOString();
     if (updates.category !== undefined) patch.category = updates.category;
-    if (updates.clientId !== undefined) patch.company_id = updates.clientId || null;
-    if (updates.assignedToId !== undefined) patch.assigned_to = updates.assignedToId || null;
+    if (updates.clientId !== undefined) patch.company_id = asUuid(updates.clientId);
+    if (updates.assignedToId !== undefined) patch.assigned_to = asUuid(updates.assignedToId);
     if (updates.completedAt !== undefined) patch.completed_at = updates.completedAt;
 
     setTasks((prev) => sortTasks(prev.map((t) => (t.id === id ? { ...t, ...updates } : t))));
@@ -290,7 +290,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       .from("documents")
       .insert({
         tenant_id: tenantId,
-        company_id: doc.clientId,
+        company_id: asUuid(doc.clientId),
         uploaded_by: user?.id ?? null,
         document_type: doc.documentType,
         status: doc.status,
@@ -324,7 +324,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     if (updates.name !== undefined) patch.name = updates.name;
     if (updates.documentType !== undefined) patch.document_type = updates.documentType;
     if (updates.status !== undefined) patch.status = updates.status;
-    if (updates.clientId !== undefined) patch.company_id = updates.clientId;
+    if (updates.clientId !== undefined) patch.company_id = asUuid(updates.clientId);
     if (updates.amount !== undefined) patch.amount = updates.amount;
     if (updates.readAt !== undefined) patch.read_at = updates.readAt;
 
