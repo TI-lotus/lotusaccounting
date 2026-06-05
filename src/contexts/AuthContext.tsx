@@ -77,25 +77,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
       if (error) throw error;
     },
-    signUp: async ({ email, password, fullName, accountType, cpf }) => {
-      // Do NOT include cpf in user metadata — it would be embedded in JWTs
-      // (which live in localStorage). Sensitive identifiers belong in the
-      // RLS-protected profiles table only.
-      const { data, error } = await supabase.auth.signUp({
+    signUp: async ({ email, password, fullName, accountType }) => {
+      const { error } = await supabase.auth.signUp({
         email,
         password,
-        options: { emailRedirectTo: window.location.origin, data: { full_name: fullName, account_type: accountType } },
+        options: {
+          emailRedirectTo: window.location.origin,
+          data: { full_name: fullName, account_type: accountType },
+        },
       });
       if (error) throw error;
-      if (data.user) {
-        await supabase.from("profiles" as never).insert({
-          user_id: data.user.id,
-          full_name: fullName,
-          account_type: accountType,
-          status: "active",
-        } as never);
-        await supabase.from("user_roles" as never).insert({ user_id: data.user.id, role: "client" } as never);
-      }
+      // Tenant, profile and admin role are created automatically by the
+      // handle_new_user database trigger.
     },
     signOut: async () => {
       const { error } = await supabase.auth.signOut();
