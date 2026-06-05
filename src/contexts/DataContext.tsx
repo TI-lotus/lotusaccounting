@@ -19,6 +19,9 @@ import { useAuth } from "@/contexts/AuthContext";
 
 type Row = Record<string, any>;
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const asUuid = (v: string | null | undefined): string | null => (v && UUID_RE.test(v) ? v : null);
+
 const mapClient = (r: Row): ClientData => ({
   id: r.id,
   name: r.name ?? "",
