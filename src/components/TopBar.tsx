@@ -436,6 +436,15 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
           </DropdownMenu>
         </div>
       </header>
+
+      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto custom-scroll rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Configurações</DialogTitle>
+          </DialogHeader>
+          <SettingsContent showHeader={false} />
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
