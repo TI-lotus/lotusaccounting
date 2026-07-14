@@ -419,7 +419,7 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
                 </DropdownMenuRadioItem>
               </DropdownMenuRadioGroup>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => navigate("/settings")}>
+              <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setSettingsOpen(true); }}>
                 <Settings className="h-4 w-4 mr-2" />
                 Configurações
               </DropdownMenuItem>
