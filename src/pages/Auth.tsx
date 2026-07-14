@@ -10,6 +10,7 @@ import { LotusLogo } from "@/components/LotusLogo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import googleLogo from "@/assets/google-logo.png";
 import metaLogo from "@/assets/meta-logo.png";
+import deskImage from "@/assets/office-desk.jpg";
 
 const Auth = () => {
   const navigate = useNavigate();
