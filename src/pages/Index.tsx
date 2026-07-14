@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import insightsBg from "@/assets/lotus-insights.png";
 
 const liaImprovements = [
   { id: "i1", title: "Automatizar lembretes de DAS", desc: "Reduz 30% do retrabalho mensal com envio automático 5 dias antes do vencimento." },
