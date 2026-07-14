@@ -118,13 +118,18 @@ const Auth = () => {
         </div>
       </section>
 
-      {/* Slogan banner — fixed to screen height */}
+      {/* Slogan banner — desk photo with overlay */}
       <aside
-        className="hidden lg:flex h-screen items-center justify-center text-sidebar-foreground p-12 text-center"
-        style={{ background: "linear-gradient(135deg, hsl(222 55% 10%) 0%, hsl(222 50% 16%) 55%, hsl(222 45% 22%) 100%)" }}
+        className="hidden lg:flex h-screen items-center justify-center p-12 text-center relative overflow-hidden"
+        style={{
+          backgroundImage: `url(${deskImage})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
       >
+        <div className="absolute inset-0 bg-black/55" />
         <p
-          className="text-lg xl:text-xl leading-snug tracking-tight max-w-sm mx-auto text-sidebar-foreground"
+          className="relative text-2xl xl:text-3xl leading-snug tracking-tight max-w-md mx-auto text-white drop-shadow-lg"
           style={{ fontFamily: "'Inter', sans-serif" }}
         >
           Transformando números em <span className="italic" style={{ fontFamily: "'Playfair Display', serif" }}>decisões</span>
