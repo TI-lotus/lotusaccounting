@@ -159,7 +159,12 @@ export const ChatBox = () => {
       )}
       <Button
         size="icon"
-        className="h-12 w-12 rounded-full shadow-soft-lg"
+        className="h-14 w-14 rounded-full shadow-chat text-white border-2 border-white/20 hover:opacity-95"
+        style={{
+          backgroundImage: `url(${liaBg})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
         onClick={() => setOpen((v) => !v)}
         aria-label="Abrir chat com a Lia"
       >
