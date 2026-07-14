@@ -4,63 +4,67 @@
 
 @layer base {
   :root {
-    --background: 0 0% 99%;
-    --foreground: 222 50% 16%;
+    --background: 0 0% 95%; /* #f1f1f1 */
+    --foreground: 228 76% 11%; /* #070f32 */
 
     --card: 0 0% 100%;
-    --card-foreground: 222 50% 16%;
+    --card-foreground: 228 76% 11%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 50% 16%;
+    --popover-foreground: 228 76% 11%;
 
     /* CTAs and selected states use gold (#d2b58a) in light mode too */
     --primary: 30 41% 60%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 0 0% 96%;
-    --secondary-foreground: 222 50% 20%;
+    --secondary-foreground: 228 76% 15%;
 
-    --muted: 0 0% 94%;
-    --muted-foreground: 0 0% 45%;
+    --muted: 0 0% 92%;
+    --muted-foreground: 0 0% 40%;
 
-    --accent: 0 0% 92%;
-    --accent-foreground: 222 50% 16%;
+    --accent: 0 0% 90%;
+    --accent-foreground: 228 76% 11%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 90%;
-    --input: 0 0% 90%;
+    --border: 0 0% 88%;
+    --input: 0 0% 88%;
     --ring: 30 41% 68%;
 
     --radius: 0.75rem;
 
-    /* Gold palette - now #d2b58a */
+    /* Gold palette - #d2b58a */
     --gilver: 30 41% 68%;
     --gilver-dark: 30 35% 55%;
     --gilver-light: 30 50% 82%;
 
+    /* Support palette */
+    --support-blue: 214 25% 43%; /* #516989 */
+    --support-brown: 33 24% 30%; /* #5d503a */
+
     --silver: 0 0% 75%;
     --silver-light: 0 0% 88%;
-    --shadow-color: 222 50% 10%;
+    --shadow-color: 228 76% 6%;
 
-    /* Sidebar / Top-nav - always deep navy #15203d */
-    --sidebar-background: 222 50% 16%;
+    /* Sidebar / Top-nav - deep navy #070f32 */
+    --sidebar-background: 228 76% 11%;
     --sidebar-foreground: 0 0% 92%;
     --sidebar-primary: 30 41% 68%;
-    --sidebar-primary-foreground: 222 50% 16%;
-    --sidebar-accent: 222 45% 24%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 228 55% 20%;
     --sidebar-accent-foreground: 30 41% 80%;
-    --sidebar-border: 222 40% 22%;
+    --sidebar-border: 228 55% 18%;
     --sidebar-ring: 30 41% 68%;
 
-    --sidebar-logo-bg: 222 50% 12%;
+    --sidebar-logo-bg: 228 76% 8%;
 
     --chart-1: 30 41% 68%;
     --chart-2: 30 35% 55%;
-    --chart-3: 222 50% 30%;
-    --chart-4: 222 30% 45%;
-    --chart-5: 222 50% 16%;
+    --chart-3: 214 25% 43%;
+    --chart-4: 33 24% 30%;
+    --chart-5: 228 76% 11%;
   }
 
   .dark {
