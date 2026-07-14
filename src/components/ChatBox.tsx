@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import liaBg from "@/assets/lotus-insights.png";
 
 interface ChatMessage {
   id: string;
