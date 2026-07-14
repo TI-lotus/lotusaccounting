@@ -14,6 +14,8 @@ import { useNavigate } from "react-router-dom";
 import { useViewMode } from "@/contexts/ViewModeContext";
 import { useUserProfile } from "@/contexts/UserProfileContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { SettingsContent } from "@/pages/Settings";
 
 interface SearchResult {
   category: string;
@@ -143,6 +145,7 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
   const [query, setQuery] = useState("");
   const [showResults, setShowResults] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const navigate = useNavigate();
   const { viewMode, setViewMode } = useViewMode();
   const profile = useUserProfile();
@@ -416,7 +419,7 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
                 </DropdownMenuRadioItem>
               </DropdownMenuRadioGroup>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => navigate("/settings")}>
+              <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setSettingsOpen(true); }}>
                 <Settings className="h-4 w-4 mr-2" />
                 Configurações
               </DropdownMenuItem>
@@ -433,6 +436,15 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
           </DropdownMenu>
         </div>
       </header>
+
+      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto custom-scroll rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Configurações</DialogTitle>
+          </DialogHeader>
+          <SettingsContent showHeader={false} />
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
