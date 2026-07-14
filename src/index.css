@@ -221,11 +221,17 @@
     scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
   }
 
-  /* Search and modal backdrop */
+  /* Search and modal backdrop — always darken */
   .search-backdrop {
-    @apply fixed inset-0 bg-background/70 z-40;
+    @apply fixed inset-0 bg-black/50 z-40;
   }
-}
+
+  .shadow-chat {
+    box-shadow:
+      0 30px 60px -15px hsl(0 0% 0% / 0.45),
+      0 18px 36px -12px hsl(0 0% 0% / 0.35),
+      0 0 0 1px hsl(var(--border) / 0.6);
+  }
 
 @layer utilities {
   .transition-smooth {
