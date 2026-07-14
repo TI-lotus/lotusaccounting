@@ -104,22 +104,26 @@
     --silver-light: 0 0% 25%;
     --shadow-color: 0 0% 0%;
 
-    /* Top-nav stays navy #15203d in dark mode too */
-    --sidebar-background: 222 50% 16%;
+    /* Support palette (dark) */
+    --support-blue: 214 25% 43%;
+    --support-brown: 33 24% 30%;
+
+    /* Top-nav pure black in dark mode */
+    --sidebar-background: 0 0% 0%;
     --sidebar-foreground: 0 0% 92%;
     --sidebar-primary: 30 41% 68%;
-    --sidebar-primary-foreground: 222 50% 16%;
-    --sidebar-accent: 222 45% 24%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 12%;
     --sidebar-accent-foreground: 30 41% 80%;
-    --sidebar-border: 222 40% 22%;
+    --sidebar-border: 0 0% 14%;
     --sidebar-ring: 30 41% 68%;
 
-    --sidebar-logo-bg: 222 50% 12%;
+    --sidebar-logo-bg: 0 0% 0%;
 
     --chart-1: 30 41% 68%;
     --chart-2: 30 35% 55%;
-    --chart-3: 222 50% 50%;
-    --chart-4: 0 0% 55%;
+    --chart-3: 214 25% 55%;
+    --chart-4: 33 24% 45%;
     --chart-5: 0 0% 75%;
   }
 }
