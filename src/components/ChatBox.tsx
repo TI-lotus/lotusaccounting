@@ -80,22 +80,30 @@ export const ChatBox = () => {
   return (
     <div className="fixed bottom-5 right-5 z-50 flex flex-col items-end gap-3">
       {open && (
-        <div className="w-[360px] max-w-[calc(100vw-2.5rem)] h-[480px] flex flex-col rounded-2xl border border-border bg-card shadow-soft-lg overflow-hidden animate-fade-in">
-          <div className="flex items-center justify-between px-4 py-3 bg-sidebar text-sidebar-foreground">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-lg bg-gilver/15 text-gilver">
+        <div className="w-[360px] max-w-[calc(100vw-2.5rem)] h-[480px] flex flex-col rounded-2xl border border-border bg-card shadow-chat overflow-hidden animate-fade-in">
+          <div
+            className="relative flex items-center justify-between px-4 py-3 text-white"
+            style={{
+              backgroundImage: `url(${liaBg})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+            }}
+          >
+            <div className="absolute inset-0 bg-black/40" />
+            <div className="relative flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-white/15 text-white backdrop-blur-sm">
                 <Sparkles className="h-4 w-4" />
               </div>
               <div>
-                <p className="text-sm font-semibold">Lia · Assistente Lotus</p>
-                <p className="text-xs text-sidebar-foreground/70">
+                <p className="text-sm font-semibold">Lia</p>
+                <p className="text-xs text-white/80">
                   {sending ? "Digitando…" : "Online"}
                 </p>
               </div>
             </div>
             <button
               onClick={() => setOpen(false)}
-              className="rounded-lg p-1 hover:bg-sidebar-accent"
+              className="relative rounded-lg p-1 hover:bg-white/15"
               aria-label="Fechar chat"
             >
               <X className="h-4 w-4" />
