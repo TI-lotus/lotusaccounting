@@ -207,12 +207,17 @@ export const SettingsContent = ({ showHeader = true }: { showHeader?: boolean })
           </div>
         </div>
 
-        <div className="flex justify-end">
-          <Button className="rounded-xl px-8">Salvar Alterações</Button>
-        </div>
+      <div className="flex justify-end">
+        <Button className="rounded-xl px-8">Salvar Alterações</Button>
       </div>
-    </DashboardLayout>
+    </div>
   );
 };
+
+const Settings = () => (
+  <DashboardLayout>
+    <SettingsContent />
+  </DashboardLayout>
+);
 
 export default Settings;
