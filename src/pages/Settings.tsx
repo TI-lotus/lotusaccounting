@@ -12,7 +12,7 @@ import { useUserProfile } from "@/contexts/UserProfileContext";
 import { useTheme } from "@/hooks/useTheme";
 import { useEffect, useRef, useState } from "react";
 
-const Settings = () => {
+export const SettingsContent = ({ showHeader = true }: { showHeader?: boolean }) => {
   const profile = useUserProfile();
   const { theme, setTheme } = useTheme();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -33,12 +33,13 @@ const Settings = () => {
   const [whatsappTypes, setWhatsappTypes] = useState({ tarefas: true, vencimentos: true, recebimentos: false, documentos: false });
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6 max-w-3xl">
+    <div className="space-y-6 max-w-3xl">
+      {showHeader && (
         <div className="animate-fade-in">
           <h1 className="text-2xl font-semibold tracking-tight">Configurações</h1>
           <p className="text-muted-foreground">Gerencie sua conta e preferências</p>
         </div>
+      )}
 
         {/* Profile */}
         <div className="glass rounded-2xl p-6 animate-fade-in">
