@@ -14,6 +14,8 @@ import { useNavigate } from "react-router-dom";
 import { useViewMode } from "@/contexts/ViewModeContext";
 import { useUserProfile } from "@/contexts/UserProfileContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { SettingsContent } from "@/pages/Settings";
 
 interface SearchResult {
   category: string;
