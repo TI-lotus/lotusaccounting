@@ -232,6 +232,7 @@
       0 18px 36px -12px hsl(0 0% 0% / 0.35),
       0 0 0 1px hsl(var(--border) / 0.6);
   }
+}
 
 @layer utilities {
   .transition-smooth {
