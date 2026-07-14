@@ -145,6 +145,7 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
   const [query, setQuery] = useState("");
   const [showResults, setShowResults] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const navigate = useNavigate();
   const { viewMode, setViewMode } = useViewMode();
   const profile = useUserProfile();
