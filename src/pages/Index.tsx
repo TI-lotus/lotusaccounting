@@ -236,7 +236,11 @@ const Index = () => {
           </p>
         </div>
 
+        <PendingRisksPanel />
+
         <LiaInsights />
+
+
 
 
 
