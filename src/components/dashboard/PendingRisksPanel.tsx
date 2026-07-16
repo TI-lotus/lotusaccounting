@@ -80,7 +80,7 @@ export const PendingRisksPanel = () => {
       title: "12 faturas vencendo nos próximos 7 dias",
       description: "R$ 24.380,00 em aberto",
       meta: "Financeiro",
-      severity: "medium",
+      severity: "medium" as const,
       icon: Receipt,
       onClick: () => navigate("/payments"),
     },
