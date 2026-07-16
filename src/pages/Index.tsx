@@ -4,6 +4,7 @@ import { KPICard } from "@/components/dashboard/KPICard";
 import { RevenueChart } from "@/components/dashboard/RevenueChart";
 import { RecentTransactions } from "@/components/dashboard/RecentTransactions";
 import { QuickStats } from "@/components/dashboard/QuickStats";
+import { PendingRisksPanel } from "@/components/dashboard/PendingRisksPanel";
 import { useViewMode } from "@/contexts/ViewModeContext";
 import { useData } from "@/contexts/DataContext";
 import { useUserProfile } from "@/contexts/UserProfileContext";
