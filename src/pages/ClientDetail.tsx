@@ -260,6 +260,71 @@ const ClientDetail = () => {
               </CardContent>
             </Card>
           </TabsContent>
+
+          <TabsContent value="financial" className="mt-6 space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Honorários mensais</p><p className="text-2xl font-semibold mt-1">R$ {client.serviceFee.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p></CardContent></Card>
+              <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Faturas em aberto</p><p className="text-2xl font-semibold mt-1 text-amber-600 dark:text-amber-400">R$ 3.450,00</p><p className="text-xs text-muted-foreground mt-1">2 faturas pendentes</p></CardContent></Card>
+              <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Recebido no ano</p><p className="text-2xl font-semibold mt-1 text-emerald-600 dark:text-emerald-400">R$ {(client.serviceFee * 10).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p></CardContent></Card>
+            </div>
+            <Card>
+              <CardHeader><CardTitle>Movimentações recentes</CardTitle></CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground py-8 text-center">Movimentações financeiras aparecerão aqui.</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="obligations" className="mt-6">
+            <Card>
+              <CardHeader><CardTitle>Obrigações fiscais</CardTitle></CardHeader>
+              <CardContent className="space-y-2">
+                {[
+                  { name: "DAS - Simples Nacional", due: "20/01/2026", status: "pending" },
+                  { name: "DEFIS anual", due: "31/03/2026", status: "pending" },
+                  { name: "DCTFWeb", due: "15/01/2026", status: "final" },
+                ].map((obg) => (
+                  <div key={obg.name} className="flex items-center gap-3 p-3 rounded-xl border border-border">
+                    <ScrollText className="h-4 w-4 text-muted-foreground" />
+                    <div className="flex-1"><p className="text-sm font-medium">{obg.name}</p><p className="text-xs text-muted-foreground">Vence em {obg.due}</p></div>
+                    <Badge variant={obg.status === "final" ? "default" : "secondary"}>{obg.status === "final" ? "Entregue" : "Pendente"}</Badge>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="messages" className="mt-6">
+            <Card>
+              <CardHeader><CardTitle>Mensagens com o cliente</CardTitle></CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground py-8 text-center">
+                  Histórico de conversas com {client.name} aparecerá aqui.
+                </p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="activities" className="mt-6">
+            <Card>
+              <CardHeader><CardTitle>Histórico de atividades</CardTitle></CardHeader>
+              <CardContent className="space-y-3">
+                {[
+                  { when: "Hoje, 09:12", who: "Ana Costa", what: `Atualizou dados de ${client.name}` },
+                  { when: "Ontem, 14:33", who: "Sistema", what: "Documento fiscal recebido e classificado" },
+                  { when: "3 dias atrás", who: "Lia", what: "Enviou lembrete de vencimento ao cliente" },
+                ].map((a, i) => (
+                  <div key={i} className="flex items-start gap-3 p-3 rounded-xl border border-border">
+                    <Activity className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                    <div className="flex-1">
+                      <p className="text-sm">{a.what}</p>
+                      <p className="text-xs text-muted-foreground">{a.who} · {a.when}</p>
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
       </div>
     </DashboardLayout>
