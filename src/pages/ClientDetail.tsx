@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Mail, Phone, MapPin, Building2, Edit, Save, X, FileText, CheckSquare, CreditCard } from "lucide-react";
+import { ArrowLeft, Mail, Phone, MapPin, Building2, Edit, Save, X, FileText, CheckSquare, CreditCard, Wallet, ScrollText, MessageSquare, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -92,10 +92,14 @@ const ClientDetail = () => {
         </div>
 
         <Tabs defaultValue="info" className="animate-fade-in">
-          <TabsList className="grid w-full max-w-lg grid-cols-3">
-            <TabsTrigger value="info" className="gap-2"><Building2 className="h-4 w-4" />Informações</TabsTrigger>
+          <TabsList className="flex flex-wrap h-auto w-full justify-start">
+            <TabsTrigger value="info" className="gap-2"><Building2 className="h-4 w-4" />Cadastro</TabsTrigger>
+            <TabsTrigger value="financial" className="gap-2"><Wallet className="h-4 w-4" />Financeiro</TabsTrigger>
             <TabsTrigger value="documents" className="gap-2"><FileText className="h-4 w-4" />Documentos</TabsTrigger>
             <TabsTrigger value="tasks" className="gap-2"><CheckSquare className="h-4 w-4" />Tarefas</TabsTrigger>
+            <TabsTrigger value="obligations" className="gap-2"><ScrollText className="h-4 w-4" />Obrigações</TabsTrigger>
+            <TabsTrigger value="messages" className="gap-2"><MessageSquare className="h-4 w-4" />Mensagens</TabsTrigger>
+            <TabsTrigger value="activities" className="gap-2"><Activity className="h-4 w-4" />Atividades</TabsTrigger>
           </TabsList>
 
           <TabsContent value="info" className="space-y-6 mt-6">
