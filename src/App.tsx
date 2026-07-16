@@ -24,6 +24,7 @@ import Agents from "./pages/Agents";
 import Tasks from "./pages/Tasks";
 import Staff from "./pages/Staff";
 import ClientDetail from "./pages/ClientDetail";
+import Agenda from "./pages/Agenda";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -72,6 +73,7 @@ const App = () => (
               <Route path="/upgrade" element={protectedPage(<Upgrade />)} />
               <Route path="/tasks" element={protectedPage(<Tasks />)} />
               <Route path="/staff" element={protectedPage(<Staff />)} />
+              <Route path="/agenda" element={protectedPage(<Agenda />)} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
