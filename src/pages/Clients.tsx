@@ -174,7 +174,14 @@ const Clients = () => {
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="cnpj">CNPJ</Label>
-                  <Input id="cnpj" value={newClient.cnpj} onChange={(e) => setNewClient({ ...newClient, cnpj: e.target.value })} placeholder="00.000.000/0001-00" className="rounded-xl" />
+                  <div className="flex gap-2">
+                    <Input id="cnpj" value={newClient.cnpj} onChange={(e) => setNewClient({ ...newClient, cnpj: e.target.value.replace(/\D/g, "") })} placeholder="00000000000100" className="rounded-xl flex-1" />
+                    <Button type="button" variant="outline" onClick={handleFetchCNPJ} disabled={cnpjLoading} className="rounded-xl gap-2 shrink-0">
+                      {cnpjLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                      Buscar
+                    </Button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">Somente números — preenche os campos automaticamente.</p>
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="email">Email</Label>
