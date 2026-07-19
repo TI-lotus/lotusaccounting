@@ -25,6 +25,11 @@ import Tasks from "./pages/Tasks";
 import Staff from "./pages/Staff";
 import ClientDetail from "./pages/ClientDetail";
 import Agenda from "./pages/Agenda";
+import Finance from "./pages/Finance";
+import Invoices from "./pages/Invoices";
+import Reconciliation from "./pages/Reconciliation";
+import Lia from "./pages/Lia";
+import Workflows from "./pages/Workflows";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -74,6 +79,11 @@ const App = () => (
               <Route path="/tasks" element={protectedPage(<Tasks />)} />
               <Route path="/staff" element={protectedPage(<Staff />)} />
               <Route path="/agenda" element={protectedPage(<Agenda />)} />
+              <Route path="/finance" element={protectedPage(<Finance />)} />
+              <Route path="/invoices" element={protectedPage(<Invoices />)} />
+              <Route path="/reconciliation" element={protectedPage(<Reconciliation />)} />
+              <Route path="/lia" element={protectedPage(<Lia />)} />
+              <Route path="/workflows" element={protectedPage(<Workflows />)} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
