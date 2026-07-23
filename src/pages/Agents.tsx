@@ -166,9 +166,10 @@ export default function Agents() {
 
         <Tabs defaultValue="agents">
           <TabsList>
-            <TabsTrigger value="agents" className="gap-2"><Zap className="h-4 w-4" />Agentes</TabsTrigger>
+            <TabsTrigger value="agents" className="gap-2"><Zap className="h-4 w-4" />Biblioteca</TabsTrigger>
             <TabsTrigger value="workflow" className="gap-2"><FileSearch className="h-4 w-4" />Workflow</TabsTrigger>
             <TabsTrigger value="executions" className="gap-2"><Play className="h-4 w-4" />Execuções</TabsTrigger>
+            <TabsTrigger value="approvals" className="gap-2"><CheckCircle className="h-4 w-4" />Aprovações</TabsTrigger>
           </TabsList>
 
           <TabsContent value="agents" className="space-y-6 mt-6">
@@ -323,6 +324,35 @@ export default function Agents() {
                     <p className="text-center text-sm text-muted-foreground py-8">Nenhuma execução encontrada</p>
                   )}
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="approvals" className="mt-6 space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Ações aguardando aprovação humana</CardTitle>
+                <CardDescription>Ações críticas iniciadas por agentes que precisam da confirmação de um responsável antes de executar.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {[
+                  { id: "ap1", agent: "Gerador de Faturas", action: "Emitir 12 faturas recorrentes acima de R$ 50.000", requested: "Hoje, 09:12", risk: "alto" },
+                  { id: "ap2", agent: "Gestão de Inadimplência", action: "Enviar cobrança automática para 8 clientes", requested: "Hoje, 08:40", risk: "médio" },
+                  { id: "ap3", agent: "Processamento de Pagamentos", action: "Conciliar lote bancário com divergência de R$ 1.240,00", requested: "Ontem, 17:22", risk: "alto" },
+                ].map(item => (
+                  <div key={item.id} className="flex items-center gap-3 p-3 rounded-xl border border-border">
+                    <div className={cn("p-2 rounded-lg shrink-0", item.risk === "alto" ? "bg-red-500/10 text-red-600" : "bg-amber-500/10 text-amber-600")}>
+                      <AlertTriangle className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium">{item.action}</p>
+                      <p className="text-xs text-muted-foreground">{item.agent} • {item.requested}</p>
+                    </div>
+                    <Badge variant="outline" className="text-[10px] shrink-0 capitalize">Risco {item.risk}</Badge>
+                    <Button variant="outline" size="sm" className="rounded-lg">Rejeitar</Button>
+                    <Button size="sm" className="rounded-lg">Aprovar</Button>
+                  </div>
+                ))}
               </CardContent>
             </Card>
           </TabsContent>
