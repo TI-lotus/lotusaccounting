@@ -166,9 +166,10 @@ export default function Agents() {
 
         <Tabs defaultValue="agents">
           <TabsList>
-            <TabsTrigger value="agents" className="gap-2"><Zap className="h-4 w-4" />Agentes</TabsTrigger>
+            <TabsTrigger value="agents" className="gap-2"><Zap className="h-4 w-4" />Biblioteca</TabsTrigger>
             <TabsTrigger value="workflow" className="gap-2"><FileSearch className="h-4 w-4" />Workflow</TabsTrigger>
             <TabsTrigger value="executions" className="gap-2"><Play className="h-4 w-4" />Execuções</TabsTrigger>
+            <TabsTrigger value="approvals" className="gap-2"><CheckCircle className="h-4 w-4" />Aprovações</TabsTrigger>
           </TabsList>
 
           <TabsContent value="agents" className="space-y-6 mt-6">
