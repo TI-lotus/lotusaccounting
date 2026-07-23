@@ -253,106 +253,214 @@ const Staff = () => {
           </div>
         </div>
 
-        {/* Search */}
-        <div className="glass rounded-2xl p-6 animate-fade-in">
-          <div className="flex items-center gap-4 mb-6">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Buscar por nome, email ou departamento..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10 rounded-xl" />
-            </div>
-            <Badge variant="secondary" className="px-3 py-1.5">{filteredStaff.length} membros</Badge>
-          </div>
+        {/* Tabs */}
+        <Tabs defaultValue="people" className="animate-fade-in">
+          <TabsList>
+            <TabsTrigger value="people">Pessoas</TabsTrigger>
+            <TabsTrigger value="capacity">Capacidade</TabsTrigger>
+            <TabsTrigger value="tasks">Tarefas</TabsTrigger>
+            <TabsTrigger value="perms">Permissões</TabsTrigger>
+          </TabsList>
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {filteredStaff.map((member) => {
-              const memberTasks = tasks.filter((t) => t.assignedToId === member.id);
-              return (
-                <div key={member.id} className="rounded-2xl border border-border bg-card p-4 flex flex-col gap-3 hover:shadow-soft-lg transition-all">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <Avatar className="h-11 w-11 ring-2 ring-gilver/30">
-                        <AvatarFallback className="bg-gilver/15 text-gilver font-medium">
-                          {member.name.split(" ").map(n => n[0]).join("").slice(0, 2)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <p className="font-medium truncate">{member.name}</p>
-                          {member.role === "admin" && <Shield className="h-3.5 w-3.5 text-gilver shrink-0" />}
+          <TabsContent value="people" className="mt-4">
+            <div className="glass rounded-2xl p-6">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="relative flex-1 max-w-sm">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input placeholder="Buscar por nome, email ou departamento..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10 rounded-xl" />
+                </div>
+                <Badge variant="secondary" className="px-3 py-1.5">{filteredStaff.length} membros</Badge>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {filteredStaff.map((member) => {
+                  const memberTasks = tasks.filter((t) => t.assignedToId === member.id);
+                  return (
+                    <div key={member.id} className="rounded-2xl border border-border bg-card p-4 flex flex-col gap-3 hover:shadow-soft-lg transition-all">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <Avatar className="h-11 w-11 ring-2 ring-gilver/30">
+                            <AvatarFallback className="bg-gilver/15 text-gilver font-medium">
+                              {member.name.split(" ").map(n => n[0]).join("").slice(0, 2)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <p className="font-medium truncate">{member.name}</p>
+                              {member.role === "admin" && <Shield className="h-3.5 w-3.5 text-gilver shrink-0" />}
+                            </div>
+                            <p className="text-xs text-muted-foreground truncate">{member.role === "admin" ? "Administrador" : "Colaborador"}</p>
+                          </div>
                         </div>
-                        <p className="text-xs text-muted-foreground truncate">{member.role === "admin" ? "Administrador" : "Colaborador"}</p>
+                        <Badge
+                          className={cn("cursor-pointer text-[10px] py-0.5", member.status === "active" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400" : "bg-muted text-muted-foreground")}
+                          onClick={() => toggleStatus(member.id)}
+                        >
+                          {member.status === "active" ? "Ativo" : "Inativo"}
+                        </Badge>
+                      </div>
+
+                      <div className="space-y-1 text-xs text-muted-foreground">
+                        <p className="flex items-center gap-1.5 truncate"><Mail className="h-3 w-3 shrink-0" />{member.email || "—"}</p>
+                        <p className="flex items-center gap-1.5 truncate"><Phone className="h-3 w-3 shrink-0" />{member.phone || "—"}</p>
+                        <p className="truncate"><span className="font-medium text-foreground">Departamento:</span> {member.department || "—"}</p>
+                      </div>
+
+                      <div className="rounded-lg bg-muted/40 p-2 flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">Tarefas</span>
+                        <span className="font-medium">{member.tasksCompleted}/{member.tasksAssigned}</span>
+                      </div>
+
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" size="sm" className="w-full rounded-xl justify-between">
+                            <span className="flex items-center gap-2"><CheckSquare className="h-4 w-4" />Tarefas ({memberTasks.length})</span>
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-72 max-h-64 overflow-y-auto custom-scroll">
+                          {memberTasks.length === 0 ? (
+                            <div className="px-3 py-4 text-xs text-muted-foreground text-center">Nenhuma tarefa atribuída</div>
+                          ) : (
+                            memberTasks.map((t) => (
+                              <DropdownMenuItem key={t.id} className="flex-col items-start gap-0.5">
+                                <p className="text-sm font-medium truncate w-full">{t.title}</p>
+                                <p className="text-[10px] text-muted-foreground">{t.status} • {t.category}</p>
+                              </DropdownMenuItem>
+                            ))
+                          )}
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => { setSelectedMember(member); setAssignDialogOpen(true); }} className="gap-2">
+                            <Plus className="h-4 w-4" />Atribuir/Remover tarefa
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" className="flex-1 rounded-xl gap-1.5" onClick={() => { setSelectedMember(member); setPermDialogOpen(true); }}>
+                          <Shield className="h-3.5 w-3.5" />Permissões
+                        </Button>
+                        <Button
+                          variant={member.status === "active" ? "outline" : "default"}
+                          size="sm"
+                          className="flex-1 rounded-xl gap-1.5"
+                          onClick={() => toggleStatus(member.id)}
+                        >
+                          <ShieldAlert className="h-3.5 w-3.5" />
+                          {member.status === "active" ? "Desativar" : "Ativar"}
+                        </Button>
                       </div>
                     </div>
-                    <Badge
-                      className={cn("cursor-pointer text-[10px] py-0.5", member.status === "active" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400" : "bg-muted text-muted-foreground")}
-                      onClick={() => toggleStatus(member.id)}
-                    >
-                      {member.status === "active" ? "Ativo" : "Inativo"}
-                    </Badge>
+                  );
+                })}
+
+                {filteredStaff.length === 0 && (
+                  <div className="col-span-full text-center py-12 text-muted-foreground">
+                    <UserCog className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>Nenhum colaborador encontrado</p>
                   </div>
-
-                  <div className="space-y-1 text-xs text-muted-foreground">
-                    <p className="flex items-center gap-1.5 truncate"><Mail className="h-3 w-3 shrink-0" />{member.email || "—"}</p>
-                    <p className="flex items-center gap-1.5 truncate"><Phone className="h-3 w-3 shrink-0" />{member.phone || "—"}</p>
-                    <p className="truncate"><span className="font-medium text-foreground">Departamento:</span> {member.department || "—"}</p>
-                  </div>
-
-                  <div className="rounded-lg bg-muted/40 p-2 flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground">Tarefas</span>
-                    <span className="font-medium">{member.tasksCompleted}/{member.tasksAssigned}</span>
-                  </div>
-
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm" className="w-full rounded-xl justify-between">
-                        <span className="flex items-center gap-2"><CheckSquare className="h-4 w-4" />Tarefas ({memberTasks.length})</span>
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-72 max-h-64 overflow-y-auto custom-scroll">
-                      {memberTasks.length === 0 ? (
-                        <div className="px-3 py-4 text-xs text-muted-foreground text-center">Nenhuma tarefa atribuída</div>
-                      ) : (
-                        memberTasks.map((t) => (
-                          <DropdownMenuItem key={t.id} className="flex-col items-start gap-0.5">
-                            <p className="text-sm font-medium truncate w-full">{t.title}</p>
-                            <p className="text-[10px] text-muted-foreground">{t.status} • {t.category}</p>
-                          </DropdownMenuItem>
-                        ))
-                      )}
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => { setSelectedMember(member); setAssignDialogOpen(true); }} className="gap-2">
-                        <Plus className="h-4 w-4" />Atribuir/Remover tarefa
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="flex-1 rounded-xl gap-1.5" onClick={() => { setSelectedMember(member); setPermDialogOpen(true); }}>
-                      <Shield className="h-3.5 w-3.5" />Permissões
-                    </Button>
-                    <Button
-                      variant={member.status === "active" ? "outline" : "default"}
-                      size="sm"
-                      className="flex-1 rounded-xl gap-1.5"
-                      onClick={() => toggleStatus(member.id)}
-                    >
-                      <ShieldAlert className="h-3.5 w-3.5" />
-                      {member.status === "active" ? "Desativar" : "Ativar"}
-                    </Button>
-                  </div>
-                </div>
-              );
-            })}
-
-            {filteredStaff.length === 0 && (
-              <div className="col-span-full text-center py-12 text-muted-foreground">
-                <UserCog className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Nenhum colaborador encontrado</p>
+                )}
               </div>
-            )}
-          </div>
-        </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="capacity" className="mt-4">
+            <div className="glass rounded-2xl p-6 space-y-4">
+              <p className="text-sm text-muted-foreground">Volume de tarefas ativas por colaborador em relação à capacidade sugerida (20 tarefas).</p>
+              {staff.filter(m => m.status === "active").map(member => {
+                const active = tasks.filter(t => t.assignedToId === member.id && t.status !== "completed").length;
+                const pct = Math.min(100, Math.round((active / 20) * 100));
+                const overloaded = pct >= 90;
+                return (
+                  <div key={member.id} className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{member.name}</span>
+                        <span className="text-xs text-muted-foreground">• {member.department || "—"}</span>
+                      </div>
+                      <span className={cn("text-xs font-medium", overloaded ? "text-red-500" : "text-muted-foreground")}>
+                        {active} / 20 tarefas
+                      </span>
+                    </div>
+                    <Progress value={pct} className={cn("h-2", overloaded && "[&>div]:bg-red-500")} />
+                  </div>
+                );
+              })}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="tasks" className="mt-4">
+            <div className="glass rounded-2xl p-6">
+              <div className="space-y-2">
+                {tasks.length === 0 && <p className="text-sm text-muted-foreground text-center py-8">Nenhuma tarefa cadastrada.</p>}
+                {tasks.map(t => (
+                  <div key={t.id} className="flex items-center gap-3 rounded-xl border border-border p-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{t.title}</p>
+                      <p className="text-xs text-muted-foreground">{t.category} • {t.status}</p>
+                    </div>
+                    <Badge variant="outline" className="text-xs">{t.assignedToName || "Sem responsável"}</Badge>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="perms" className="mt-4">
+            <div className="glass rounded-2xl p-6 overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border text-left text-xs text-muted-foreground">
+                    <th className="py-2 pr-4">Colaborador</th>
+                    {(Object.keys(permLabels) as (keyof StaffMember["permissions"])[]).map(perm => (
+                      <th key={perm} className="py-2 px-2 text-center">{permLabels[perm]}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {staff.map(member => (
+                    <tr key={member.id} className="border-b border-border/50">
+                      <td className="py-2 pr-4 font-medium">{member.name}</td>
+                      {(Object.keys(permLabels) as (keyof StaffMember["permissions"])[]).map(perm => (
+                        <td key={perm} className="py-2 px-2 text-center">
+                          <Switch checked={member.permissions[perm]} onCheckedChange={() => togglePermission(member.id, perm)} />
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </TabsContent>
+        </Tabs>
+
+        {/* Deactivate + Reassign Dialog */}
+        <Dialog open={!!deactivateTarget} onOpenChange={(open) => { if (!open) { setDeactivateTarget(null); setReassignTo(""); } }}>
+          <DialogContent className="sm:max-w-[440px]">
+            <DialogHeader>
+              <DialogTitle>Desativar {deactivateTarget?.name}</DialogTitle>
+              <DialogDescription>
+                Este colaborador tem {tasks.filter(t => t.assignedToId === deactivateTarget?.id).length} tarefa(s) ativas. Escolha para quem reatribuir antes de desativar.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-2">
+              <Label className="text-sm mb-2 block">Reatribuir para</Label>
+              <Select value={reassignTo} onValueChange={setReassignTo}>
+                <SelectTrigger className="rounded-xl"><SelectValue placeholder="Selecione um colaborador (ou deixe vazio)" /></SelectTrigger>
+                <SelectContent>
+                  {staff.filter(m => m.status === "active" && m.id !== deactivateTarget?.id).map(m => (
+                    <SelectItem key={m.id} value={m.id}>{m.name} — {m.department || "—"}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-2">Se nenhum for escolhido, as tarefas ficam como "Sem responsável".</p>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => { setDeactivateTarget(null); setReassignTo(""); }} className="rounded-xl">Cancelar</Button>
+              <Button onClick={confirmDeactivate} className="rounded-xl">Confirmar desativação</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Permissions Dialog */}
         <Dialog open={permDialogOpen} onOpenChange={setPermDialogOpen}>
