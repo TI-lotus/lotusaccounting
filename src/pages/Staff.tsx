@@ -32,6 +32,8 @@ import {
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useData } from "@/contexts/DataContext";
@@ -72,6 +74,8 @@ const Staff = () => {
   const [permDialogOpen, setPermDialogOpen] = useState(false);
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<StaffMember | null>(null);
+  const [deactivateTarget, setDeactivateTarget] = useState<StaffMember | null>(null);
+  const [reassignTo, setReassignTo] = useState<string>("");
   const [newMember, setNewMember] = useState({ name: "", email: "", phone: "", role: "collaborator" as "admin" | "collaborator", department: "" });
 
   const filteredStaff = staff.filter(m =>
@@ -140,8 +144,38 @@ const Staff = () => {
   };
 
   const toggleStatus = (id: string) => {
-    setStaff(prev => prev.map(m => m.id === id ? { ...m, status: m.status === "active" ? "inactive" : "active" } : m));
-    toast.success("Status atualizado!");
+    const member = staff.find(m => m.id === id);
+    if (!member) return;
+    if (member.status === "active") {
+      const assigned = tasks.filter(t => t.assignedToId === id);
+      if (assigned.length > 0) {
+        setDeactivateTarget(member);
+        setReassignTo("");
+        return;
+      }
+      setStaff(prev => prev.map(m => m.id === id ? { ...m, status: "inactive" } : m));
+      toast.success("Colaborador desativado!");
+      return;
+    }
+    setStaff(prev => prev.map(m => m.id === id ? { ...m, status: "active" } : m));
+    toast.success("Colaborador reativado!");
+  };
+
+  const confirmDeactivate = () => {
+    if (!deactivateTarget) return;
+    const targetId = deactivateTarget.id;
+    const assigned = tasks.filter(t => t.assignedToId === targetId);
+    const replacement = staff.find(m => m.id === reassignTo);
+    if (reassignTo && replacement) {
+      assigned.forEach(t => updateTask(t.id, { assignedToId: replacement.id, assignedToName: replacement.name }));
+      toast.success(`${assigned.length} tarefa(s) reatribuída(s) a ${replacement.name}`);
+    } else {
+      assigned.forEach(t => updateTask(t.id, { assignedToId: "", assignedToName: "Sem responsável" }));
+      toast.info(`${assigned.length} tarefa(s) marcadas como sem responsável`);
+    }
+    setStaff(prev => prev.map(m => m.id === targetId ? { ...m, status: "inactive" } : m));
+    setDeactivateTarget(null);
+    setReassignTo("");
   };
 
   const permLabels: Record<keyof StaffMember["permissions"], string> = {
