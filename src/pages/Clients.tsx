@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { useNavigate } from "react-router-dom";
-import { Users, Plus, Search, MoreHorizontal, Mail, Edit, Trash2, Eye, Grid2X2, List } from "lucide-react";
+import { Users, Plus, Search, MoreHorizontal, Mail, Edit, Trash2, Eye, Grid2X2, List, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -52,10 +52,38 @@ const Clients = () => {
   const [responsibleFilter, setResponsibleFilter] = useState("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [cnpjLoading, setCnpjLoading] = useState(false);
   const [newClient, setNewClient] = useState({
     name: "", email: "", phone: "", cnpj: "", taxRegime: "simples_nacional" as ClientData["taxRegime"],
     serviceFee: "", city: "", state: "",
   });
+
+  const handleFetchCNPJ = async () => {
+    const clean = newClient.cnpj.replace(/\D/g, "");
+    if (clean.length !== 14) {
+      toast.error("CNPJ deve conter 14 dígitos");
+      return;
+    }
+    setCnpjLoading(true);
+    try {
+      const res = await fetch(`https://open.cnpja.com/office/${clean}`);
+      if (!res.ok) throw new Error(`Erro ${res.status}`);
+      const data = await res.json();
+      setNewClient((prev) => ({
+        ...prev,
+        name: data.company?.name ?? data.alias ?? prev.name,
+        phone: data.phones?.[0] ? `(${data.phones[0].area}) ${data.phones[0].number}` : prev.phone,
+        email: data.emails?.[0]?.address ?? prev.email,
+        city: data.address?.city ?? prev.city,
+        state: data.address?.state ?? prev.state,
+      }));
+      toast.success("Dados do CNPJ carregados");
+    } catch (e: any) {
+      toast.error("Não foi possível consultar o CNPJ", { description: e?.message });
+    } finally {
+      setCnpjLoading(false);
+    }
+  };
 
   const getClientSize = (client: ClientData) => {
     if (client.taxRegime === "mei") return "MEI";
@@ -146,7 +174,14 @@ const Clients = () => {
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="cnpj">CNPJ</Label>
-                  <Input id="cnpj" value={newClient.cnpj} onChange={(e) => setNewClient({ ...newClient, cnpj: e.target.value })} placeholder="00.000.000/0001-00" className="rounded-xl" />
+                  <div className="flex gap-2">
+                    <Input id="cnpj" value={newClient.cnpj} onChange={(e) => setNewClient({ ...newClient, cnpj: e.target.value.replace(/\D/g, "") })} placeholder="00000000000100" className="rounded-xl flex-1" />
+                    <Button type="button" variant="outline" onClick={handleFetchCNPJ} disabled={cnpjLoading} className="rounded-xl gap-2 shrink-0">
+                      {cnpjLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                      Buscar
+                    </Button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">Somente números — preenche os campos automaticamente.</p>
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="email">Email</Label>

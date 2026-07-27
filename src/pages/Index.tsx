@@ -4,6 +4,7 @@ import { KPICard } from "@/components/dashboard/KPICard";
 import { RevenueChart } from "@/components/dashboard/RevenueChart";
 import { RecentTransactions } from "@/components/dashboard/RecentTransactions";
 import { QuickStats } from "@/components/dashboard/QuickStats";
+import { PendingRisksPanel } from "@/components/dashboard/PendingRisksPanel";
 import { useViewMode } from "@/contexts/ViewModeContext";
 import { useData } from "@/contexts/DataContext";
 import { useUserProfile } from "@/contexts/UserProfileContext";
@@ -26,6 +27,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import insightsBg from "@/assets/lotus-insights.png";
 
 const liaImprovements = [
   { id: "i1", title: "Automatizar lembretes de DAS", desc: "Reduz 30% do retrabalho mensal com envio automático 5 dias antes do vencimento." },
@@ -49,17 +51,22 @@ const LiaInsights = () => {
   return (
     <>
       <div
-        className="rounded-2xl p-5 text-primary-foreground animate-fade-in"
-        style={{ background: "linear-gradient(135deg, hsl(30 50% 70%) 0%, hsl(30 41% 55%) 100%)" }}
+        className="relative rounded-2xl p-5 text-white animate-fade-in overflow-hidden"
+        style={{
+          backgroundImage: `url(${insightsBg})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
       >
-        <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div className="absolute inset-0 bg-black/35" />
+        <div className="relative flex items-start justify-between gap-4 flex-wrap">
           <div className="flex items-start gap-3 min-w-0">
-            <div className="rounded-xl bg-white/20 p-2 shrink-0">
+            <div className="rounded-xl bg-white/20 p-2 shrink-0 backdrop-blur-sm">
               <Sparkles className="h-5 w-5" />
             </div>
             <div className="min-w-0">
               <h3 className="text-lg font-semibold">Insights da Lia</h3>
-              <p className="text-sm opacity-90 mt-1">
+              <p className="text-sm opacity-95 mt-1">
                 Receita 12% acima da média trimestral. 23 faturas vencendo nos próximos 7 dias. A Lia sugere automatizar lembretes para reduzir inadimplência em até 40%.
               </p>
             </div>
@@ -229,7 +236,11 @@ const Index = () => {
           </p>
         </div>
 
+        <PendingRisksPanel />
+
         <LiaInsights />
+
+
 
 
 

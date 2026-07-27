@@ -633,31 +633,20 @@ export type Database = {
           id: string
           name: string | null
           role: string | null
-          tenant_id: string | null
         }
         Insert: {
           created_at?: string | null
           id: string
           name?: string | null
           role?: string | null
-          tenant_id?: string | null
         }
         Update: {
           created_at?: string | null
           id?: string
           name?: string | null
           role?: string | null
-          tenant_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "users_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
     }
     Views: {
