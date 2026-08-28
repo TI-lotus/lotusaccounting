@@ -1,5 +1,13 @@
 import { useState } from "react";
-import { X, Maximize2, Minimize2, FileText, FileCode, File, Download } from "lucide-react";
+import {
+  X,
+  Maximize2,
+  Minimize2,
+  FileText,
+  FileCode,
+  File,
+  Download,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -14,6 +22,7 @@ export interface ViewableDocument {
   date?: string;
   content: string;
   size?: string;
+  downloadUrl?: string | null;
 }
 
 interface DocumentViewerProps {
@@ -35,10 +44,12 @@ export const DocumentViewer = ({ document, onClose }: DocumentViewerProps) => {
   if (!document) return null;
 
   return (
-    <div className={cn(
-      "border-l border-border bg-card flex flex-col transition-all duration-300",
-      isFullScreen ? "fixed inset-0 z-50" : "w-1/2 min-w-[400px]"
-    )}>
+    <div
+      className={cn(
+        "border-l border-border bg-card flex flex-col transition-all duration-300",
+        isFullScreen ? "fixed inset-0 z-50" : "w-1/2 min-w-[400px]",
+      )}
+    >
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-border bg-muted/30">
         <div className="flex items-center gap-3 min-w-0">
@@ -46,19 +57,48 @@ export const DocumentViewer = ({ document, onClose }: DocumentViewerProps) => {
           <div className="min-w-0">
             <h3 className="text-sm font-semibold truncate">{document.name}</h3>
             <div className="flex items-center gap-2 mt-0.5">
-              <Badge variant="outline" className="text-[10px]">{document.category}</Badge>
-              {document.clientName && <span className="text-xs text-muted-foreground">{document.clientName}</span>}
+              <Badge variant="outline" className="text-[10px]">
+                {document.category}
+              </Badge>
+              {document.clientName && (
+                <span className="text-xs text-muted-foreground">
+                  {document.clientName}
+                </span>
+              )}
             </div>
           </div>
         </div>
         <div className="flex items-center gap-1 shrink-0">
-          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" onClick={() => {}}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 rounded-lg"
+            disabled={!document.downloadUrl}
+            onClick={() =>
+              document.downloadUrl &&
+              window.open(document.downloadUrl, "_blank", "noopener,noreferrer")
+            }
+          >
             <Download className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" onClick={() => setIsFullScreen(!isFullScreen)}>
-            {isFullScreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 rounded-lg"
+            onClick={() => setIsFullScreen(!isFullScreen)}
+          >
+            {isFullScreen ? (
+              <Minimize2 className="h-4 w-4" />
+            ) : (
+              <Maximize2 className="h-4 w-4" />
+            )}
           </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" onClick={onClose}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 rounded-lg"
+            onClick={onClose}
+          >
             <X className="h-4 w-4" />
           </Button>
         </div>

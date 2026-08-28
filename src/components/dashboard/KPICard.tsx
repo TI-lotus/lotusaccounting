@@ -8,6 +8,7 @@ interface KPICardProps {
   changeLabel?: string;
   icon: LucideIcon;
   className?: string;
+  onClick?: () => void;
 }
 
 export const KPICard = ({
@@ -17,12 +18,24 @@ export const KPICard = ({
   changeLabel = "vs mês anterior",
   icon: Icon,
   className,
+  onClick,
 }: KPICardProps) => {
   const isPositive = change && change > 0;
   const isNegative = change && change < 0;
 
   return (
-    <div className={cn("kpi-card animate-fade-in", className)}>
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={!onClick}
+      className={cn(
+        "kpi-card animate-fade-in w-full text-left",
+        onClick &&
+          "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        !onClick && "cursor-default",
+        className,
+      )}
+    >
       <div className="flex items-start justify-between mb-4">
         <div className="p-2.5 rounded-xl bg-primary/10">
           <Icon className="h-5 w-5 text-primary" />
@@ -31,14 +44,19 @@ export const KPICard = ({
           <div
             className={cn(
               "flex items-center gap-1 text-sm font-medium px-2 py-1 rounded-lg",
-              isPositive && "text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-950/50",
-              isNegative && "text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-950/50",
-              !isPositive && !isNegative && "text-muted-foreground bg-muted"
+              isPositive &&
+                "text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-950/50",
+              isNegative &&
+                "text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-950/50",
+              !isPositive && !isNegative && "text-muted-foreground bg-muted",
             )}
           >
             {isPositive && <TrendingUp className="h-3.5 w-3.5" />}
             {isNegative && <TrendingDown className="h-3.5 w-3.5" />}
-            <span>{isPositive ? "+" : ""}{change}%</span>
+            <span>
+              {isPositive ? "+" : ""}
+              {change}%
+            </span>
           </div>
         )}
       </div>
@@ -47,6 +65,6 @@ export const KPICard = ({
       {changeLabel && (
         <p className="text-xs text-muted-foreground mt-2">{changeLabel}</p>
       )}
-    </div>
+    </button>
   );
 };

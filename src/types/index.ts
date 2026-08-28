@@ -52,8 +52,19 @@ export interface TaskData {
 }
 
 // --- Documents ---
-export type DocumentStatus = "unread" | "read" | "processed" | "pending" | "paid" | "overdue" | "final";
-export type DocumentType = "fatura" | "nota_fiscal" | "balancete" | "das" | "darf" | "contrato" | "relatorio" | "guia" | "recibo" | "outros";
+export type DocumentStatus =
+  "unread" | "read" | "processed" | "pending" | "paid" | "overdue" | "final";
+export type DocumentType =
+  | "fatura"
+  | "nota_fiscal"
+  | "balancete"
+  | "das"
+  | "darf"
+  | "contrato"
+  | "relatorio"
+  | "guia"
+  | "recibo"
+  | "outros";
 
 export interface DocumentData {
   id: string;
@@ -64,6 +75,9 @@ export interface DocumentData {
   clientId: string | null;
   clientName: string | null;
   amount: number | null;
+  filePath?: string | null;
+  fileSize?: number | null;
+  mimeType?: string | null;
   date: string;
   month: number;
   year: number;
@@ -78,19 +92,31 @@ export type NotificationChannel = "email" | "message" | "system";
 
 export interface Notification {
   id: string;
-  type: "document_processed" | "task_assigned" | "task_overdue" | "document_uploaded" | "status_change";
+  type:
+    | "document_processed"
+    | "task_assigned"
+    | "task_overdue"
+    | "document_uploaded"
+    | "status_change"
+    | "integration_alert";
   title: string;
   message: string;
   channel: NotificationChannel;
   read: boolean;
   createdAt: string;
   relatedEntityId?: string;
-  relatedEntityType?: "document" | "task" | "client";
+  relatedEntityType?: "document" | "task" | "client" | "integration";
 }
 
 // --- Workflow Pipeline ---
-export type PipelineStep = "upload" | "classification" | "client_association" | "storage" | "distribution";
-export type PipelineStepStatus = "pending" | "processing" | "completed" | "failed";
+export type PipelineStep =
+  | "upload"
+  | "classification"
+  | "client_association"
+  | "storage"
+  | "distribution";
+export type PipelineStepStatus =
+  "pending" | "processing" | "completed" | "failed";
 
 export interface PipelineExecution {
   id: string;

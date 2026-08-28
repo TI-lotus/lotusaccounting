@@ -135,11 +135,13 @@ export const AppSidebar = () => {
   const groups = viewMode === "office" ? officeGroups : clientGroups;
 
   return (
-    <nav className="sticky top-16 z-30 w-full bg-sidebar border-b border-sidebar-border">
+    <nav className="sticky top-16 z-30 w-full border-b border-white/10 bg-black/35 text-white shadow-[0_18px_50px_rgba(0,0,0,0.14)] backdrop-blur-[22px] backdrop-saturate-150">
       <div className="flex items-center gap-1 overflow-x-auto px-4 py-2 custom-scroll">
         {groups.map((group) => {
           const GroupIcon = group.icon;
-          const isActive = group.items.some((i) => i.href === location.pathname);
+          const isActive = group.items.some(
+            (i) => i.href === location.pathname,
+          );
 
           // Single-item group renders as a direct link
           if (group.items.length === 1) {
@@ -151,8 +153,8 @@ export const AppSidebar = () => {
                 className={cn(
                   "flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors",
                   isActive
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                    : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                    ? "bg-white/18 text-white"
+                    : "text-white/78 hover:bg-white/12 hover:text-white",
                 )}
               >
                 <GroupIcon className="h-4 w-4 shrink-0" />
@@ -168,8 +170,8 @@ export const AppSidebar = () => {
                   className={cn(
                     "flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors outline-none",
                     isActive
-                      ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                      : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                      ? "bg-white/18 text-white"
+                      : "text-white/78 hover:bg-white/12 hover:text-white",
                   )}
                 >
                   <GroupIcon className="h-4 w-4 shrink-0" />
@@ -177,7 +179,10 @@ export const AppSidebar = () => {
                   <ChevronDown className="h-3.5 w-3.5 opacity-70" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="min-w-[220px] rounded-xl">
+              <DropdownMenuContent
+                align="start"
+                className="min-w-[220px] rounded-xl"
+              >
                 {group.items.map((item) => {
                   const Icon = item.icon;
                   const active = location.pathname === item.href;
@@ -187,7 +192,7 @@ export const AppSidebar = () => {
                       onSelect={() => navigate(item.href)}
                       className={cn(
                         "gap-2 rounded-lg cursor-pointer",
-                        active && "bg-accent text-accent-foreground"
+                        active && "bg-accent text-accent-foreground",
                       )}
                     >
                       <Icon className="h-4 w-4" />

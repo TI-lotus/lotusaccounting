@@ -34,8 +34,14 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { session, loading } = useAuth();
+const ProtectedRoute = ({
+  children,
+  allowClient = true,
+}: {
+  children: React.ReactNode;
+  allowClient?: boolean;
+}) => {
+  const { session, loading, profile } = useAuth();
 
   if (loading) {
     return <div className="min-h-screen bg-background" />;
@@ -45,10 +51,19 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to="/auth" replace />;
   }
 
+  if (!allowClient && profile?.account_type === "client") {
+    return <Navigate to="/" replace />;
+  }
+
   return children;
 };
 
-const protectedPage = (children: React.ReactNode) => <ProtectedRoute>{children}</ProtectedRoute>;
+const protectedPage = (
+  children: React.ReactNode,
+  options?: { allowClient?: boolean },
+) => (
+  <ProtectedRoute allowClient={options?.allowClient}>{children}</ProtectedRoute>
+);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -56,38 +71,103 @@ const App = () => (
       <ViewModeProvider>
         <UserProfileProvider>
           <DataProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/" element={protectedPage(<Index />)} />
-              <Route path="/clients" element={protectedPage(<Clients />)} />
-              <Route path="/clients/:id" element={protectedPage(<ClientDetail />)} />
-              <Route path="/payments" element={protectedPage(<Payments />)} />
-              <Route path="/documents" element={protectedPage(<Documents />)} />
-              <Route path="/reports" element={protectedPage(<Reports />)} />
-              <Route path="/search-cnpj" element={protectedPage(<SearchCNPJ />)} />
-              <Route path="/agents" element={protectedPage(<Agents />)} />
-              <Route path="/affiliation" element={protectedPage(<AffiliationProgram />)} />
-              <Route path="/integrations" element={protectedPage(<Integrations />)} />
-              <Route path="/integrations/:id" element={protectedPage(<IntegrationSettings />)} />
-              <Route path="/messages" element={protectedPage(<Messages />)} />
-              <Route path="/settings" element={protectedPage(<Settings />)} />
-              <Route path="/upgrade" element={protectedPage(<Upgrade />)} />
-              <Route path="/tasks" element={protectedPage(<Tasks />)} />
-              <Route path="/staff" element={protectedPage(<Staff />)} />
-              <Route path="/agenda" element={protectedPage(<Agenda />)} />
-              <Route path="/finance" element={protectedPage(<Finance />)} />
-              <Route path="/invoices" element={protectedPage(<Invoices />)} />
-              <Route path="/reconciliation" element={protectedPage(<Reconciliation />)} />
-              <Route path="/lia" element={protectedPage(<Lia />)} />
-              <Route path="/workflows" element={protectedPage(<Workflows />)} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <Routes>
+                  <Route path="/auth" element={<Auth />} />
+                  <Route path="/" element={protectedPage(<Index />)} />
+                  <Route
+                    path="/clients"
+                    element={protectedPage(<Clients />, { allowClient: false })}
+                  />
+                  <Route
+                    path="/clients/:id"
+                    element={protectedPage(<ClientDetail />, {
+                      allowClient: false,
+                    })}
+                  />
+                  <Route
+                    path="/payments"
+                    element={protectedPage(<Payments />)}
+                  />
+                  <Route
+                    path="/documents"
+                    element={protectedPage(<Documents />)}
+                  />
+                  <Route path="/reports" element={protectedPage(<Reports />)} />
+                  <Route
+                    path="/search-cnpj"
+                    element={protectedPage(<SearchCNPJ />, {
+                      allowClient: false,
+                    })}
+                  />
+                  <Route
+                    path="/agents"
+                    element={protectedPage(<Agents />, { allowClient: false })}
+                  />
+                  <Route
+                    path="/affiliation"
+                    element={protectedPage(<AffiliationProgram />, {
+                      allowClient: false,
+                    })}
+                  />
+                  <Route
+                    path="/integrations"
+                    element={protectedPage(<Integrations />, {
+                      allowClient: false,
+                    })}
+                  />
+                  <Route
+                    path="/integrations/:id"
+                    element={protectedPage(<IntegrationSettings />, {
+                      allowClient: false,
+                    })}
+                  />
+                  <Route
+                    path="/messages"
+                    element={protectedPage(<Messages />)}
+                  />
+                  <Route
+                    path="/settings"
+                    element={protectedPage(<Settings />)}
+                  />
+                  <Route path="/upgrade" element={protectedPage(<Upgrade />)} />
+                  <Route path="/tasks" element={protectedPage(<Tasks />)} />
+                  <Route
+                    path="/staff"
+                    element={protectedPage(<Staff />, { allowClient: false })}
+                  />
+                  <Route path="/agenda" element={protectedPage(<Agenda />)} />
+                  <Route
+                    path="/finance"
+                    element={protectedPage(<Finance />, { allowClient: false })}
+                  />
+                  <Route
+                    path="/invoices"
+                    element={protectedPage(<Invoices />)}
+                  />
+                  <Route
+                    path="/reconciliation"
+                    element={protectedPage(<Reconciliation />, {
+                      allowClient: false,
+                    })}
+                  />
+                  <Route
+                    path="/lia"
+                    element={protectedPage(<Lia />, { allowClient: false })}
+                  />
+                  <Route
+                    path="/workflows"
+                    element={protectedPage(<Workflows />, {
+                      allowClient: false,
+                    })}
+                  />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </BrowserRouter>
+            </TooltipProvider>
           </DataProvider>
         </UserProfileProvider>
       </ViewModeProvider>

@@ -1,4 +1,4 @@
-import { AlertTriangle, Clock3, Receipt, ScrollText, ArrowRight } from "lucide-react";
+import { AlertTriangle, Clock3, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useData } from "@/contexts/DataContext";
 import { Badge } from "@/components/ui/badge";
@@ -17,7 +17,8 @@ interface RiskItem {
 
 const severityStyles: Record<RiskItem["severity"], string> = {
   high: "border-red-200 dark:border-red-900/60 bg-red-50/70 dark:bg-red-950/30",
-  medium: "border-amber-200 dark:border-amber-900/60 bg-amber-50/70 dark:bg-amber-950/30",
+  medium:
+    "border-amber-200 dark:border-amber-900/60 bg-amber-50/70 dark:bg-amber-950/30",
   low: "border-blue-200 dark:border-blue-900/60 bg-blue-50/70 dark:bg-blue-950/30",
 };
 
@@ -38,25 +39,51 @@ const daysUntil = (iso: string) => {
   return Math.round(diff / (1000 * 60 * 60 * 24));
 };
 
-const fiscalObligations = [
-  { id: "obg-das", title: "DAS - Simples Nacional", dueDate: "2026-01-20", clients: 34 },
-  { id: "obg-darf", title: "DARF IRPJ trimestral", dueDate: "2026-01-31", clients: 12 },
-  { id: "obg-defis", title: "DEFIS anual", dueDate: "2026-03-31", clients: 41 },
-];
-
 export const PendingRisksPanel = () => {
-  const { tasks } = useData();
+  const { tasks, fiscalObligations } = useData();
   const navigate = useNavigate();
 
   const overdueTasks = tasks
-    .filter((t) => t.status === "overdue" || (t.status !== "completed" && daysUntil(t.dueDate) < 0))
+    .filter(
+      (t) =>
+        t.status === "overdue" ||
+        (t.status !== "completed" && daysUntil(t.dueDate) < 0),
+    )
     .slice(0, 3);
 
   const upcomingTasks = tasks
-    .filter((t) => t.status !== "completed" && daysUntil(t.dueDate) >= 0 && daysUntil(t.dueDate) <= 7)
+    .filter(
+      (t) =>
+        t.status !== "completed" &&
+        daysUntil(t.dueDate) >= 0 &&
+        daysUntil(t.dueDate) <= 7,
+    )
+    .slice(0, 3);
+  const overdueObligations = fiscalObligations
+    .filter(
+      (obligation) =>
+        obligation.status !== "completed" && daysUntil(obligation.due_date) < 0,
+    )
+    .slice(0, 3);
+  const upcomingObligations = fiscalObligations
+    .filter(
+      (obligation) =>
+        obligation.status !== "completed" &&
+        daysUntil(obligation.due_date) >= 0 &&
+        daysUntil(obligation.due_date) <= 7,
+    )
     .slice(0, 3);
 
   const items: RiskItem[] = [
+    ...overdueObligations.map<RiskItem>((obligation) => ({
+      id: `obligation-${obligation.id}`,
+      title: obligation.name,
+      description: "Obrigação fiscal",
+      meta: `Atrasada ${Math.abs(daysUntil(obligation.due_date))}d`,
+      severity: "high",
+      icon: AlertTriangle,
+      onClick: () => navigate("/reports"),
+    })),
     ...overdueTasks.map<RiskItem>((t) => ({
       id: `task-${t.id}`,
       title: t.title,
@@ -71,27 +98,22 @@ export const PendingRisksPanel = () => {
       title: t.title,
       description: t.clientName ?? "Sem cliente associado",
       meta: `Vence em ${daysUntil(t.dueDate)}d`,
-      severity: (daysUntil(t.dueDate) <= 2 ? "medium" : "low") as RiskItem["severity"],
+      severity: (daysUntil(t.dueDate) <= 2
+        ? "medium"
+        : "low") as RiskItem["severity"],
       icon: Clock3,
       onClick: () => navigate("/tasks"),
     })),
-    {
-      id: "inv-1",
-      title: "12 faturas vencendo nos próximos 7 dias",
-      description: "R$ 24.380,00 em aberto",
-      meta: "Financeiro",
-      severity: "medium" as const,
-      icon: Receipt,
-      onClick: () => navigate("/payments"),
-    },
-    ...fiscalObligations.slice(0, 2).map<RiskItem>((o) => ({
-      id: o.id,
-      title: o.title,
-      description: `${o.clients} clientes impactados`,
-      meta: `Vence em ${daysUntil(o.dueDate)}d`,
-      severity: (daysUntil(o.dueDate) < 7 ? "high" : daysUntil(o.dueDate) < 30 ? "medium" : "low") as RiskItem["severity"],
-      icon: ScrollText,
-      onClick: () => navigate("/agenda"),
+    ...upcomingObligations.map<RiskItem>((obligation) => ({
+      id: `obligation-up-${obligation.id}`,
+      title: obligation.name,
+      description: "Obrigação fiscal",
+      meta: `Vence em ${daysUntil(obligation.due_date)}d`,
+      severity: (daysUntil(obligation.due_date) <= 2
+        ? "medium"
+        : "low") as RiskItem["severity"],
+      icon: Clock3,
+      onClick: () => navigate("/reports"),
     })),
   ].slice(0, 6);
 
@@ -112,7 +134,12 @@ export const PendingRisksPanel = () => {
               {highCount} crítica{highCount > 1 ? "s" : ""}
             </Badge>
           )}
-          <Button variant="ghost" size="sm" className="rounded-xl gap-1" onClick={() => navigate("/tasks")}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="rounded-xl gap-1"
+            onClick={() => navigate("/tasks")}
+          >
             Ver todas <ArrowRight className="h-3.5 w-3.5" />
           </Button>
         </div>
@@ -132,16 +159,25 @@ export const PendingRisksPanel = () => {
                 onClick={item.onClick}
                 className={cn(
                   "text-left rounded-xl border p-3 transition-colors hover:opacity-90",
-                  severityStyles[item.severity]
+                  severityStyles[item.severity],
                 )}
               >
                 <div className="flex items-start gap-2">
-                  <Icon className={cn("h-4 w-4 mt-0.5 shrink-0", severityIconStyles[item.severity])} />
+                  <Icon
+                    className={cn(
+                      "h-4 w-4 mt-0.5 shrink-0",
+                      severityIconStyles[item.severity],
+                    )}
+                  />
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium truncate">{item.title}</p>
-                    <p className="text-xs text-muted-foreground truncate">{item.description}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {item.description}
+                    </p>
                     <div className="mt-2 flex items-center justify-between">
-                      <span className="text-[11px] text-muted-foreground">{item.meta}</span>
+                      <span className="text-[11px] text-muted-foreground">
+                        {item.meta}
+                      </span>
                       <Badge variant="outline" className="text-[10px]">
                         {severityLabels[item.severity]}
                       </Badge>

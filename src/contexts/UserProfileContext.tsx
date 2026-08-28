@@ -73,8 +73,8 @@ export const UserProfileProvider = ({ children }: { children: React.ReactNode })
       setProfile((current) => ({
         ...current,
         email: user.email ?? "",
-        firstName: current.firstName || firstName,
-        lastName: current.lastName || rest.join(" "),
+        firstName: firstName || current.firstName,
+        lastName: rest.join(" ") || current.lastName,
       }));
     })();
     return () => {

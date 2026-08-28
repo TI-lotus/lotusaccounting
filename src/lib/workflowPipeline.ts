@@ -1,4 +1,10 @@
-import { PipelineExecution, PipelineStep, DocumentData, ClientData, Notification } from "@/types";
+import {
+  PipelineExecution,
+  PipelineStep,
+  DocumentData,
+  ClientData,
+  Notification,
+} from "@/types";
 import { classifyDocument, inferClient } from "./documentClassifier";
 
 export interface PipelineResult {
@@ -7,7 +13,11 @@ export interface PipelineResult {
   notifications: Notification[];
 }
 
-function createStepEntry(step: PipelineStep, status: "completed" | "failed", details?: string) {
+function createStepEntry(
+  step: PipelineStep,
+  status: "completed" | "failed",
+  details?: string,
+) {
   return {
     step,
     status,
@@ -26,7 +36,8 @@ function createStepEntry(step: PipelineStep, status: "completed" | "failed", det
  */
 export function executeDocumentPipeline(
   fileName: string,
-  clients: ClientData[]
+  clients: ClientData[],
+  fileMeta?: { filePath?: string; fileSize?: number; mimeType?: string | null },
 ): PipelineResult {
   const pipelineId = crypto.randomUUID();
   const documentId = crypto.randomUUID();
@@ -34,45 +45,74 @@ export function executeDocumentPipeline(
   const steps: PipelineExecution["steps"] = [];
 
   // Step 1: Upload
-  steps.push(createStepEntry("upload", "completed", `Arquivo "${fileName}" recebido`));
+  steps.push(
+    createStepEntry("upload", "completed", `Arquivo "${fileName}" recebido`),
+  );
 
   // Step 2: Classification
   const classification = classifyDocument(fileName);
-  steps.push(createStepEntry(
-    "classification",
-    "completed",
-    `Tipo: ${classification.documentType} (confiança: ${Math.round(classification.confidence * 100)}%)`
-  ));
+  steps.push(
+    createStepEntry(
+      "classification",
+      "completed",
+      `Tipo: ${classification.documentType} (confiança: ${Math.round(classification.confidence * 100)}%)`,
+    ),
+  );
 
   // Step 3: Client Association
   const clientInference = inferClient(fileName, clients);
-  steps.push(createStepEntry(
-    "client_association",
-    clientInference.client ? "completed" : "failed",
-    clientInference.client
-      ? `Cliente: ${clientInference.client.name} (confiança: ${Math.round(clientInference.confidence * 100)}%)`
-      : "Cliente não identificado automaticamente"
-  ));
+  steps.push(
+    createStepEntry(
+      "client_association",
+      clientInference.client ? "completed" : "failed",
+      clientInference.client
+        ? `Cliente: ${clientInference.client.name} (confiança: ${Math.round(clientInference.confidence * 100)}%)`
+        : "Cliente não identificado automaticamente",
+    ),
+  );
 
   // Step 4: Storage
   const document: DocumentData = {
     id: documentId,
-    name: fileName.replace(/\.[^.]+$/, "").replace(/[_\-]/g, " "),
+    name: fileName.replace(/\.[^.]+$/, "").replace(/[_-]/g, " "),
     originalFileName: fileName,
     documentType: classification.documentType,
     status: "unread",
     clientId: clientInference.client?.id ?? null,
     clientName: clientInference.client?.name ?? null,
-    amount: null,
-    date: now.toLocaleDateString("pt-BR", { day: "numeric", month: "short", year: "numeric" }),
-    month: now.getMonth() + 1,
-    year: now.getFullYear(),
+    amount: classification.amount,
+    filePath: fileMeta?.filePath ?? null,
+    fileSize: fileMeta?.fileSize ?? null,
+    mimeType: fileMeta?.mimeType ?? null,
+    date: (classification.dueDate
+      ? new Date(`${classification.dueDate}T00:00:00`)
+      : now
+    ).toLocaleDateString("pt-BR", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    }),
+    month:
+      (classification.dueDate
+        ? new Date(`${classification.dueDate}T00:00:00`)
+        : now
+      ).getMonth() + 1,
+    year: (classification.dueDate
+      ? new Date(`${classification.dueDate}T00:00:00`)
+      : now
+    ).getFullYear(),
     readAt: null,
     createdAt: now.toISOString(),
     classifiedAutomatically: classification.confidence >= 0.7,
     classificationConfidence: classification.confidence,
   };
-  steps.push(createStepEntry("storage", "completed", `Documento armazenado com ID: ${documentId.substring(0, 8)}`));
+  steps.push(
+    createStepEntry(
+      "storage",
+      "completed",
+      `Documento armazenado com ID: ${documentId.substring(0, 8)}`,
+    ),
+  );
 
   // Step 5: Distribution (notifications)
   const notifications: Notification[] = [];
@@ -117,11 +157,13 @@ export function executeDocumentPipeline(
     });
   }
 
-  steps.push(createStepEntry(
-    "distribution",
-    "completed",
-    `${notifications.length} notificação(ões) gerada(s)`
-  ));
+  steps.push(
+    createStepEntry(
+      "distribution",
+      "completed",
+      `${notifications.length} notificação(ões) gerada(s)`,
+    ),
+  );
 
   const pipeline: PipelineExecution = {
     id: pipelineId,

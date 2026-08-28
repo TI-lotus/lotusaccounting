@@ -90,8 +90,8 @@ export const ChatBox = ({ state, onStateChange }: ChatBoxProps) => {
         ...prev,
         { id: crypto.randomUUID(), from: "bot", text: String(reply) },
       ]);
-    } catch (err: any) {
-      const msg = err?.message ?? "Erro ao falar com a Lia";
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Erro ao falar com a Lia";
       setMessages((prev) => [
         ...prev,
         { id: crypto.randomUUID(), from: "bot", text: `⚠️ ${msg}` },

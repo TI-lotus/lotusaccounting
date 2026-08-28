@@ -1,18 +1,12 @@
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
-import { UserCog, Plus, Search, MoreHorizontal, Mail, Phone, Shield, ShieldCheck, ShieldAlert, CheckSquare } from "lucide-react";
+import { UserCog, Plus, Search, Mail, Shield, ShieldCheck, ShieldAlert, CheckSquare, Copy, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -30,235 +24,269 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useData } from "@/contexts/DataContext";
+import { useAuth } from "@/contexts/AuthContext";
 
-interface StaffMember {
-  id: string;
-  name: string;
+type ProfileRow = Pick<Database["public"]["Tables"]["profiles"]["Row"], "id" | "user_id" | "full_name" | "phone" | "job_title" | "account_type" | "company_id" | "status" | "created_at">;
+type InviteRow = Pick<Database["public"]["Tables"]["invites"]["Row"], "id" | "email" | "full_name" | "account_type" | "company_id" | "token" | "status" | "expires_at" | "created_at">;
+
+type InviteForm = {
+  fullName: string;
   email: string;
-  phone: string;
-  role: "admin" | "collaborator";
-  department: string;
-  status: "active" | "inactive";
-  tasksAssigned: number;
-  tasksCompleted: number;
-  permissions: {
-    clients: boolean;
-    payments: boolean;
-    documents: boolean;
-    reports: boolean;
-    integrations: boolean;
-    agents: boolean;
-  };
-}
+  accountType: "collaborator" | "client";
+  companyId: string;
+};
 
-const initialStaff: StaffMember[] = [
-  { id: "u1", name: "John Doe", email: "john@lotus.com", phone: "(11) 99999-0001", role: "admin", department: "Diretoria", status: "active", tasksAssigned: 12, tasksCompleted: 8, permissions: { clients: true, payments: true, documents: true, reports: true, integrations: true, agents: true } },
-  { id: "u2", name: "Ana Costa", email: "ana@lotus.com", phone: "(11) 99999-0002", role: "collaborator", department: "Fiscal", status: "active", tasksAssigned: 25, tasksCompleted: 18, permissions: { clients: true, payments: false, documents: true, reports: true, integrations: false, agents: false } },
-  { id: "u3", name: "Roberto Santos", email: "roberto@lotus.com", phone: "(11) 99999-0003", role: "collaborator", department: "Auditoria", status: "active", tasksAssigned: 15, tasksCompleted: 12, permissions: { clients: true, payments: true, documents: true, reports: true, integrations: false, agents: false } },
-  { id: "u4", name: "Carlos Mendes", email: "carlos@lotus.com", phone: "(11) 99999-0004", role: "collaborator", department: "Contábil", status: "active", tasksAssigned: 20, tasksCompleted: 14, permissions: { clients: true, payments: false, documents: true, reports: false, integrations: false, agents: false } },
-  { id: "u5", name: "Maria Silva", email: "maria@lotus.com", phone: "(11) 99999-0005", role: "collaborator", department: "RH", status: "inactive", tasksAssigned: 8, tasksCompleted: 8, permissions: { clients: false, payments: false, documents: true, reports: false, integrations: false, agents: false } },
-];
+const permissionLabels = {
+  clients: "Clientes",
+  payments: "Pagamentos",
+  documents: "Documentos",
+  reports: "Relatórios",
+  integrations: "Integrações",
+  agents: "Agentes IA",
+};
+
+const roleLabel = (role: string) => {
+  if (role === "admin") return "Administrador";
+  if (role === "client") return "Cliente";
+  return "Colaborador";
+};
+
+const initials = (name: string) =>
+  name
+    .split(" ")
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase() || "LT";
 
 const Staff = () => {
-  const { tasks, updateTask } = useData();
-  const [staff, setStaff] = useState<StaffMember[]>(initialStaff);
+  const { tasks, updateTask, tenantId, clients } = useData();
+  const { user, profile } = useAuth();
+  const [profiles, setProfiles] = useState<ProfileRow[]>([]);
+  const [invites, setInvites] = useState<InviteRow[]>([]);
+  const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [permDialogOpen, setPermDialogOpen] = useState(false);
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
-  const [selectedMember, setSelectedMember] = useState<StaffMember | null>(null);
-  const [deactivateTarget, setDeactivateTarget] = useState<StaffMember | null>(null);
-  const [reassignTo, setReassignTo] = useState<string>("");
-  const [newMember, setNewMember] = useState({ name: "", email: "", phone: "", role: "collaborator" as "admin" | "collaborator", department: "" });
+  const [selectedMember, setSelectedMember] = useState<ProfileRow | null>(null);
+  const [inviteForm, setInviteForm] = useState<InviteForm>({
+    fullName: "",
+    email: "",
+    accountType: "collaborator",
+    companyId: "",
+  });
 
-  const filteredStaff = staff.filter(m =>
-    m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    m.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    m.department.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const loadPeople = useCallback(async () => {
+    if (!tenantId) {
+      setProfiles([]);
+      setInvites([]);
+      return;
+    }
 
-  // Load persisted users on mount
+    setLoading(true);
+    const [profilesRes, invitesRes] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("id, user_id, full_name, phone, job_title, account_type, company_id, status, created_at")
+        .eq("tenant_id", tenantId)
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("invites")
+        .select("id, email, full_name, account_type, company_id, token, status, expires_at, created_at")
+        .eq("tenant_id", tenantId)
+        .order("created_at", { ascending: false }),
+    ]);
+
+    if (profilesRes.error) toast.error("Erro ao carregar equipe: " + profilesRes.error.message);
+    if (invitesRes.error) toast.error("Erro ao carregar convites: " + invitesRes.error.message);
+    setProfiles((profilesRes.data ?? []) as ProfileRow[]);
+    setInvites((invitesRes.data ?? []) as InviteRow[]);
+    setLoading(false);
+  }, [tenantId]);
+
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const { data } = await supabase.from("users").select("id, name, role, created_at");
-      if (cancelled || !data?.length) return;
-      const dbStaff: StaffMember[] = data.map((row) => ({
-        id: row.id,
-        name: row.name ?? "Sem nome",
-        email: "",
-        phone: "",
-        role: (row.role === "admin" ? "admin" : "collaborator") as "admin" | "collaborator",
-        department: "",
-        status: "active",
-        tasksAssigned: 0,
-        tasksCompleted: 0,
-        permissions: { clients: true, payments: false, documents: true, reports: false, integrations: false, agents: false },
-      }));
-      setStaff((prev) => {
-        const ids = new Set(prev.map((s) => s.id));
-        return [...dbStaff.filter((s) => !ids.has(s.id)), ...prev];
-      });
-    })();
-    return () => { cancelled = true; };
-  }, []);
+    void loadPeople();
+  }, [loadPeople]);
 
-  const handleAdd = async () => {
-    if (!newMember.name || !newMember.email) {
-      toast.error("Preencha nome e email");
+  const members = useMemo(() => profiles.filter((member) => member.account_type !== "client"), [profiles]);
+  const clientsProfiles = useMemo(() => profiles.filter((member) => member.account_type === "client"), [profiles]);
+
+  const filteredMembers = members.filter((member) => {
+    const haystack = `${member.full_name ?? ""} ${member.job_title ?? ""} ${member.account_type}`.toLowerCase();
+    return haystack.includes(searchTerm.toLowerCase());
+  });
+
+  const handleInvite = async () => {
+    if (!tenantId || !user) {
+      toast.error("Sessão não encontrada");
       return;
     }
-    const id = crypto.randomUUID();
-    const member: StaffMember = {
-      id,
-      ...newMember,
-      status: "active",
-      tasksAssigned: 0,
-      tasksCompleted: 0,
-      permissions: { clients: true, payments: false, documents: true, reports: false, integrations: false, agents: false },
-    };
-    // Persist basic fields to users table (id, name, role).
-    const { error } = await supabase.from("users").insert({ id, name: newMember.name, role: newMember.role });
-    if (error) toast.error("Salvo apenas localmente: " + error.message);
-    setStaff(prev => [member, ...prev]);
-    setNewMember({ name: "", email: "", phone: "", role: "collaborator", department: "" });
+    if (!inviteForm.email.trim()) {
+      toast.error("Informe o email do convidado");
+      return;
+    }
+    if (inviteForm.accountType === "client" && !inviteForm.companyId) {
+      toast.error("Escolha o cliente que este acesso deve enxergar");
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("invites")
+      .insert({
+        tenant_id: tenantId,
+        email: inviteForm.email.trim().toLowerCase(),
+        full_name: inviteForm.fullName.trim() || null,
+        account_type: inviteForm.accountType,
+        company_id: inviteForm.accountType === "client" ? inviteForm.companyId : null,
+        invited_by: user.id,
+      })
+      .select("id, email, full_name, account_type, company_id, token, status, expires_at, created_at")
+      .maybeSingle();
+
+    if (error || !data) {
+      toast.error("Erro ao criar convite: " + (error?.message ?? "registro não retornado"));
+      return;
+    }
+
+    const invite = data as InviteRow;
+    const link = `${window.location.origin}/auth?invite=${invite.token}`;
+    await navigator.clipboard?.writeText(link);
+    setInvites((current) => [invite, ...current]);
+    setInviteForm({ fullName: "", email: "", accountType: "collaborator", companyId: "" });
     setDialogOpen(false);
-    toast.success("Colaborador adicionado!");
+    toast.success("Convite criado e link copiado");
   };
 
-  const togglePermission = (memberId: string, perm: keyof StaffMember["permissions"]) => {
-    setStaff(prev => prev.map(m => {
-      if (m.id !== memberId) return m;
-      return { ...m, permissions: { ...m.permissions, [perm]: !m.permissions[perm] } };
-    }));
-    if (selectedMember?.id === memberId) {
-      setSelectedMember(prev => prev ? { ...prev, permissions: { ...prev.permissions, [perm]: !prev.permissions[perm] } } : null);
-    }
+  const copyInviteLink = async (token: string) => {
+    await navigator.clipboard?.writeText(`${window.location.origin}/auth?invite=${token}`);
+    toast.success("Link do convite copiado");
   };
 
-  const toggleStatus = (id: string) => {
-    const member = staff.find(m => m.id === id);
-    if (!member) return;
-    if (member.status === "active") {
-      const assigned = tasks.filter(t => t.assignedToId === id);
-      if (assigned.length > 0) {
-        setDeactivateTarget(member);
-        setReassignTo("");
-        return;
-      }
-      setStaff(prev => prev.map(m => m.id === id ? { ...m, status: "inactive" } : m));
-      toast.success("Colaborador desativado!");
+  const revokeInvite = async (inviteId: string) => {
+    const { error } = await supabase.from("invites").update({ status: "revoked" }).eq("id", inviteId);
+    if (error) {
+      toast.error(error.message);
       return;
     }
-    setStaff(prev => prev.map(m => m.id === id ? { ...m, status: "active" } : m));
-    toast.success("Colaborador reativado!");
+    setInvites((current) => current.map((invite) => invite.id === inviteId ? { ...invite, status: "revoked" } : invite));
+    toast.success("Convite revogado");
   };
 
-  const confirmDeactivate = () => {
-    if (!deactivateTarget) return;
-    const targetId = deactivateTarget.id;
-    const assigned = tasks.filter(t => t.assignedToId === targetId);
-    const replacement = staff.find(m => m.id === reassignTo);
-    if (reassignTo && replacement) {
-      assigned.forEach(t => updateTask(t.id, { assignedToId: replacement.id, assignedToName: replacement.name }));
-      toast.success(`${assigned.length} tarefa(s) reatribuída(s) a ${replacement.name}`);
-    } else {
-      assigned.forEach(t => updateTask(t.id, { assignedToId: "", assignedToName: "Sem responsável" }));
-      toast.info(`${assigned.length} tarefa(s) marcadas como sem responsável`);
+  const toggleStatus = async (member: ProfileRow) => {
+    const nextStatus = member.status === "active" ? "inactive" : "active";
+    const assigned = tasks.filter((task) => task.assignedToId === member.user_id && task.status !== "completed");
+    if (nextStatus === "inactive" && assigned.length > 0) {
+      assigned.forEach((task) => updateTask(task.id, { assignedToId: "", assignedToName: "Sem responsável" }));
+      toast.info(`${assigned.length} tarefa(s) ficaram sem responsável`);
     }
-    setStaff(prev => prev.map(m => m.id === targetId ? { ...m, status: "inactive" } : m));
-    setDeactivateTarget(null);
-    setReassignTo("");
+
+    const { error } = await supabase.from("profiles").update({ status: nextStatus }).eq("id", member.id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setProfiles((current) => current.map((item) => item.id === member.id ? { ...item, status: nextStatus } : item));
+    toast.success(nextStatus === "active" ? "Usuário reativado" : "Usuário desativado");
   };
 
-  const permLabels: Record<keyof StaffMember["permissions"], string> = {
-    clients: "Clientes",
-    payments: "Pagamentos",
-    documents: "Documentos",
-    reports: "Relatórios",
-    integrations: "Integrações",
-    agents: "Agentes IA",
+  const assignTask = (taskId: string, checked: boolean) => {
+    if (!selectedMember) return;
+    updateTask(taskId, checked
+      ? { assignedToId: selectedMember.user_id, assignedToName: selectedMember.full_name || "Sem nome" }
+      : { assignedToId: "", assignedToName: "Sem responsável" }
+    );
   };
+
+  const activeMembers = members.filter((member) => member.status === "active");
+  const pendingInvites = invites.filter((invite) => invite.status === "pending");
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
         <div className="flex items-center justify-between animate-fade-in">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Colaboradores</h1>
-            <p className="text-muted-foreground">Gerencie membros da equipe, tarefas e permissões</p>
+            <h1 className="text-2xl font-semibold tracking-tight">Equipe e acessos</h1>
+            <p className="text-muted-foreground">Convide usuários, acompanhe papéis e controle vínculos por cliente</p>
           </div>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="rounded-xl gap-2"><Plus className="h-4 w-4" />Adicionar Colaborador</Button>
+              <Button className="rounded-xl gap-2"><Plus className="h-4 w-4" />Novo convite</Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-[460px]">
               <DialogHeader>
-                <DialogTitle>Novo Colaborador</DialogTitle>
-                <DialogDescription>Adicione um membro à equipe.</DialogDescription>
+                <DialogTitle>Criar convite</DialogTitle>
+                <DialogDescription>O link criado pode ser enviado ao colaborador ou cliente.</DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
-                <div className="grid gap-2"><Label>Nome</Label><Input value={newMember.name} onChange={e => setNewMember({ ...newMember, name: e.target.value })} placeholder="Nome completo" className="rounded-xl" /></div>
-                <div className="grid gap-2"><Label>Email</Label><Input type="email" value={newMember.email} onChange={e => setNewMember({ ...newMember, email: e.target.value })} placeholder="email@lotus.com" className="rounded-xl" /></div>
-                <div className="grid gap-2"><Label>Telefone</Label><Input value={newMember.phone} onChange={e => setNewMember({ ...newMember, phone: e.target.value })} placeholder="(11) 99999-0000" className="rounded-xl" /></div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label>Nome</Label>
+                  <Input value={inviteForm.fullName} onChange={(event) => setInviteForm({ ...inviteForm, fullName: event.target.value })} placeholder="Nome completo" className="rounded-xl" />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Email</Label>
+                  <Input type="email" value={inviteForm.email} onChange={(event) => setInviteForm({ ...inviteForm, email: event.target.value })} placeholder="email@empresa.com" className="rounded-xl" />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Tipo de acesso</Label>
+                  <Select value={inviteForm.accountType} onValueChange={(value: InviteForm["accountType"]) => setInviteForm({ ...inviteForm, accountType: value, companyId: "" })}>
+                    <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="collaborator">Colaborador</SelectItem>
+                      <SelectItem value="client">Cliente</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {inviteForm.accountType === "client" && (
                   <div className="grid gap-2">
-                    <Label>Cargo</Label>
-                    <Select value={newMember.role} onValueChange={(v: "admin" | "collaborator") => setNewMember({ ...newMember, role: v })}>
-                      <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+                    <Label>Empresa vinculada</Label>
+                    <Select value={inviteForm.companyId} onValueChange={(value) => setInviteForm({ ...inviteForm, companyId: value })}>
+                      <SelectTrigger className="rounded-xl"><SelectValue placeholder="Selecione um cliente" /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="admin">Administrador</SelectItem>
-                        <SelectItem value="collaborator">Colaborador</SelectItem>
+                        {clients.map((client) => <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="grid gap-2">
-                    <Label>Departamento</Label>
-                    <Input value={newMember.department} onChange={e => setNewMember({ ...newMember, department: e.target.value })} placeholder="Ex: Fiscal" className="rounded-xl" />
-                  </div>
-                </div>
+                )}
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setDialogOpen(false)} className="rounded-xl">Cancelar</Button>
-                <Button onClick={handleAdd} className="rounded-xl">Adicionar</Button>
+                <Button onClick={handleInvite} className="rounded-xl">Criar convite</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
         </div>
 
-        {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-fade-in">
           <div className="glass rounded-2xl p-4 flex items-center gap-4">
             <div className="p-3 rounded-xl bg-gilver/10"><UserCog className="h-5 w-5 text-gilver" /></div>
-            <div><p className="text-2xl font-semibold">{staff.length}</p><p className="text-sm text-muted-foreground">Total</p></div>
+            <div><p className="text-2xl font-semibold">{members.length}</p><p className="text-sm text-muted-foreground">Equipe</p></div>
           </div>
           <div className="glass rounded-2xl p-4 flex items-center gap-4">
             <div className="p-3 rounded-xl bg-emerald-500/10"><ShieldCheck className="h-5 w-5 text-emerald-500" /></div>
-            <div><p className="text-2xl font-semibold">{staff.filter(m => m.status === "active").length}</p><p className="text-sm text-muted-foreground">Ativos</p></div>
+            <div><p className="text-2xl font-semibold">{activeMembers.length}</p><p className="text-sm text-muted-foreground">Ativos</p></div>
           </div>
           <div className="glass rounded-2xl p-4 flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-amber-500/10"><ShieldAlert className="h-5 w-5 text-amber-500" /></div>
-            <div><p className="text-2xl font-semibold">{staff.filter(m => m.role === "admin").length}</p><p className="text-sm text-muted-foreground">Admins</p></div>
+            <div className="p-3 rounded-xl bg-amber-500/10"><UserPlus className="h-5 w-5 text-amber-500" /></div>
+            <div><p className="text-2xl font-semibold">{pendingInvites.length}</p><p className="text-sm text-muted-foreground">Convites</p></div>
           </div>
           <div className="glass rounded-2xl p-4 flex items-center gap-4">
             <div className="p-3 rounded-xl bg-blue-500/10"><CheckSquare className="h-5 w-5 text-blue-500" /></div>
-            <div><p className="text-2xl font-semibold">{staff.reduce((s, m) => s + m.tasksAssigned, 0)}</p><p className="text-sm text-muted-foreground">Tarefas</p></div>
+            <div><p className="text-2xl font-semibold">{clientsProfiles.length}</p><p className="text-sm text-muted-foreground">Acessos cliente</p></div>
           </div>
         </div>
 
-        {/* Tabs */}
         <Tabs defaultValue="people" className="animate-fade-in">
           <TabsList>
-            <TabsTrigger value="people">Pessoas</TabsTrigger>
+            <TabsTrigger value="people">Equipe</TabsTrigger>
+            <TabsTrigger value="invites">Convites</TabsTrigger>
             <TabsTrigger value="capacity">Capacidade</TabsTrigger>
-            <TabsTrigger value="tasks">Tarefas</TabsTrigger>
             <TabsTrigger value="perms">Permissões</TabsTrigger>
           </TabsList>
 
@@ -267,142 +295,114 @@ const Staff = () => {
               <div className="flex items-center gap-4 mb-6">
                 <div className="relative flex-1 max-w-sm">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input placeholder="Buscar por nome, email ou departamento..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10 rounded-xl" />
+                  <Input placeholder="Buscar por nome, cargo ou papel..." value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} className="pl-10 rounded-xl" />
                 </div>
-                <Badge variant="secondary" className="px-3 py-1.5">{filteredStaff.length} membros</Badge>
+                <Badge variant="secondary" className="px-3 py-1.5">{filteredMembers.length} membros</Badge>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {filteredStaff.map((member) => {
-                  const memberTasks = tasks.filter((t) => t.assignedToId === member.id);
+                {filteredMembers.map((member) => {
+                  const memberTasks = tasks.filter((task) => task.assignedToId === member.user_id);
+                  const completed = memberTasks.filter((task) => task.status === "completed").length;
+                  const name = member.full_name || "Sem nome";
                   return (
-                    <div key={member.id} className="rounded-2xl border border-border bg-card p-4 flex flex-col gap-3 hover:shadow-soft-lg transition-all">
+                    <div key={member.id} className="rounded-2xl border border-border bg-card p-4 flex flex-col gap-3">
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex items-center gap-3 min-w-0">
                           <Avatar className="h-11 w-11 ring-2 ring-gilver/30">
-                            <AvatarFallback className="bg-gilver/15 text-gilver font-medium">
-                              {member.name.split(" ").map(n => n[0]).join("").slice(0, 2)}
-                            </AvatarFallback>
+                            <AvatarFallback className="bg-gilver/15 text-gilver font-medium">{initials(name)}</AvatarFallback>
                           </Avatar>
                           <div className="min-w-0">
                             <div className="flex items-center gap-1.5">
-                              <p className="font-medium truncate">{member.name}</p>
-                              {member.role === "admin" && <Shield className="h-3.5 w-3.5 text-gilver shrink-0" />}
+                              <p className="font-medium truncate">{name}</p>
+                              {member.account_type === "admin" && <Shield className="h-3.5 w-3.5 text-gilver shrink-0" />}
                             </div>
-                            <p className="text-xs text-muted-foreground truncate">{member.role === "admin" ? "Administrador" : "Colaborador"}</p>
+                            <p className="text-xs text-muted-foreground truncate">{roleLabel(member.account_type)}</p>
                           </div>
                         </div>
-                        <Badge
-                          className={cn("cursor-pointer text-[10px] py-0.5", member.status === "active" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400" : "bg-muted text-muted-foreground")}
-                          onClick={() => toggleStatus(member.id)}
-                        >
+                        <Badge className={cn("text-[10px] py-0.5", member.status === "active" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400" : "bg-muted text-muted-foreground")}>
                           {member.status === "active" ? "Ativo" : "Inativo"}
                         </Badge>
                       </div>
 
                       <div className="space-y-1 text-xs text-muted-foreground">
-                        <p className="flex items-center gap-1.5 truncate"><Mail className="h-3 w-3 shrink-0" />{member.email || "—"}</p>
-                        <p className="flex items-center gap-1.5 truncate"><Phone className="h-3 w-3 shrink-0" />{member.phone || "—"}</p>
-                        <p className="truncate"><span className="font-medium text-foreground">Departamento:</span> {member.department || "—"}</p>
+                        <p className="truncate"><span className="font-medium text-foreground">Cargo:</span> {member.job_title || "—"}</p>
+                        <p className="truncate"><span className="font-medium text-foreground">Telefone:</span> {member.phone || "—"}</p>
                       </div>
 
                       <div className="rounded-lg bg-muted/40 p-2 flex items-center justify-between text-xs">
                         <span className="text-muted-foreground">Tarefas</span>
-                        <span className="font-medium">{member.tasksCompleted}/{member.tasksAssigned}</span>
+                        <span className="font-medium">{completed}/{memberTasks.length}</span>
                       </div>
 
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="outline" size="sm" className="w-full rounded-xl justify-between">
-                            <span className="flex items-center gap-2"><CheckSquare className="h-4 w-4" />Tarefas ({memberTasks.length})</span>
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-72 max-h-64 overflow-y-auto custom-scroll">
-                          {memberTasks.length === 0 ? (
-                            <div className="px-3 py-4 text-xs text-muted-foreground text-center">Nenhuma tarefa atribuída</div>
-                          ) : (
-                            memberTasks.map((t) => (
-                              <DropdownMenuItem key={t.id} className="flex-col items-start gap-0.5">
-                                <p className="text-sm font-medium truncate w-full">{t.title}</p>
-                                <p className="text-[10px] text-muted-foreground">{t.status} • {t.category}</p>
-                              </DropdownMenuItem>
-                            ))
-                          )}
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => { setSelectedMember(member); setAssignDialogOpen(true); }} className="gap-2">
-                            <Plus className="h-4 w-4" />Atribuir/Remover tarefa
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-
                       <div className="flex gap-2">
-                        <Button variant="outline" size="sm" className="flex-1 rounded-xl gap-1.5" onClick={() => { setSelectedMember(member); setPermDialogOpen(true); }}>
-                          <Shield className="h-3.5 w-3.5" />Permissões
+                        <Button variant="outline" size="sm" className="flex-1 rounded-xl gap-1.5" onClick={() => { setSelectedMember(member); setAssignDialogOpen(true); }}>
+                          <CheckSquare className="h-3.5 w-3.5" />Tarefas
                         </Button>
-                        <Button
-                          variant={member.status === "active" ? "outline" : "default"}
-                          size="sm"
-                          className="flex-1 rounded-xl gap-1.5"
-                          onClick={() => toggleStatus(member.id)}
-                        >
-                          <ShieldAlert className="h-3.5 w-3.5" />
-                          {member.status === "active" ? "Desativar" : "Ativar"}
-                        </Button>
+                        {member.user_id !== profile?.user_id && (
+                          <Button variant={member.status === "active" ? "outline" : "default"} size="sm" className="flex-1 rounded-xl gap-1.5" onClick={() => toggleStatus(member)}>
+                            <ShieldAlert className="h-3.5 w-3.5" />
+                            {member.status === "active" ? "Desativar" : "Ativar"}
+                          </Button>
+                        )}
                       </div>
                     </div>
                   );
                 })}
 
-                {filteredStaff.length === 0 && (
+                {!loading && filteredMembers.length === 0 && (
                   <div className="col-span-full text-center py-12 text-muted-foreground">
                     <UserCog className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>Nenhum colaborador encontrado</p>
+                    <p>Nenhum membro encontrado</p>
                   </div>
                 )}
               </div>
             </div>
           </TabsContent>
 
-          <TabsContent value="capacity" className="mt-4">
-            <div className="glass rounded-2xl p-6 space-y-4">
-              <p className="text-sm text-muted-foreground">Volume de tarefas ativas por colaborador em relação à capacidade sugerida (20 tarefas).</p>
-              {staff.filter(m => m.status === "active").map(member => {
-                const active = tasks.filter(t => t.assignedToId === member.id && t.status !== "completed").length;
-                const pct = Math.min(100, Math.round((active / 20) * 100));
-                const overloaded = pct >= 90;
-                return (
-                  <div key={member.id} className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{member.name}</span>
-                        <span className="text-xs text-muted-foreground">• {member.department || "—"}</span>
-                      </div>
-                      <span className={cn("text-xs font-medium", overloaded ? "text-red-500" : "text-muted-foreground")}>
-                        {active} / 20 tarefas
-                      </span>
-                    </div>
-                    <Progress value={pct} className={cn("h-2", overloaded && "[&>div]:bg-red-500")} />
+          <TabsContent value="invites" className="mt-4">
+            <div className="glass rounded-2xl p-6 space-y-3">
+              {invites.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-8">Nenhum convite criado ainda.</p>
+              ) : invites.map((invite) => (
+                <div key={invite.id} className="flex flex-col gap-3 rounded-xl border border-border p-4 md:flex-row md:items-center md:justify-between">
+                  <div className="min-w-0">
+                    <p className="font-medium truncate">{invite.full_name || invite.email}</p>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Mail className="h-3 w-3" />{invite.email}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {roleLabel(invite.account_type)}{invite.company_id ? ` · ${clients.find((client) => client.id === invite.company_id)?.name ?? "cliente vinculado"}` : ""}
+                    </p>
                   </div>
-                );
-              })}
+                  <div className="flex items-center gap-2">
+                    <Badge variant={invite.status === "pending" ? "secondary" : "outline"}>{invite.status === "pending" ? "Pendente" : invite.status === "accepted" ? "Aceito" : "Revogado"}</Badge>
+                    {invite.status === "pending" && (
+                      <>
+                        <Button variant="outline" size="sm" className="rounded-xl gap-2" onClick={() => copyInviteLink(invite.token)}><Copy className="h-4 w-4" />Copiar link</Button>
+                        <Button variant="outline" size="sm" className="rounded-xl" onClick={() => revokeInvite(invite.id)}>Revogar</Button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           </TabsContent>
 
-          <TabsContent value="tasks" className="mt-4">
-            <div className="glass rounded-2xl p-6">
-              <div className="space-y-2">
-                {tasks.length === 0 && <p className="text-sm text-muted-foreground text-center py-8">Nenhuma tarefa cadastrada.</p>}
-                {tasks.map(t => (
-                  <div key={t.id} className="flex items-center gap-3 rounded-xl border border-border p-3">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{t.title}</p>
-                      <p className="text-xs text-muted-foreground">{t.category} • {t.status}</p>
+          <TabsContent value="capacity" className="mt-4">
+            <div className="glass rounded-2xl p-6 space-y-4">
+              <p className="text-sm text-muted-foreground">Volume de tarefas ativas por colaborador em relação à capacidade sugerida de 20 tarefas.</p>
+              {activeMembers.map((member) => {
+                const active = tasks.filter((task) => task.assignedToId === member.user_id && task.status !== "completed").length;
+                const pct = Math.min(100, Math.round((active / 20) * 100));
+                return (
+                  <div key={member.id} className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium">{member.full_name || "Sem nome"}</span>
+                      <span className={cn("text-xs font-medium", pct >= 90 ? "text-red-500" : "text-muted-foreground")}>{active} / 20 tarefas</span>
                     </div>
-                    <Badge variant="outline" className="text-xs">{t.assignedToName || "Sem responsável"}</Badge>
+                    <Progress value={pct} className={cn("h-2", pct >= 90 && "[&>div]:bg-red-500")} />
                   </div>
-                ))}
-              </div>
+                );
+              })}
             </div>
           </TabsContent>
 
@@ -411,19 +411,21 @@ const Staff = () => {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border text-left text-xs text-muted-foreground">
-                    <th className="py-2 pr-4">Colaborador</th>
-                    {(Object.keys(permLabels) as (keyof StaffMember["permissions"])[]).map(perm => (
-                      <th key={perm} className="py-2 px-2 text-center">{permLabels[perm]}</th>
-                    ))}
+                    <th className="py-2 pr-4">Papel</th>
+                    {Object.values(permissionLabels).map((label) => <th key={label} className="py-2 px-2 text-center">{label}</th>)}
                   </tr>
                 </thead>
                 <tbody>
-                  {staff.map(member => (
-                    <tr key={member.id} className="border-b border-border/50">
-                      <td className="py-2 pr-4 font-medium">{member.name}</td>
-                      {(Object.keys(permLabels) as (keyof StaffMember["permissions"])[]).map(perm => (
-                        <td key={perm} className="py-2 px-2 text-center">
-                          <Switch checked={member.permissions[perm]} onCheckedChange={() => togglePermission(member.id, perm)} />
+                  {[
+                    { role: "Administrador", values: [true, true, true, true, true, true] },
+                    { role: "Colaborador", values: [true, true, true, true, false, false] },
+                    { role: "Cliente", values: [false, true, true, true, false, false] },
+                  ].map((row) => (
+                    <tr key={row.role} className="border-b border-border/50">
+                      <td className="py-2 pr-4 font-medium">{row.role}</td>
+                      {row.values.map((enabled, index) => (
+                        <td key={index} className="py-2 px-2 text-center">
+                          {enabled ? <ShieldCheck className="h-4 w-4 text-emerald-500 mx-auto" /> : <ShieldAlert className="h-4 w-4 text-muted-foreground mx-auto" />}
                         </td>
                       ))}
                     </tr>
@@ -434,96 +436,23 @@ const Staff = () => {
           </TabsContent>
         </Tabs>
 
-        {/* Deactivate + Reassign Dialog */}
-        <Dialog open={!!deactivateTarget} onOpenChange={(open) => { if (!open) { setDeactivateTarget(null); setReassignTo(""); } }}>
-          <DialogContent className="sm:max-w-[440px]">
-            <DialogHeader>
-              <DialogTitle>Desativar {deactivateTarget?.name}</DialogTitle>
-              <DialogDescription>
-                Este colaborador tem {tasks.filter(t => t.assignedToId === deactivateTarget?.id).length} tarefa(s) ativas. Escolha para quem reatribuir antes de desativar.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="py-2">
-              <Label className="text-sm mb-2 block">Reatribuir para</Label>
-              <Select value={reassignTo} onValueChange={setReassignTo}>
-                <SelectTrigger className="rounded-xl"><SelectValue placeholder="Selecione um colaborador (ou deixe vazio)" /></SelectTrigger>
-                <SelectContent>
-                  {staff.filter(m => m.status === "active" && m.id !== deactivateTarget?.id).map(m => (
-                    <SelectItem key={m.id} value={m.id}>{m.name} — {m.department || "—"}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground mt-2">Se nenhum for escolhido, as tarefas ficam como "Sem responsável".</p>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => { setDeactivateTarget(null); setReassignTo(""); }} className="rounded-xl">Cancelar</Button>
-              <Button onClick={confirmDeactivate} className="rounded-xl">Confirmar desativação</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* Permissions Dialog */}
-        <Dialog open={permDialogOpen} onOpenChange={setPermDialogOpen}>
-          <DialogContent className="sm:max-w-[400px]">
-            <DialogHeader>
-              <DialogTitle>Permissões — {selectedMember?.name}</DialogTitle>
-              <DialogDescription>Configure o acesso deste colaborador aos módulos.</DialogDescription>
-            </DialogHeader>
-            {selectedMember && (
-              <div className="space-y-4 py-4">
-                {(Object.keys(permLabels) as (keyof StaffMember["permissions"])[]).map(perm => (
-                  <div key={perm} className="flex items-center justify-between">
-                    <Label className="text-sm">{permLabels[perm]}</Label>
-                    <Switch
-                      checked={selectedMember.permissions[perm]}
-                      onCheckedChange={() => togglePermission(selectedMember.id, perm)}
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
-
-        {/* Assign Tasks Dialog */}
         <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
           <DialogContent className="sm:max-w-[480px]">
             <DialogHeader>
-              <DialogTitle>Atribuir Tarefas — {selectedMember?.name}</DialogTitle>
-              <DialogDescription>
-                Marque para atrelar o colaborador como responsável. Desmarque para removê-lo.
-              </DialogDescription>
+              <DialogTitle>Atribuir tarefas</DialogTitle>
+              <DialogDescription>{selectedMember?.full_name || "Usuário selecionado"}</DialogDescription>
             </DialogHeader>
             {selectedMember && (
               <div className="max-h-[420px] overflow-y-auto custom-scroll space-y-2 py-2">
-                {tasks.length === 0 && (
-                  <p className="text-sm text-muted-foreground text-center py-6">Nenhuma tarefa cadastrada.</p>
-                )}
+                {tasks.length === 0 && <p className="text-sm text-muted-foreground text-center py-6">Nenhuma tarefa cadastrada.</p>}
                 {tasks.map((task) => {
-                  const isAssigned = task.assignedToId === selectedMember.id;
+                  const checked = task.assignedToId === selectedMember.user_id;
                   return (
-                    <label
-                      key={task.id}
-                      className="flex items-start gap-3 rounded-xl border border-border p-3 hover:bg-accent/40 cursor-pointer"
-                    >
-                      <Checkbox
-                        checked={isAssigned}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            updateTask(task.id, { assignedToId: selectedMember.id, assignedToName: selectedMember.name });
-                            toast.success(`Tarefa atribuída a ${selectedMember.name}`);
-                          } else {
-                            updateTask(task.id, { assignedToId: "", assignedToName: "Sem responsável" });
-                            toast.success(`${selectedMember.name} removido da tarefa`);
-                          }
-                        }}
-                        className="mt-0.5"
-                      />
+                    <label key={task.id} className="flex items-start gap-3 rounded-xl border border-border p-3 hover:bg-accent/40 cursor-pointer">
+                      <Checkbox checked={checked} onCheckedChange={(value) => assignTask(task.id, !!value)} className="mt-0.5" />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{task.title}</p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {isAssigned ? "Atribuída a este colaborador" : `Responsável: ${task.assignedToName || "—"}`}
-                        </p>
+                        <p className="text-xs text-muted-foreground truncate">{task.clientName ?? "Sem cliente"} · {task.status}</p>
                       </div>
                     </label>
                   );

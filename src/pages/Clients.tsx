@@ -32,6 +32,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useData } from "@/contexts/DataContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { ClientData } from "@/types";
 import { cn } from "@/lib/utils";
 
@@ -45,6 +46,7 @@ const taxRegimeLabels: Record<string, string> = {
 const Clients = () => {
   const navigate = useNavigate();
   const { clients, addClient, updateClient, deleteClient } = useData();
+  const { user, profile } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [feeRange, setFeeRange] = useState({ min: "", max: "" });
   const [contractSort, setContractSort] = useState("contract-desc");
@@ -78,8 +80,8 @@ const Clients = () => {
         state: data.address?.state ?? prev.state,
       }));
       toast.success("Dados do CNPJ carregados");
-    } catch (e: any) {
-      toast.error("Não foi possível consultar o CNPJ", { description: e?.message });
+    } catch (e: unknown) {
+      toast.error("Não foi possível consultar o CNPJ", { description: e instanceof Error ? e.message : undefined });
     } finally {
       setCnpjLoading(false);
     }
@@ -116,14 +118,16 @@ const Clients = () => {
       return;
     }
 
+    const responsibleName = profile?.full_name || user?.email || "Responsável";
+
     addClient({
       name: newClient.name,
       email: newClient.email,
       phone: newClient.phone || "(00) 00000-0000",
       cnpj: newClient.cnpj || "00.000.000/0001-00",
       taxRegime: newClient.taxRegime,
-      responsibleUserId: "u2",
-      responsibleUserName: "Ana Costa",
+      responsibleUserId: user?.id ?? "",
+      responsibleUserName: responsibleName,
       serviceFee: parseFloat(newClient.serviceFee) || 0,
       city: newClient.city || "São Paulo",
       state: newClient.state || "SP",

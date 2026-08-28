@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { PageShell } from "@/components/PageShell";
 import { EmptyState, LoadingState } from "@/components/PageStates";
 import { DetailSheet } from "@/components/DetailSheet";
@@ -7,55 +7,91 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Plus, Receipt, FileText } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useData } from "@/contexts/DataContext";
+import { useViewMode } from "@/contexts/ViewModeContext";
+import type { Database } from "@/integrations/supabase/types";
 import { toast } from "sonner";
 import { toastWithUndo } from "@/lib/toastUndo";
 
-interface Invoice {
-  id: string; number: string | null; amount: number; status: string;
-  issued_at: string | null; due_date: string | null; company_id: string | null;
-}
+type Invoice = Pick<
+  Database["public"]["Tables"]["invoices"]["Row"],
+  | "id"
+  | "number"
+  | "amount"
+  | "status"
+  | "issued_at"
+  | "due_date"
+  | "company_id"
+>;
 
-const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-const fmt = (d?: string | null) => (d ? new Date(d).toLocaleDateString("pt-BR") : "—");
+const brl = (n: number) =>
+  n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const fmt = (d?: string | null) =>
+  d ? new Date(d).toLocaleDateString("pt-BR") : "—";
 
 const statusMeta: Record<string, { label: string; className: string }> = {
-  paid: { label: "Paga", className: "bg-emerald-500 hover:bg-emerald-500 text-white" },
-  pending: { label: "Pendente", className: "bg-amber-500 hover:bg-amber-500 text-white" },
-  overdue: { label: "Atrasada", className: "bg-red-500 hover:bg-red-500 text-white" },
+  paid: {
+    label: "Paga",
+    className: "bg-emerald-500 hover:bg-emerald-500 text-white",
+  },
+  pending: {
+    label: "Pendente",
+    className: "bg-amber-500 hover:bg-amber-500 text-white",
+  },
+  overdue: {
+    label: "Atrasada",
+    className: "bg-red-500 hover:bg-red-500 text-white",
+  },
   draft: { label: "Rascunho", className: "" },
 };
 
 const Invoices = () => {
-  const { tenantId, clients } = useData();
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { viewMode } = useViewMode();
+  const isClientView = viewMode === "client";
+  const {
+    tenantId,
+    loading,
+    clients,
+    invoices,
+    addInvoice,
+    deleteInvoice,
+    addPayment,
+    updateInvoice,
+  } = useData();
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<Invoice | null>(null);
-  const [form, setForm] = useState({ number: "", amount: "", company_id: "", due_date: "", status: "pending" });
-
-  const load = async () => {
-    setLoading(true);
-    const { data } = await supabase
-      .from("invoices")
-      .select("id, number, amount, status, issued_at, due_date, company_id")
-      .order("created_at", { ascending: false });
-    setInvoices((data ?? []) as any);
-    setLoading(false);
-  };
-
-  useEffect(() => { if (tenantId) load(); }, [tenantId]);
+  const [form, setForm] = useState({
+    number: "",
+    amount: "",
+    company_id: "",
+    due_date: "",
+    status: "pending",
+  });
 
   const create = async () => {
-    if (!tenantId || !form.amount) { toast.error("Preencha o valor"); return; }
-    const { error } = await supabase.from("invoices").insert({
-      tenant_id: tenantId,
+    if (!tenantId || !form.amount) {
+      toast.error("Preencha o valor");
+      return;
+    }
+    const saved = await addInvoice({
       number: form.number || null,
       amount: Number(form.amount),
       status: form.status,
@@ -63,42 +99,73 @@ const Invoices = () => {
       company_id: form.company_id || null,
       issued_at: new Date().toISOString(),
     });
-    if (error) { toast.error(error.message); return; }
+    if (!saved) return;
     toast.success("Fatura criada");
     setOpen(false);
-    setForm({ number: "", amount: "", company_id: "", due_date: "", status: "pending" });
-    load();
+    setForm({
+      number: "",
+      amount: "",
+      company_id: "",
+      due_date: "",
+      status: "pending",
+    });
   };
 
   const removeInvoice = (inv: Invoice) => {
-    const backup = inv;
-    setInvoices(prev => prev.filter(i => i.id !== inv.id));
     setSelected(null);
     toastWithUndo({
       message: "Fatura removida",
       description: inv.number || inv.id.slice(0, 8),
-      onUndo: () => setInvoices(prev => [backup, ...prev]),
+      onUndo: () => undefined,
       onConfirm: async () => {
-        const { error } = await supabase.from("invoices").delete().eq("id", inv.id);
-        if (error) { toast.error(error.message); load(); }
+        await deleteInvoice(inv.id);
       },
     });
   };
 
-  const clientName = (id: string | null) => clients.find(c => c.id === id)?.name ?? "—";
+  const registerPaymentFromInvoice = async (inv: Invoice) => {
+    const saved = await addPayment({
+      amount: Number(inv.amount),
+      status: "completed",
+      direction: "entrada",
+      description: `Pagamento da ${inv.number || `fatura ${inv.id.slice(0, 8)}`}`,
+      category: "Faturas",
+      company_id: inv.company_id,
+      due_date: inv.due_date,
+      invoice_id: inv.id,
+      method: null,
+      paid_at: new Date().toISOString(),
+    });
+    if (!saved) return;
+    await updateInvoice(inv.id, { status: "paid" });
+    setSelected({ ...inv, status: "paid" });
+    toast.success("Pagamento registrado e fatura marcada como paga");
+  };
+
+  const clientName = (id: string | null) =>
+    clients.find((c) => c.id === id)?.name ?? "—";
 
   const filtered = invoices
-    .filter(i => statusFilter === "all" || i.status === statusFilter)
-    .filter(i => {
+    .filter((i) => statusFilter === "all" || i.status === statusFilter)
+    .filter((i) => {
       if (!search.trim()) return true;
       const q = search.toLowerCase();
-      return (i.number ?? "").toLowerCase().includes(q) || clientName(i.company_id).toLowerCase().includes(q);
+      return (
+        (i.number ?? "").toLowerCase().includes(q) ||
+        clientName(i.company_id).toLowerCase().includes(q)
+      );
     });
 
   const total = invoices.reduce((a, i) => a + Number(i.amount || 0), 0);
-  const totalPaid = invoices.filter(i => i.status === "paid").reduce((a, i) => a + Number(i.amount || 0), 0);
-  const totalPending = invoices.filter(i => i.status === "pending").reduce((a, i) => a + Number(i.amount || 0), 0);
-  const totalOverdue = invoices.filter(i => i.status === "overdue").reduce((a, i) => a + Number(i.amount || 0), 0);
+  const totalPaid = invoices
+    .filter((i) => i.status === "paid")
+    .reduce((a, i) => a + Number(i.amount || 0), 0);
+  const totalPending = invoices
+    .filter((i) => i.status === "pending")
+    .reduce((a, i) => a + Number(i.amount || 0), 0);
+  const totalOverdue = invoices
+    .filter((i) => i.status === "overdue")
+    .reduce((a, i) => a + Number(i.amount || 0), 0);
 
   const statusTabs = [
     { value: "all", label: "Todas" },
@@ -114,37 +181,90 @@ const Invoices = () => {
         title="Faturas"
         description="Emissão e acompanhamento de faturas"
         primaryAction={
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button className="rounded-xl gap-2"><Plus className="h-4 w-4" />Nova fatura</Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader><DialogTitle>Nova fatura</DialogTitle></DialogHeader>
-              <div className="grid gap-3">
-                <div className="grid gap-1.5"><Label>Número</Label><Input value={form.number} onChange={e => setForm({ ...form, number: e.target.value })} /></div>
-                <div className="grid gap-1.5"><Label>Valor</Label><Input type="number" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} /></div>
-                <div className="grid gap-1.5"><Label>Cliente</Label>
-                  <Select value={form.company_id} onValueChange={v => setForm({ ...form, company_id: v })}>
-                    <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
-                    <SelectContent>{clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
-                  </Select>
+          isClientView ? undefined : (
+            <Dialog open={open} onOpenChange={setOpen}>
+              <DialogTrigger asChild>
+                <Button className="rounded-xl gap-2">
+                  <Plus className="h-4 w-4" />
+                  Nova fatura
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Nova fatura</DialogTitle>
+                </DialogHeader>
+                <div className="grid gap-3">
+                  <div className="grid gap-1.5">
+                    <Label>Número</Label>
+                    <Input
+                      value={form.number}
+                      onChange={(e) =>
+                        setForm({ ...form, number: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label>Valor</Label>
+                    <Input
+                      type="number"
+                      value={form.amount}
+                      onChange={(e) =>
+                        setForm({ ...form, amount: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label>Cliente</Label>
+                    <Select
+                      value={form.company_id}
+                      onValueChange={(v) => setForm({ ...form, company_id: v })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecionar" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {clients.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label>Vencimento</Label>
+                    <Input
+                      type="date"
+                      value={form.due_date}
+                      onChange={(e) =>
+                        setForm({ ...form, due_date: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label>Status</Label>
+                    <Select
+                      value={form.status}
+                      onValueChange={(v) => setForm({ ...form, status: v })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="draft">Rascunho</SelectItem>
+                        <SelectItem value="pending">Pendente</SelectItem>
+                        <SelectItem value="paid">Paga</SelectItem>
+                        <SelectItem value="overdue">Atrasada</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                <div className="grid gap-1.5"><Label>Vencimento</Label><Input type="date" value={form.due_date} onChange={e => setForm({ ...form, due_date: e.target.value })} /></div>
-                <div className="grid gap-1.5"><Label>Status</Label>
-                  <Select value={form.status} onValueChange={v => setForm({ ...form, status: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="draft">Rascunho</SelectItem>
-                      <SelectItem value="pending">Pendente</SelectItem>
-                      <SelectItem value="paid">Paga</SelectItem>
-                      <SelectItem value="overdue">Atrasada</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <DialogFooter><Button onClick={create}>Criar</Button></DialogFooter>
-            </DialogContent>
-          </Dialog>
+                <DialogFooter>
+                  <Button onClick={create}>Criar</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )
         }
         kpis={[
           { label: "Total emitido", value: brl(total) },
@@ -171,8 +291,11 @@ const Invoices = () => {
               />
             ) : (
               <div className="space-y-2">
-                {filtered.map(inv => {
-                  const meta = statusMeta[inv.status] ?? { label: inv.status, className: "" };
+                {filtered.map((inv) => {
+                  const meta = statusMeta[inv.status] ?? {
+                    label: inv.status,
+                    className: "",
+                  };
                   return (
                     <button
                       key={inv.id}
@@ -180,15 +303,24 @@ const Invoices = () => {
                       className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-accent/50 transition-colors text-left"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-xl bg-primary/10"><FileText className="h-4 w-4 text-primary" /></div>
+                        <div className="p-2 rounded-xl bg-primary/10">
+                          <FileText className="h-4 w-4 text-primary" />
+                        </div>
                         <div>
-                          <p className="text-sm font-medium">{inv.number || `Fatura ${inv.id.slice(0, 8)}`}</p>
-                          <p className="text-xs text-muted-foreground">{clientName(inv.company_id)} • Venc. {fmt(inv.due_date)}</p>
+                          <p className="text-sm font-medium">
+                            {inv.number || `Fatura ${inv.id.slice(0, 8)}`}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {clientName(inv.company_id)} • Venc.{" "}
+                            {fmt(inv.due_date)}
+                          </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
                         <Badge className={meta.className}>{meta.label}</Badge>
-                        <span className="text-sm font-semibold">{brl(Number(inv.amount))}</span>
+                        <span className="text-sm font-semibold">
+                          {brl(Number(inv.amount))}
+                        </span>
                       </div>
                     </button>
                   );
@@ -202,13 +334,38 @@ const Invoices = () => {
       <DetailSheet
         open={!!selected}
         onOpenChange={(o) => !o && setSelected(null)}
-        title={selected?.number || (selected ? `Fatura ${selected.id.slice(0, 8)}` : "")}
+        title={
+          selected?.number ||
+          (selected ? `Fatura ${selected.id.slice(0, 8)}` : "")
+        }
         description={selected ? clientName(selected.company_id) : undefined}
         actions={
           selected && (
             <>
-              <Button variant="outline" className="rounded-xl" onClick={() => setSelected(null)}>Fechar</Button>
-              <Button variant="destructive" className="rounded-xl" onClick={() => removeInvoice(selected)}>Remover</Button>
+              <Button
+                variant="outline"
+                className="rounded-xl"
+                onClick={() => setSelected(null)}
+              >
+                Fechar
+              </Button>
+              {!isClientView && selected.status !== "paid" && (
+                <Button
+                  className="rounded-xl"
+                  onClick={() => registerPaymentFromInvoice(selected)}
+                >
+                  Registrar pagamento
+                </Button>
+              )}
+              {!isClientView && (
+                <Button
+                  variant="destructive"
+                  className="rounded-xl"
+                  onClick={() => removeInvoice(selected)}
+                >
+                  Remover
+                </Button>
+              )}
             </>
           )
         }
@@ -222,7 +379,11 @@ const Invoices = () => {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Status</p>
-                <Badge className={(statusMeta[selected.status] ?? { className: "" }).className}>
+                <Badge
+                  className={
+                    (statusMeta[selected.status] ?? { className: "" }).className
+                  }
+                >
                   {statusMeta[selected.status]?.label ?? selected.status}
                 </Badge>
               </div>

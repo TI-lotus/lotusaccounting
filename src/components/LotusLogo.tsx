@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import lotusLogoImage from "@/assets/lotus-logo.png";
+import lotusLogoImage from "@/assets/lotus-website-logo.png";
 import lotusIconImage from "@/assets/lotus-icon.png";
 
 interface LotusLogoProps {

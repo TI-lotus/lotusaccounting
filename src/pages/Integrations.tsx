@@ -1,44 +1,139 @@
+import { useEffect, useMemo, useState } from "react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
-import { Check, ExternalLink, Settings, Landmark, Shield, Building2, FileText, KeyRound, Database, Users, Banknote, Plug } from "lucide-react";
+import {
+  AlertTriangle,
+  Check,
+  Clock,
+  ExternalLink,
+  PauseCircle,
+  Plug,
+  Settings,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { EmptyState, ErrorState, LoadingState } from "@/components/PageStates";
 import { cn } from "@/lib/utils";
+import { useData } from "@/contexts/DataContext";
+import {
+  defaultConnectedIntegrationIds,
+  integrationCatalog,
+  integrationCategoryOrder,
+} from "@/lib/integrationCatalog";
+import { getConnectionHealthLabel } from "@/services/integrations/integrationConnections";
+import {
+  loadIntegrationOpsSnapshot,
+  type IntegrationOpsSnapshot,
+} from "@/services/integrations/integrationOps";
 
-type Category = "Governo" | "Fiscal" | "RH" | "Bancos";
+const statusStyles: Record<string, string> = {
+  connected:
+    "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400",
+  connecting:
+    "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300",
+  pending: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300",
+  error: "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300",
+  expired: "bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300",
+  disabled: "bg-muted text-muted-foreground",
+  disconnected: "bg-muted text-muted-foreground",
+};
 
-const integrations: { id: string; name: string; description: string; connected: boolean; icon: any; category: Category }[] = [
-  { id: "receita-federal", name: "Receita Federal", description: "Consulta de situação cadastral, CNPJ e declarações", connected: true, icon: Landmark, category: "Governo" },
-  { id: "serpro", name: "SERPRO", description: "Serviços de dados governamentais e certificação digital", connected: true, icon: Shield, category: "Governo" },
-  { id: "cnpj-api", name: "Consulta CNPJ", description: "API de consulta de dados cadastrais de empresas", connected: true, icon: Building2, category: "Governo" },
-  { id: "nfse", name: "NFSe Municipal", description: "Emissão e consulta de Notas Fiscais de Serviço", connected: false, icon: FileText, category: "Fiscal" },
-  { id: "certificado-a1", name: "Certificado Digital A1", description: "Gerenciamento de certificados digitais para assinatura", connected: false, icon: KeyRound, category: "Fiscal" },
-  { id: "sped", name: "SPED Fiscal", description: "Integração com o Sistema Público de Escrituração Digital", connected: true, icon: Database, category: "Fiscal" },
-  { id: "esocial", name: "eSocial", description: "Transmissão de obrigações trabalhistas e previdenciárias", connected: false, icon: Users, category: "RH" },
-  { id: "simples-nacional", name: "Simples Nacional", description: "Consulta e cálculo de DAS e obrigações do Simples", connected: true, icon: Banknote, category: "Fiscal" },
-  { id: "itau", name: "Itaú", description: "Conciliação bancária e pagamentos via Itaú", connected: false, icon: Landmark, category: "Bancos" },
-  { id: "bradesco", name: "Bradesco", description: "Integração para extratos e pagamentos Bradesco", connected: false, icon: Landmark, category: "Bancos" },
-  { id: "santander", name: "Santander", description: "Conciliação e cobranças via Santander", connected: false, icon: Landmark, category: "Bancos" },
-  { id: "inter", name: "Banco Inter", description: "Pix, boletos e conciliação automática", connected: true, icon: Landmark, category: "Bancos" },
-  { id: "nubank", name: "Nubank", description: "Extratos e conciliação para conta PJ Nubank", connected: false, icon: Landmark, category: "Bancos" },
-  { id: "brb", name: "BRB", description: "Integração com o Banco de Brasília", connected: false, icon: Landmark, category: "Bancos" },
-];
-
-const categoryOrder: Category[] = ["Governo", "Fiscal", "RH", "Bancos"];
+const StatusIcon = ({ status }: { status: string }) => {
+  if (status === "connected") return <Check className="h-3 w-3 mr-1" />;
+  if (status === "error" || status === "expired") {
+    return <AlertTriangle className="h-3 w-3 mr-1" />;
+  }
+  if (status === "disabled") return <PauseCircle className="h-3 w-3 mr-1" />;
+  if (status === "connecting" || status === "pending") {
+    return <Clock className="h-3 w-3 mr-1" />;
+  }
+  return null;
+};
 
 const Integrations = () => {
   const navigate = useNavigate();
+  const { integrationConnections } = useData();
+  const [ops, setOps] = useState<IntegrationOpsSnapshot | null>(null);
+  const [opsLoading, setOpsLoading] = useState(true);
+  const [opsError, setOpsError] = useState<string | null>(null);
+  const connectionById = new Map(
+    integrationConnections.map((connection) => [
+      connection.integration_id,
+      connection,
+    ]),
+  );
+  const totals = useMemo(
+    () => ({
+      connected: integrationConnections.filter(
+        (connection) => connection.status === "connected",
+      ).length,
+      pendingJobs: ops?.jobs.filter((job) =>
+        ["pending", "processing", "failed"].includes(job.status),
+      ).length ?? 0,
+      unresolvedErrors:
+        ops?.errors.filter((error) => !error.resolved).length ?? 0,
+      activeRules:
+        ops?.automationRules.filter((rule) => rule.enabled).length ?? 0,
+    }),
+    [integrationConnections, ops],
+  );
+
+  const loadOps = async () => {
+    setOpsLoading(true);
+    setOpsError(null);
+    try {
+      setOps(await loadIntegrationOpsSnapshot());
+    } catch (error) {
+      setOpsError(error instanceof Error ? error.message : "Erro desconhecido");
+    } finally {
+      setOpsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadOps();
+  }, []);
 
   return (
     <DashboardLayout>
       <div className="space-y-8">
         <div className="animate-fade-in">
           <h1 className="text-2xl font-semibold tracking-tight">Integrações</h1>
-          <p className="text-muted-foreground">Conecte serviços para otimizar seu fluxo contábil</p>
+          <p className="text-muted-foreground">
+            Conecte serviços para otimizar seu fluxo contábil
+          </p>
         </div>
 
-        {categoryOrder.map((category) => {
-          const items = integrations.filter((i) => i.category === category);
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            ["Conectadas", totals.connected],
+            ["Jobs pendentes", totals.pendingJobs],
+            ["Erros abertos", totals.unresolvedErrors],
+            ["Automações ativas", totals.activeRules],
+          ].map(([label, value]) => (
+            <Card key={label}>
+              <CardContent className="pt-6">
+                <p className="text-xs text-muted-foreground">{label}</p>
+                <p className="mt-1 text-2xl font-semibold">{value}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        <Tabs defaultValue="catalog" className="space-y-6">
+          <TabsList>
+            <TabsTrigger value="catalog">Catálogo</TabsTrigger>
+            <TabsTrigger value="ops">Operação</TabsTrigger>
+            <TabsTrigger value="audit">Auditoria</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="catalog" className="space-y-8">
+        {integrationCategoryOrder.map((category) => {
+          const items = integrationCatalog.filter(
+            (i) => i.category === category,
+          );
           if (!items.length) return null;
           return (
             <section key={category} className="space-y-3 animate-fade-in">
@@ -46,37 +141,102 @@ const Integrations = () => {
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {items.map((integration) => {
                   const Icon = integration.icon;
+                  const connection = connectionById.get(integration.id);
+                  const status = connection
+                    ? connection.status
+                    : defaultConnectedIntegrationIds.has(integration.id)
+                      ? "connected"
+                      : "disconnected";
+                  const connected = status === "connected";
                   return (
                     <div
                       key={integration.id}
                       className={cn(
                         "rounded-2xl border border-border bg-card p-4 flex flex-col gap-3 hover:shadow-soft-lg transition-all",
-                        integration.connected && "bg-gilver/5"
+                        connected && "bg-gilver/5",
                       )}
                     >
                       <div className="flex items-start justify-between gap-2">
-                        <div className={cn("p-2.5 rounded-xl", integration.connected ? "bg-gilver/15 text-gilver" : "bg-muted text-muted-foreground")}>
+                        <div
+                          className={cn(
+                            "p-2.5 rounded-xl",
+                            connected
+                              ? "bg-gilver/15 text-gilver"
+                              : "bg-muted text-muted-foreground",
+                          )}
+                        >
                           <Icon className="h-5 w-5" strokeWidth={1.5} />
                         </div>
-                        {integration.connected
-                          ? <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400"><Check className="h-3 w-3 mr-1" />Conectado</Badge>
-                          : <Badge variant="secondary">Desconectado</Badge>}
+                        <Badge className={statusStyles[status] ?? statusStyles.disconnected}>
+                          <StatusIcon status={status} />
+                          {getConnectionHealthLabel(status)}
+                        </Badge>
                       </div>
                       <div className="flex-1">
                         <h3 className="font-semibold">{integration.name}</h3>
-                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{integration.description}</p>
+                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                          {integration.description}
+                        </p>
+                        {connection && (
+                          <div className="mt-3 space-y-1 text-xs text-muted-foreground">
+                            <p>
+                              Conta:{" "}
+                              {connection.provider_account_name ||
+                                connection.account_label ||
+                                "não informada"}
+                            </p>
+                            <p>
+                              Último sync:{" "}
+                              {connection.last_sync_at
+                                ? new Date(
+                                    connection.last_sync_at,
+                                  ).toLocaleString("pt-BR")
+                                : "pendente"}
+                            </p>
+                            {(connection.last_error_at ||
+                              connection.status === "error") && (
+                              <p className="text-red-600 dark:text-red-300">
+                                Falha registrada:{" "}
+                                {connection.last_error_at
+                                  ? new Date(
+                                      connection.last_error_at,
+                                    ).toLocaleString("pt-BR")
+                                  : "verifique a conexão"}
+                              </p>
+                            )}
+                          </div>
+                        )}
                       </div>
                       <div className="flex gap-2">
                         <Button
-                          variant={integration.connected ? "outline" : "default"}
+                          variant={connected ? "outline" : "default"}
                           size="sm"
                           className="flex-1 rounded-xl gap-1.5"
-                          onClick={() => navigate(`/integrations/${integration.id}`)}
+                          onClick={() =>
+                            navigate(`/integrations/${integration.id}`)
+                          }
                         >
-                          {integration.connected ? <><ExternalLink className="h-3.5 w-3.5" />Gerenciar</> : <><Plug className="h-3.5 w-3.5" />Conectar</>}
+                          {connected ? (
+                            <>
+                              <ExternalLink className="h-3.5 w-3.5" />
+                              Gerenciar
+                            </>
+                          ) : (
+                            <>
+                              <Plug className="h-3.5 w-3.5" />
+                              Conectar
+                            </>
+                          )}
                         </Button>
-                        {integration.connected && (
-                          <Button variant="ghost" size="icon" className="rounded-xl" onClick={() => navigate(`/integrations/${integration.id}`)}>
+                        {connected && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="rounded-xl"
+                            onClick={() =>
+                              navigate(`/integrations/${integration.id}`)
+                            }
+                          >
                             <Settings className="h-4 w-4" />
                           </Button>
                         )}
@@ -88,9 +248,142 @@ const Integrations = () => {
             </section>
           );
         })}
+          </TabsContent>
+
+          <TabsContent value="ops" className="space-y-4">
+            <div className="flex justify-end">
+              <Button variant="outline" className="rounded-xl" onClick={loadOps}>
+                Atualizar
+              </Button>
+            </div>
+            {opsLoading ? (
+              <LoadingState rows={5} />
+            ) : opsError ? (
+              <ErrorState description={opsError} onRetry={loadOps} />
+            ) : ops ? (
+              <div className="grid gap-4 lg:grid-cols-2">
+                <OpsList
+                  title="Fila de jobs"
+                  rows={ops.jobs.map((job) => ({
+                    id: job.id,
+                    title: job.job_type,
+                    meta: `${job.status} · tentativas ${job.attempt_count}/${job.max_attempts}`,
+                    detail: job.last_error ?? job.scheduled_for,
+                  }))}
+                />
+                <OpsList
+                  title="Erros de integração"
+                  rows={ops.errors.map((error) => ({
+                    id: error.id,
+                    title: `${error.provider} · ${error.operation}`,
+                    meta: error.retryable ? "retentável" : "manual",
+                    detail: error.error_message ?? "Sem detalhe",
+                  }))}
+                />
+                <OpsList
+                  title="Eventos recebidos"
+                  rows={ops.events.map((event) => ({
+                    id: event.id,
+                    title: `${event.provider} · ${event.event_type}`,
+                    meta: event.status,
+                    detail: event.external_event_id ?? event.created_at,
+                  }))}
+                />
+                <OpsList
+                  title="Webhooks"
+                  rows={ops.webhooks.map((webhook) => ({
+                    id: webhook.id,
+                    title: webhook.provider,
+                    meta: `${webhook.status} · assinatura ${
+                      webhook.signature_valid ? "válida" : "pendente"
+                    }`,
+                    detail: webhook.external_event_id ?? webhook.received_at,
+                  }))}
+                />
+                <OpsList
+                  title="Sincronizações"
+                  rows={ops.syncRuns.map((sync) => ({
+                    id: sync.id,
+                    title: `${sync.provider} · ${sync.sync_type}`,
+                    meta: `${sync.status} · ${sync.items_processed}/${sync.items_received}`,
+                    detail: sync.error_message ?? sync.created_at,
+                  }))}
+                />
+                <OpsList
+                  title="Automações"
+                  rows={ops.automationRules.map((rule) => ({
+                    id: rule.id,
+                    title: rule.name,
+                    meta: `${rule.enabled ? "ativa" : "inativa"} · ${rule.trigger_event_type}`,
+                    detail: rule.action_type,
+                  }))}
+                />
+              </div>
+            ) : null}
+          </TabsContent>
+
+          <TabsContent value="audit" className="space-y-4">
+            {opsLoading ? (
+              <LoadingState rows={4} />
+            ) : opsError ? (
+              <ErrorState description={opsError} onRetry={loadOps} />
+            ) : (
+              <OpsList
+                title="Histórico técnico"
+                rows={(ops?.activityLogs ?? []).map((log) => ({
+                  id: log.id,
+                  title: `${log.entity ?? "registro"} · ${log.action ?? "ação"}`,
+                  meta: log.created_at
+                    ? new Date(log.created_at).toLocaleString("pt-BR")
+                    : "sem data",
+                  detail: log.entity_id ?? "sem entidade",
+                }))}
+              />
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
     </DashboardLayout>
   );
 };
+
+const OpsList = ({
+  title,
+  rows,
+}: {
+  title: string;
+  rows: { id: string; title: string; meta: string; detail: string }[];
+}) => (
+  <Card>
+    <CardHeader>
+      <CardTitle className="text-base">{title}</CardTitle>
+    </CardHeader>
+    <CardContent>
+      {rows.length === 0 ? (
+        <EmptyState
+          title="Nada por aqui"
+          description="Quando houver atividade, ela aparecerá nesta lista."
+        />
+      ) : (
+        <div className="space-y-3">
+          {rows.map((row) => (
+            <div
+              key={row.id}
+              className="rounded-xl border border-border bg-background p-3"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <p className="text-sm font-medium">{row.title}</p>
+                <Badge variant="secondary">{row.meta}</Badge>
+              </div>
+              <p className="mt-1 truncate text-xs text-muted-foreground">
+                {row.detail}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+    </CardContent>
+  </Card>
+);
 
 export default Integrations;

@@ -1,42 +1,87 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
-import { CheckCircle2, Circle, Clock, Plus, Calendar, AlertCircle, AlertTriangle, LayoutList, Columns3 } from "lucide-react";
+import {
+  CheckCircle2,
+  Circle,
+  Clock,
+  Plus,
+  Calendar,
+  AlertCircle,
+  AlertTriangle,
+  LayoutList,
+  Columns3,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import { useData } from "@/contexts/DataContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { TaskData, TaskStatus, TaskPriority, TaskType } from "@/types";
 import { filterTasks } from "@/lib/taskUtils";
 import { useViewMode } from "@/contexts/ViewModeContext";
 import { CalendarEventView } from "@/components/CalendarEventView";
 
+const currentMonthRange = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
+  return {
+    start: `${year}-${String(month).padStart(2, "0")}-01`,
+    end: new Date(year, month, 0).toISOString().slice(0, 10),
+  };
+};
+
 const Tasks = () => {
   const { tasks, addTask, updateTaskStatus, clients } = useData();
   const { viewMode } = useViewMode();
+  const { user, profile } = useAuth();
   const [statusFilter, setStatusFilter] = useState<TaskStatus | "all">("all");
   const [clientFilter, setClientFilter] = useState<string>("all");
   const [assigneeFilter, setAssigneeFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [viewType, setViewType] = useState<"list" | "grid" | "calendar">(viewMode === "client" ? "grid" : "list");
-  const [dateRange, setDateRange] = useState({ start: "2026-01-01", end: "2026-01-31" });
+  const [viewType, setViewType] = useState<"list" | "grid" | "calendar">(
+    viewMode === "client" ? "grid" : "list",
+  );
+  const [dateRange, setDateRange] = useState(currentMonthRange);
   const [newTask, setNewTask] = useState({
-    title: "", description: "", priority: "medium" as TaskPriority,
-    dueDate: "", category: "", clientId: "", assignedToId: "u2",
+    title: "",
+    description: "",
+    priority: "medium" as TaskPriority,
+    dueDate: "",
+    category: "",
+    clientId: "",
+    assignedToId: user?.id ?? "",
     type: "monthly" as TaskType,
   });
 
-  const assignees = Array.from(new Map(tasks.map(t => [t.assignedToId, t.assignedToName])).entries());
+  const currentUserName = profile?.full_name || user?.email || "Você";
+  const assignees = Array.from(
+    new Map([
+      ...(user?.id ? [[user.id, currentUserName] as [string, string]] : []),
+      ...tasks
+        .filter((t) => t.assignedToId)
+        .map((t) => [t.assignedToId, t.assignedToName] as [string, string]),
+    ]).entries(),
+  );
 
   const filteredTasks = filterTasks(tasks, {
     status: statusFilter,
@@ -46,16 +91,19 @@ const Tasks = () => {
   });
 
   const toggleTaskStatus = (taskId: string) => {
-    const task = tasks.find(t => t.id === taskId);
+    const task = tasks.find((t) => t.id === taskId);
     if (!task) return;
-    const newStatus: TaskStatus = task.status === "completed" ? "pending" : "completed";
+    const newStatus: TaskStatus =
+      task.status === "completed" ? "pending" : "completed";
     updateTaskStatus(taskId, newStatus);
   };
 
   const handleCreateTask = () => {
     if (!newTask.title.trim()) return;
-    const selectedClient = clients.find(c => c.id === newTask.clientId);
-    const assigneeName = assignees.find(([id]) => id === newTask.assignedToId)?.[1] || "Ana Costa";
+    const selectedClient = clients.find((c) => c.id === newTask.clientId);
+    const assigneeName =
+      assignees.find(([id]) => id === newTask.assignedToId)?.[1] ||
+      "Sem responsável";
 
     addTask({
       title: newTask.title,
@@ -71,16 +119,29 @@ const Tasks = () => {
       assignedToName: assigneeName,
     });
 
-    setNewTask({ title: "", description: "", priority: "medium", dueDate: "", category: "", clientId: "", assignedToId: "u2", type: "monthly" });
+    setNewTask({
+      title: "",
+      description: "",
+      priority: "medium",
+      dueDate: "",
+      category: "",
+      clientId: "",
+      assignedToId: user?.id ?? "",
+      type: "monthly",
+    });
     setDialogOpen(false);
   };
 
   const getStatusIcon = (status: TaskStatus) => {
     switch (status) {
-      case "completed": return <CheckCircle2 className="h-5 w-5 text-emerald-500" />;
-      case "in_progress": return <Clock className="h-5 w-5 text-amber-500" />;
-      case "overdue": return <AlertTriangle className="h-5 w-5 text-red-500" />;
-      default: return <Circle className="h-5 w-5 text-muted-foreground" />;
+      case "completed":
+        return <CheckCircle2 className="h-5 w-5 text-emerald-500" />;
+      case "in_progress":
+        return <Clock className="h-5 w-5 text-amber-500" />;
+      case "overdue":
+        return <AlertTriangle className="h-5 w-5 text-red-500" />;
+      default:
+        return <Circle className="h-5 w-5 text-muted-foreground" />;
     }
   };
 
@@ -91,35 +152,58 @@ const Tasks = () => {
       low: "bg-muted text-muted-foreground border-border",
     };
     const labels = { high: "Alta", medium: "Média", low: "Baixa" };
-    return <Badge variant="outline" className={cn("text-xs", variants[priority])}>{labels[priority]}</Badge>;
+    return (
+      <Badge variant="outline" className={cn("text-xs", variants[priority])}>
+        {labels[priority]}
+      </Badge>
+    );
   };
 
   const getTypeBadge = (type: TaskType) => {
     const labels = { monthly: "Mensal", annual: "Anual", one_time: "Única" };
-    return <Badge variant="outline" className="text-xs">{labels[type]}</Badge>;
+    return (
+      <Badge variant="outline" className="text-xs">
+        {labels[type]}
+      </Badge>
+    );
   };
 
-  const pendingCount = tasks.filter(t => t.status === "pending").length;
-  const inProgressCount = tasks.filter(t => t.status === "in_progress").length;
-  const completedCount = tasks.filter(t => t.status === "completed").length;
-  const overdueCount = tasks.filter(t => t.status === "overdue").length;
+  const pendingCount = tasks.filter((t) => t.status === "pending").length;
+  const inProgressCount = tasks.filter(
+    (t) => t.status === "in_progress",
+  ).length;
+  const completedCount = tasks.filter((t) => t.status === "completed").length;
+  const overdueCount = tasks.filter((t) => t.status === "overdue").length;
 
   const KanbanCard = ({ task }: { task: TaskData }) => (
-    <div className={cn(
-      "glass rounded-xl p-3 space-y-2.5 cursor-pointer hover:shadow-md transition-all",
-      task.status === "overdue" && "border border-red-500/30 bg-red-500/5"
-    )}>
+    <div
+      className={cn(
+        "glass rounded-xl p-3 space-y-2.5 cursor-pointer hover:shadow-md transition-all",
+        task.status === "overdue" && "border border-red-500/30 bg-red-500/5",
+      )}
+    >
       <div className="flex items-start justify-between gap-2">
-        <h4 className={cn("text-sm font-medium leading-tight", task.status === "completed" && "line-through text-muted-foreground")}>
+        <h4
+          className={cn(
+            "text-sm font-medium leading-tight",
+            task.status === "completed" && "line-through text-muted-foreground",
+          )}
+        >
           {task.title}
         </h4>
         {getPriorityBadge(task.priority)}
       </div>
       {task.description && (
-        <p className="text-xs text-muted-foreground line-clamp-2">{task.description}</p>
+        <p className="text-xs text-muted-foreground line-clamp-2">
+          {task.description}
+        </p>
       )}
       <div className="flex items-center gap-1.5 flex-wrap">
-        {task.clientName && <Badge variant="outline" className="text-[10px] py-0 px-1.5">{task.clientName}</Badge>}
+        {task.clientName && (
+          <Badge variant="outline" className="text-[10px] py-0 px-1.5">
+            {task.clientName}
+          </Badge>
+        )}
         {getTypeBadge(task.type)}
       </div>
       <div className="flex items-center justify-between pt-1.5 border-t border-border/50">
@@ -127,17 +211,27 @@ const Tasks = () => {
           <div className="h-5 w-5 rounded-full bg-muted flex items-center justify-center text-[9px] font-medium text-muted-foreground">
             {task.assignedToName?.charAt(0)}
           </div>
-          <span className="text-[11px] text-muted-foreground">{task.assignedToName}</span>
+          <span className="text-[11px] text-muted-foreground">
+            {task.assignedToName}
+          </span>
         </div>
         <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-          <Calendar className="h-2.5 w-2.5" />{new Date(task.dueDate).toLocaleDateString("pt-BR")}
+          <Calendar className="h-2.5 w-2.5" />
+          {new Date(task.dueDate).toLocaleDateString("pt-BR")}
         </span>
       </div>
       {task.status !== "completed" && (
-        <Button variant="outline" size="sm" className="w-full text-xs h-7 rounded-lg" onClick={() => {
-          if (task.status === "pending" || task.status === "overdue") updateTaskStatus(task.id, "in_progress");
-          else if (task.status === "in_progress") updateTaskStatus(task.id, "completed");
-        }}>
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full text-xs h-7 rounded-lg"
+          onClick={() => {
+            if (task.status === "pending" || task.status === "overdue")
+              updateTaskStatus(task.id, "in_progress");
+            else if (task.status === "in_progress")
+              updateTaskStatus(task.id, "completed");
+          }}
+        >
           {task.status === "in_progress" ? "✓ Concluir" : "▶ Iniciar"}
         </Button>
       )}
@@ -149,129 +243,255 @@ const Tasks = () => {
       <div className="space-y-6">
         <div className="flex items-center justify-between animate-fade-in">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Minhas Tarefas</h1>
-            <p className="text-muted-foreground">Gerencie suas tarefas e pendências</p>
+            <h1 className="text-2xl font-semibold tracking-tight">
+              Minhas Tarefas
+            </h1>
+            <p className="text-muted-foreground">
+              Gerencie suas tarefas e pendências
+            </p>
           </div>
           <div className="flex gap-2">
             <div className="flex border border-border rounded-xl overflow-hidden">
-              <Button variant={viewType === "list" ? "default" : "ghost"} size="sm" className="rounded-none rounded-l-xl" onClick={() => setViewType("list")}>
+              <Button
+                variant={viewType === "list" ? "default" : "ghost"}
+                size="sm"
+                className="rounded-none rounded-l-xl"
+                onClick={() => setViewType("list")}
+              >
                 <LayoutList className="h-4 w-4" />
               </Button>
-              <Button variant={viewType === "grid" ? "default" : "ghost"} size="sm" className="rounded-none rounded-r-xl" onClick={() => setViewType("grid")}>
+              <Button
+                variant={viewType === "grid" ? "default" : "ghost"}
+                size="sm"
+                className="rounded-none rounded-r-xl"
+                onClick={() => setViewType("grid")}
+              >
                 <Columns3 className="h-4 w-4" />
               </Button>
-              <Button variant={viewType === "calendar" ? "default" : "ghost"} size="sm" className="rounded-none" onClick={() => setViewType("calendar")}>
+              <Button
+                variant={viewType === "calendar" ? "default" : "ghost"}
+                size="sm"
+                className="rounded-none"
+                onClick={() => setViewType("calendar")}
+              >
                 <Calendar className="h-4 w-4" />
               </Button>
             </div>
-            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="gap-2"><Plus className="h-4 w-4" />Nova Tarefa</Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader><DialogTitle>Criar Nova Tarefa</DialogTitle></DialogHeader>
-                <div className="space-y-4 pt-4">
-                  <div className="space-y-2">
-                    <Label>Título</Label>
-                    <Input placeholder="Digite o título da tarefa" value={newTask.title} onChange={(e) => setNewTask({ ...newTask, title: e.target.value })} />
+            {viewMode !== "client" && (
+              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button className="gap-2">
+                    <Plus className="h-4 w-4" />
+                    Nova Tarefa
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Criar Nova Tarefa</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 pt-4">
+                    <div className="space-y-2">
+                      <Label>Título</Label>
+                      <Input
+                        placeholder="Digite o título da tarefa"
+                        value={newTask.title}
+                        onChange={(e) =>
+                          setNewTask({ ...newTask, title: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Descrição</Label>
+                      <Textarea
+                        placeholder="Descreva a tarefa"
+                        value={newTask.description}
+                        onChange={(e) =>
+                          setNewTask({
+                            ...newTask,
+                            description: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Tipo</Label>
+                        <Select
+                          value={newTask.type}
+                          onValueChange={(v: TaskType) =>
+                            setNewTask({ ...newTask, type: v })
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="monthly">Mensal</SelectItem>
+                            <SelectItem value="annual">Anual</SelectItem>
+                            <SelectItem value="one_time">Única</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Prioridade</Label>
+                        <Select
+                          value={newTask.priority}
+                          onValueChange={(v: TaskPriority) =>
+                            setNewTask({ ...newTask, priority: v })
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="low">Baixa</SelectItem>
+                            <SelectItem value="medium">Média</SelectItem>
+                            <SelectItem value="high">Alta</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Data Limite</Label>
+                        <Input
+                          type="date"
+                          value={newTask.dueDate}
+                          onChange={(e) =>
+                            setNewTask({ ...newTask, dueDate: e.target.value })
+                          }
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Categoria</Label>
+                        <Input
+                          placeholder="Ex: Fiscal, Contratos"
+                          value={newTask.category}
+                          onChange={(e) =>
+                            setNewTask({ ...newTask, category: e.target.value })
+                          }
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Cliente</Label>
+                        <Select
+                          value={newTask.clientId}
+                          onValueChange={(v) =>
+                            setNewTask({ ...newTask, clientId: v })
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {clients.map((c) => (
+                              <SelectItem key={c.id} value={c.id}>
+                                {c.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Responsável</Label>
+                        <Select
+                          value={newTask.assignedToId}
+                          onValueChange={(v) =>
+                            setNewTask({ ...newTask, assignedToId: v })
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {assignees.map(([id, name]) => (
+                              <SelectItem key={id} value={id}>
+                                {name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <Button onClick={handleCreateTask} className="w-full">
+                      Criar Tarefa
+                    </Button>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Descrição</Label>
-                    <Textarea placeholder="Descreva a tarefa" value={newTask.description} onChange={(e) => setNewTask({ ...newTask, description: e.target.value })} />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Tipo</Label>
-                      <Select value={newTask.type} onValueChange={(v: TaskType) => setNewTask({ ...newTask, type: v })}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="monthly">Mensal</SelectItem>
-                          <SelectItem value="annual">Anual</SelectItem>
-                          <SelectItem value="one_time">Única</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Prioridade</Label>
-                      <Select value={newTask.priority} onValueChange={(v: TaskPriority) => setNewTask({ ...newTask, priority: v })}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="low">Baixa</SelectItem>
-                          <SelectItem value="medium">Média</SelectItem>
-                          <SelectItem value="high">Alta</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Data Limite</Label>
-                      <Input type="date" value={newTask.dueDate} onChange={(e) => setNewTask({ ...newTask, dueDate: e.target.value })} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Categoria</Label>
-                      <Input placeholder="Ex: Fiscal, Contratos" value={newTask.category} onChange={(e) => setNewTask({ ...newTask, category: e.target.value })} />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Cliente</Label>
-                      <Select value={newTask.clientId} onValueChange={(v) => setNewTask({ ...newTask, clientId: v })}>
-                        <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                        <SelectContent>
-                          {clients.map(c => (<SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Responsável</Label>
-                      <Select value={newTask.assignedToId} onValueChange={(v) => setNewTask({ ...newTask, assignedToId: v })}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {assignees.map(([id, name]) => (<SelectItem key={id} value={id}>{name}</SelectItem>))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  <Button onClick={handleCreateTask} className="w-full">Criar Tarefa</Button>
-                </div>
-              </DialogContent>
-            </Dialog>
+                </DialogContent>
+              </Dialog>
+            )}
           </div>
         </div>
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-fade-in">
           <div className="glass rounded-2xl p-4 flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-red-500/10"><AlertTriangle className="h-5 w-5 text-red-500" /></div>
-            <div><p className="text-2xl font-semibold">{overdueCount}</p><p className="text-sm text-muted-foreground">Atrasadas</p></div>
+            <div className="p-3 rounded-xl bg-red-500/10">
+              <AlertTriangle className="h-5 w-5 text-red-500" />
+            </div>
+            <div>
+              <p className="text-2xl font-semibold">{overdueCount}</p>
+              <p className="text-sm text-muted-foreground">Atrasadas</p>
+            </div>
           </div>
           <div className="glass rounded-2xl p-4 flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-amber-500/10"><AlertCircle className="h-5 w-5 text-amber-500" /></div>
-            <div><p className="text-2xl font-semibold">{pendingCount}</p><p className="text-sm text-muted-foreground">Pendentes</p></div>
+            <div className="p-3 rounded-xl bg-amber-500/10">
+              <AlertCircle className="h-5 w-5 text-amber-500" />
+            </div>
+            <div>
+              <p className="text-2xl font-semibold">{pendingCount}</p>
+              <p className="text-sm text-muted-foreground">Pendentes</p>
+            </div>
           </div>
           <div className="glass rounded-2xl p-4 flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-primary/10"><Clock className="h-5 w-5 text-primary" /></div>
-            <div><p className="text-2xl font-semibold">{inProgressCount}</p><p className="text-sm text-muted-foreground">Em Andamento</p></div>
+            <div className="p-3 rounded-xl bg-primary/10">
+              <Clock className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <p className="text-2xl font-semibold">{inProgressCount}</p>
+              <p className="text-sm text-muted-foreground">Em Andamento</p>
+            </div>
           </div>
           <div className="glass rounded-2xl p-4 flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-emerald-500/10"><CheckCircle2 className="h-5 w-5 text-emerald-500" /></div>
-            <div><p className="text-2xl font-semibold">{completedCount}</p><p className="text-sm text-muted-foreground">Concluídas</p></div>
+            <div className="p-3 rounded-xl bg-emerald-500/10">
+              <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+            </div>
+            <div>
+              <p className="text-2xl font-semibold">{completedCount}</p>
+              <p className="text-sm text-muted-foreground">Concluídas</p>
+            </div>
           </div>
         </div>
 
         {/* Filters */}
         <div className="flex flex-wrap gap-2 animate-fade-in">
           <div className="flex gap-2">
-            {([["all", "Todas"], ["overdue", "Atrasadas"], ["pending", "Pendentes"], ["in_progress", "Em Andamento"], ["completed", "Concluídas"]] as const).map(([value, label]) => (
-              <Button key={value} variant={statusFilter === value ? "default" : "outline"} size="sm" onClick={() => setStatusFilter(value)}>
+            {(
+              [
+                ["all", "Todas"],
+                ["overdue", "Atrasadas"],
+                ["pending", "Pendentes"],
+                ["in_progress", "Em Andamento"],
+                ["completed", "Concluídas"],
+              ] as const
+            ).map(([value, label]) => (
+              <Button
+                key={value}
+                variant={statusFilter === value ? "default" : "outline"}
+                size="sm"
+                onClick={() => setStatusFilter(value)}
+              >
                 {label}
               </Button>
             ))}
           </div>
           <div className="ml-auto flex gap-2">
             <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-[120px] h-9 text-sm"><SelectValue placeholder="Tipo" /></SelectTrigger>
+              <SelectTrigger className="w-[120px] h-9 text-sm">
+                <SelectValue placeholder="Tipo" />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos tipos</SelectItem>
                 <SelectItem value="monthly">Mensal</SelectItem>
@@ -279,26 +499,43 @@ const Tasks = () => {
                 <SelectItem value="one_time">Única</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={clientFilter} onValueChange={setClientFilter}>
-              <SelectTrigger className="w-[160px] h-9 text-sm"><SelectValue placeholder="Cliente" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos clientes</SelectItem>
-                {clients.map(c => (<SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>))}
-              </SelectContent>
-            </Select>
-            <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
-              <SelectTrigger className="w-[160px] h-9 text-sm"><SelectValue placeholder="Responsável" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                {assignees.map(([id, name]) => (<SelectItem key={id} value={id}>{name}</SelectItem>))}
-              </SelectContent>
-            </Select>
+            {viewMode !== "client" && (
+              <Select value={clientFilter} onValueChange={setClientFilter}>
+                <SelectTrigger className="w-[160px] h-9 text-sm">
+                  <SelectValue placeholder="Cliente" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos clientes</SelectItem>
+                  {clients.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            {viewMode !== "client" && (
+              <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
+                <SelectTrigger className="w-[160px] h-9 text-sm">
+                  <SelectValue placeholder="Responsável" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  {assignees.map(([id, name]) => (
+                    <SelectItem key={id} value={id}>
+                      {name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
         </div>
 
         {viewMode === "client" && (
           <div className="glass rounded-2xl p-4 text-sm text-muted-foreground animate-fade-in">
-            As tarefas do cliente reúnem dados, documentos e pagamentos enviados para a Lotus.
+            As tarefas do cliente reúnem dados, documentos e pagamentos enviados
+            para a Lotus.
           </div>
         )}
 
@@ -307,32 +544,79 @@ const Tasks = () => {
             title="Calendário de tarefas"
             dateRange={dateRange}
             onDateRangeChange={setDateRange}
-            events={filteredTasks.map((task, index) => ({
-              day: ((index * 3) % 30) + 1,
+            events={filteredTasks.map((task) => ({
+              day: new Date(task.dueDate).getDate(),
               title: task.title,
               subtitle: `${task.category} • ${task.clientName ?? "Lotus"}`,
               time: "10:00",
-              status: task.status === "completed" ? "Concluída" : task.status === "overdue" ? "Atrasada" : "Pendente",
+              status:
+                task.status === "completed"
+                  ? "Concluída"
+                  : task.status === "overdue"
+                    ? "Atrasada"
+                    : "Pendente",
             }))}
           />
         ) : viewType === "grid" ? (
           <div className="grid grid-cols-1 gap-4 animate-fade-in md:grid-cols-2 xl:grid-cols-4">
-            {([
-              { key: "overdue", label: "Atraso", color: "text-red-600", bg: "bg-red-500/10" },
-              { key: "pending", label: "Pendente", color: "text-amber-600", bg: "bg-amber-500/10" },
-              { key: "in_progress", label: "Em andamento", color: "text-primary", bg: "bg-primary/10" },
-              { key: "completed", label: "Concluído", color: "text-emerald-600", bg: "bg-emerald-500/10" },
-            ] as const).map((col) => {
-              const colTasks = filteredTasks.filter((t) => t.status === col.key);
+            {(
+              [
+                {
+                  key: "overdue",
+                  label: "Atraso",
+                  color: "text-red-600",
+                  bg: "bg-red-500/10",
+                },
+                {
+                  key: "pending",
+                  label: "Pendente",
+                  color: "text-amber-600",
+                  bg: "bg-amber-500/10",
+                },
+                {
+                  key: "in_progress",
+                  label: "Em andamento",
+                  color: "text-primary",
+                  bg: "bg-primary/10",
+                },
+                {
+                  key: "completed",
+                  label: "Concluído",
+                  color: "text-emerald-600",
+                  bg: "bg-emerald-500/10",
+                },
+              ] as const
+            ).map((col) => {
+              const colTasks = filteredTasks.filter(
+                (t) => t.status === col.key,
+              );
               return (
-                <div key={col.key} className="rounded-2xl border border-border bg-card/50 p-3 space-y-3 min-h-[300px]">
-                  <div className={cn("flex items-center justify-between rounded-xl px-3 py-2", col.bg)}>
-                    <h3 className={cn("text-sm font-semibold", col.color)}>{col.label}</h3>
-                    <Badge variant="secondary" className="rounded-full text-xs">{colTasks.length}</Badge>
+                <div
+                  key={col.key}
+                  className="rounded-2xl border border-border bg-card/50 p-3 space-y-3 min-h-[300px]"
+                >
+                  <div
+                    className={cn(
+                      "flex items-center justify-between rounded-xl px-3 py-2",
+                      col.bg,
+                    )}
+                  >
+                    <h3 className={cn("text-sm font-semibold", col.color)}>
+                      {col.label}
+                    </h3>
+                    <Badge variant="secondary" className="rounded-full text-xs">
+                      {colTasks.length}
+                    </Badge>
                   </div>
                   <div className="space-y-2">
-                    {colTasks.map((task) => <KanbanCard key={task.id} task={task} />)}
-                    {colTasks.length === 0 && <p className="text-xs text-muted-foreground text-center py-6">Vazio</p>}
+                    {colTasks.map((task) => (
+                      <KanbanCard key={task.id} task={task} />
+                    ))}
+                    {colTasks.length === 0 && (
+                      <p className="text-xs text-muted-foreground text-center py-6">
+                        Vazio
+                      </p>
+                    )}
                   </div>
                 </div>
               );
@@ -347,21 +631,41 @@ const Tasks = () => {
                 className={cn(
                   "glass rounded-2xl p-4 flex items-start gap-4 transition-all",
                   task.status === "completed" && "opacity-60",
-                  task.status === "overdue" && "border border-red-500/30"
+                  task.status === "overdue" && "border border-red-500/30",
                 )}
                 style={{ animationDelay: `${index * 50}ms` }}
               >
-                <Checkbox checked={task.status === "completed"} onCheckedChange={() => toggleTaskStatus(task.id)} className="mt-1" />
+                <Checkbox
+                  checked={task.status === "completed"}
+                  onCheckedChange={() => toggleTaskStatus(task.id)}
+                  className="mt-1"
+                />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className={cn("font-medium", task.status === "completed" && "line-through text-muted-foreground")}>{task.title}</h3>
+                    <h3
+                      className={cn(
+                        "font-medium",
+                        task.status === "completed" &&
+                          "line-through text-muted-foreground",
+                      )}
+                    >
+                      {task.title}
+                    </h3>
                     {getPriorityBadge(task.priority)}
                     {getTypeBadge(task.type)}
-                    <Badge variant="outline" className="text-xs">{task.category}</Badge>
+                    <Badge variant="outline" className="text-xs">
+                      {task.category}
+                    </Badge>
                   </div>
-                  <p className="text-sm text-muted-foreground mt-1">{task.description}</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {task.description}
+                  </p>
                   <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground flex-wrap">
-                    <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />Prazo: {new Date(task.dueDate).toLocaleDateString("pt-BR")}</span>
+                    <span className="flex items-center gap-1">
+                      <Calendar className="h-3 w-3" />
+                      Prazo:{" "}
+                      {new Date(task.dueDate).toLocaleDateString("pt-BR")}
+                    </span>
                     {task.clientName && <span>Cliente: {task.clientName}</span>}
                     <span>Responsável: {task.assignedToName}</span>
                   </div>
@@ -369,7 +673,12 @@ const Tasks = () => {
                 <div className="flex flex-col items-center gap-1">
                   {getStatusIcon(task.status)}
                   {task.status !== "completed" && task.status !== "overdue" && (
-                    <Button variant="ghost" size="sm" className="text-xs h-6 px-2" onClick={() => updateTaskStatus(task.id, "in_progress")}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs h-6 px-2"
+                      onClick={() => updateTaskStatus(task.id, "in_progress")}
+                    >
                       Iniciar
                     </Button>
                   )}

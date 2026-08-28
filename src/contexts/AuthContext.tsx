@@ -21,7 +21,7 @@ type AuthContextValue = {
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signInWithProvider: (provider: "google" | "facebook") => Promise<void>;
-  signUp: (params: { email: string; password: string; fullName: string; accountType: string; cpf?: string }) => Promise<void>;
+  signUp: (params: { email: string; password: string; fullName: string; accountType: string; workspaceName?: string; inviteToken?: string; cpf?: string }) => Promise<void>;
   signOut: () => Promise<void>;
 };
 
@@ -77,13 +77,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
       if (error) throw error;
     },
-    signUp: async ({ email, password, fullName, accountType }) => {
+    signUp: async ({ email, password, fullName, accountType, workspaceName, inviteToken }) => {
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           emailRedirectTo: window.location.origin,
-          data: { full_name: fullName, account_type: accountType },
+          data: {
+            full_name: fullName,
+            account_type: accountType,
+            workspace_name: workspaceName,
+            invite_token: inviteToken,
+          },
         },
       });
       if (error) throw error;
