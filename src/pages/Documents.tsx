@@ -55,6 +55,7 @@ import { cn } from "@/lib/utils";
 import { CalendarEventView } from "@/components/CalendarEventView";
 import { supabase } from "@/integrations/supabase/client";
 import { useViewMode } from "@/contexts/ViewModeContext";
+import { KPITrend } from "@/components/dashboard/KPICard";
 
 const statusColors: Record<string, string> = {
   paid: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400",
@@ -77,6 +78,24 @@ const statusLabels: Record<string, string> = {
   processed: "Processado",
 };
 
+type DocumentRequestView = "actionable" | "approval" | "rejected" | "overdue" | "resolved" | "all";
+
+const documentRequestStatusLabels: Record<string, string> = {
+  requested: "Solicitado",
+  uploaded: "Aguardando aprovação",
+  approved: "Aprovado",
+  rejected: "Recusado",
+  waived: "Dispensado",
+};
+
+const documentRequestStatusStyles: Record<string, string> = {
+  requested: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300",
+  uploaded: "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300",
+  approved: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
+  rejected: "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300",
+  waived: "bg-slate-100 text-slate-700 dark:bg-slate-950 dark:text-slate-300",
+};
+
 const now = new Date();
 const currentMonth = now.getMonth() + 1;
 const currentYear = now.getFullYear();
@@ -84,6 +103,7 @@ const currentMonthStart = `${currentYear}-${String(currentMonth).padStart(2, "0"
 const currentMonthEnd = new Date(currentYear, currentMonth, 0)
   .toISOString()
   .slice(0, 10);
+const todayIso = new Date().toISOString().slice(0, 10);
 
 const months = [
   { value: "1", label: "Janeiro" },
@@ -133,6 +153,13 @@ const formatFileSize = (bytes?: number | null) => {
 const getFileExtension = (fileName: string) =>
   fileName.split(".").pop()?.toLowerCase() || "pdf";
 
+const isRequestOverdue = (request: { dueDate: string | null; status: string }) =>
+  Boolean(
+    request.dueDate &&
+      request.dueDate < todayIso &&
+      !["approved", "waived"].includes(request.status),
+  );
+
 const fileTypeIcons: Record<string, React.ReactNode> = {
   pdf: <FileText className="h-4 w-4 text-red-500" />,
   xml: <FileCode className="h-4 w-4 text-emerald-500" />,
@@ -149,6 +176,7 @@ const Documents = () => {
     updateDocument,
     deleteDocument,
     processFileUpload,
+    documentRequests,
     clients,
   } = useData();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -157,6 +185,7 @@ const Documents = () => {
   const [filterYear, setFilterYear] = useState<string>(String(currentYear));
   const [filterClient, setFilterClient] = useState<string>("all");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadRequestId, setUploadRequestId] = useState<string | undefined>();
   const [newDoc, setNewDoc] = useState({
     name: "",
     client: "",
@@ -165,6 +194,7 @@ const Documents = () => {
   });
   const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("recebidos");
+  const [requestView, setRequestView] = useState<DocumentRequestView>("actionable");
   const [view, setView] = useState<"dashboard" | "list" | "calendar">(
     "dashboard",
   );
@@ -181,8 +211,30 @@ const Documents = () => {
     const clientMatch = filterClient === "all" || doc.clientId === filterClient;
     return statusMatch && monthMatch && yearMatch && clientMatch;
   });
+  const visibleDocumentRequests = documentRequests.filter((request) =>
+    filterClient === "all" || request.companyId === filterClient,
+  );
+  const pendingDocumentRequests = visibleDocumentRequests.filter((request) =>
+    ["requested", "rejected"].includes(request.status),
+  );
+  const requestCounts = {
+    actionable: visibleDocumentRequests.filter((request) => ["requested", "rejected"].includes(request.status)).length,
+    approval: visibleDocumentRequests.filter((request) => request.status === "uploaded").length,
+    rejected: visibleDocumentRequests.filter((request) => request.status === "rejected").length,
+    overdue: visibleDocumentRequests.filter(isRequestOverdue).length,
+    resolved: visibleDocumentRequests.filter((request) => ["approved", "waived"].includes(request.status)).length,
+    all: visibleDocumentRequests.length,
+  };
+  const filteredDocumentRequests = visibleDocumentRequests.filter((request) => {
+    if (requestView === "actionable") return ["requested", "rejected"].includes(request.status);
+    if (requestView === "approval") return request.status === "uploaded";
+    if (requestView === "rejected") return request.status === "rejected";
+    if (requestView === "overdue") return isRequestOverdue(request);
+    if (requestView === "resolved") return ["approved", "waived"].includes(request.status);
+    return true;
+  });
 
-  const handleAddDocument = () => {
+  const handleAddDocument = async () => {
     if (!newDoc.name || !newDoc.client) {
       toast.error("Preencha nome e cliente");
       return;
@@ -209,29 +261,29 @@ const Documents = () => {
       classifiedAutomatically: false,
       classificationConfidence: 1,
     };
-    addDocument(doc);
+    if (!await addDocument(doc)) return;
     toast.success("Documento criado com sucesso!");
     setNewDoc({ name: "", client: "", type: "fatura", amount: "" });
     setDialogOpen(false);
   };
 
-  const handleDeleteDocument = (id: string) => {
-    deleteDocument(id);
+  const handleDeleteDocument = async (id: string) => {
+    if (!await deleteDocument(id)) return;
     toast.success("Documento removido!");
   };
 
-  const handleMarkAsPaid = (id: string) => {
-    updateDocument(id, { status: "paid" });
+  const handleMarkAsPaid = async (id: string) => {
+    if (!await updateDocument(id, { status: "paid" })) return;
     toast.success("Marcado como pago!");
   };
 
-  const handleMarkAsRead = (id: string) => {
-    updateDocument(id, { status: "read", readAt: new Date().toISOString() });
+  const handleMarkAsRead = async (id: string) => {
+    if (!await updateDocument(id, { status: "read", readAt: new Date().toISOString() })) return;
     toast.success("Marcado como lido!");
   };
 
   const handleSendReminder = (doc: DocumentData) => {
-    toast.success(`Lembrete enviado para ${doc.clientName}!`);
+    toast.info(`Envio de lembretes para ${doc.clientName ?? "o cliente"} depende de um canal conectado.`);
   };
 
   const createDocumentUrl = async (doc: DocumentData) => {
@@ -286,10 +338,16 @@ const Documents = () => {
     const files = e.target.files;
     if (files && files.length > 0) {
       for (let i = 0; i < files.length; i++) {
-        void processFileUpload(files[i]);
+        void processFileUpload(files[i], uploadRequestId);
       }
       if (fileInputRef.current) fileInputRef.current.value = "";
+      setUploadRequestId(undefined);
     }
+  };
+
+  const uploadForRequest = (requestId: string) => {
+    setUploadRequestId(requestId);
+    fileInputRef.current?.click();
   };
 
   return (
@@ -321,7 +379,10 @@ const Documents = () => {
               <Button
                 variant="outline"
                 className="gap-2"
-                onClick={() => fileInputRef.current?.click()}
+                onClick={() => {
+                  setUploadRequestId(undefined);
+                  fileInputRef.current?.click();
+                }}
               >
                 <Upload className="h-4 w-4" />
                 Enviar Arquivos
@@ -395,7 +456,7 @@ const Documents = () => {
                             <SelectValue placeholder="Selecione um cliente" />
                           </SelectTrigger>
                           <SelectContent>
-                            {clients.map((c) => (
+                            {clients.filter((client) => client.status === "active").map((c) => (
                               <SelectItem key={c.id} value={c.id}>
                                 {c.name}
                               </SelectItem>
@@ -431,6 +492,80 @@ const Documents = () => {
             </div>
           </div>
 
+          {visibleDocumentRequests.length > 0 && (
+            <div className="glass rounded-2xl p-6 animate-fade-in">
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-lg font-semibold">Solicitações de documentos</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {pendingDocumentRequests.length} solicitação(ões) aguardando envio ou reenvio e {requestCounts.approval} aguardando aprovação.
+                  </p>
+                </div>
+                <Badge variant="outline">{visibleDocumentRequests.length} no total</Badge>
+              </div>
+              <div className="mb-4 flex flex-wrap gap-2">
+                {[
+                  { value: "actionable", label: "Pendentes", count: requestCounts.actionable },
+                  { value: "approval", label: "Aprovação", count: requestCounts.approval },
+                  { value: "rejected", label: "Recusados", count: requestCounts.rejected },
+                  { value: "overdue", label: "Vencidos", count: requestCounts.overdue },
+                  { value: "resolved", label: "Resolvidos", count: requestCounts.resolved },
+                  { value: "all", label: "Todos", count: requestCounts.all },
+                ].map((item) => (
+                  <Button
+                    key={item.value}
+                    size="sm"
+                    variant={requestView === item.value ? "default" : "outline"}
+                    className="h-8 rounded-xl gap-2"
+                    onClick={() => setRequestView(item.value as DocumentRequestView)}
+                  >
+                    {item.label}
+                    <Badge variant="secondary" className="h-5 rounded-lg px-1.5 text-[10px]">
+                      {item.count}
+                    </Badge>
+                  </Button>
+                ))}
+              </div>
+              <div className="grid gap-3 lg:grid-cols-2">
+                {filteredDocumentRequests.map((request) => {
+                  const client = clients.find((item) => item.id === request.companyId);
+                  const canUpload = ["requested", "rejected"].includes(request.status);
+                  const overdue = isRequestOverdue(request);
+                  return (
+                    <div key={request.id} className="rounded-xl border border-border p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium">{request.title}</p>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {client?.name ?? "Cliente"} · venc. {request.dueDate ? new Date(`${request.dueDate}T00:00:00`).toLocaleDateString("pt-BR") : "sem prazo"}
+                          </p>
+                        </div>
+                        <Badge className={cn("shrink-0 text-[10px]", documentRequestStatusStyles[request.status])}>
+                          {documentRequestStatusLabels[request.status] ?? request.status}
+                        </Badge>
+                      </div>
+                      {overdue && <Badge variant="destructive" className="mt-2 text-[10px]">Vencido</Badge>}
+                      {request.description && <p className="mt-2 text-xs text-muted-foreground">{request.description}</p>}
+                      {request.rejectionReason && <p className="mt-2 text-xs text-red-600">{request.rejectionReason}</p>}
+                      {request.waivedReason && <p className="mt-2 text-xs text-muted-foreground">{request.waivedReason}</p>}
+                      {canUpload && (
+                        <Button className="mt-3 h-8 rounded-lg gap-2" size="sm" onClick={() => uploadForRequest(request.id)}>
+                          <Upload className="h-3.5 w-3.5" />
+                          {request.status === "rejected" ? "Reenviar arquivo" : "Enviar arquivo"}
+                        </Button>
+                      )}
+                    </div>
+                  );
+                })}
+                {filteredDocumentRequests.length === 0 && (
+                  <div className="rounded-xl border border-dashed border-border p-6 text-sm text-muted-foreground lg:col-span-2">
+                    Nenhuma solicitação nesta visão.
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           <div className="flex flex-wrap items-center justify-between gap-3 animate-fade-in">
             <div className="flex rounded-2xl border border-border bg-card p-1">
               {[
@@ -462,14 +597,24 @@ const Documents = () => {
           {view === "dashboard" && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-fade-in">
               <div className="kpi-card">
-                <p className="text-sm text-muted-foreground">Documentos</p>
-                <p className="text-2xl font-semibold">{documents.length}</p>
+                <div className="flex items-end justify-between gap-3">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Documentos</p>
+                    <p className="text-2xl font-semibold">{documents.length}</p>
+                  </div>
+                  <KPITrend />
+                </div>
               </div>
               <div className="kpi-card">
-                <p className="text-sm text-muted-foreground">Pendentes</p>
-                <p className="text-2xl font-semibold">
-                  {documents.filter((doc) => doc.status === "pending").length}
-                </p>
+                <div className="flex items-end justify-between gap-3">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Pendentes</p>
+                    <p className="text-2xl font-semibold">
+                      {documents.filter((doc) => doc.status === "pending").length}
+                    </p>
+                  </div>
+                  <KPITrend />
+                </div>
               </div>
               <div className="kpi-card">
                 <p className="text-sm text-muted-foreground">Período</p>
@@ -543,7 +688,7 @@ const Documents = () => {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="all">Todos clientes</SelectItem>
-                          {clients.map((c) => (
+                          {clients.filter((client) => client.status === "active").map((c) => (
                             <SelectItem key={c.id} value={c.id}>
                               {c.name}
                             </SelectItem>

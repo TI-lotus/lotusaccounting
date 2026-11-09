@@ -1,23 +1,24 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { cn } from "@/lib/utils";
+import { useData } from "@/contexts/DataContext";
+import { expenseDistribution, type DateRange } from "@/lib/financialMetrics";
 
-const expenseData = [
-  { name: "Folha de Pagamento", value: 45, color: "hsl(28, 38%, 84%)" },
-  { name: "Operacional", value: 25, color: "hsl(28, 30%, 70%)" },
-  { name: "Marketing", value: 15, color: "hsl(28, 25%, 55%)" },
-  { name: "Outros", value: 15, color: "hsl(0, 0%, 40%)" },
-];
+const colors = ["#d2b58a", "#849c8a", "#888888", "#b77575", "#8195a6"];
 
 interface QuickStatsProps {
   className?: string;
+  dateRange?: DateRange;
 }
 
-export const QuickStats = ({ className }: QuickStatsProps) => {
+export const QuickStats = ({ className, dateRange }: QuickStatsProps) => {
+  const { payments } = useData();
+  const expenseData = expenseDistribution(payments, dateRange).map((item, index) => ({ ...item, color: colors[index % colors.length] }));
+  const total = expenseData.reduce((sum, item) => sum + item.value, 0);
   return (
     <div className={cn("glass rounded-2xl p-6 animate-fade-in", className)}>
       <div className="mb-4">
         <h3 className="text-lg font-semibold">Distribuição de Despesas</h3>
-        <p className="text-sm text-muted-foreground">Distribuição do mês atual</p>
+        <p className="text-sm text-muted-foreground">Despesas liquidadas</p>
       </div>
       <div className="h-[200px] relative">
         <ResponsiveContainer width="100%" height="100%">
@@ -41,13 +42,13 @@ export const QuickStats = ({ className }: QuickStatsProps) => {
                 border: "1px solid hsl(var(--border))",
                 borderRadius: "8px",
               }}
-              formatter={(value: number) => [`${value}%`, ""]}
+              formatter={(value: number) => [value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }), ""]}
             />
           </PieChart>
         </ResponsiveContainer>
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center">
-            <p className="text-2xl font-bold">R$ 48K</p>
+            <p className="text-lg font-bold">{total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p>
             <p className="text-xs text-muted-foreground">Total</p>
           </div>
         </div>
@@ -60,7 +61,7 @@ export const QuickStats = ({ className }: QuickStatsProps) => {
               style={{ backgroundColor: item.color }}
             />
             <span className="text-xs text-muted-foreground truncate">{item.name}</span>
-            <span className="text-xs font-medium ml-auto">{item.value}%</span>
+            <span className="text-xs font-medium ml-auto">{total ? Math.round(item.value / total * 100) : 0}%</span>
           </div>
         ))}
       </div>

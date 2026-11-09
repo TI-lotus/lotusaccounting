@@ -1,1 +1,23 @@
 project_id = "peguwukoyprqzgfqxhju"
+
+[auth]
+site_url = "https://lotusaccounting.vercel.app"
+additional_redirect_urls = [
+  "https://lotusaccounting.vercel.app",
+  "https://lotusaccounting.vercel.app/auth",
+  "https://lotusaccounting.vercel.app/**",
+  "http://localhost:3000",
+  "http://localhost:5173",
+]
+
+[auth.email]
+enable_confirmations = false
+
+[functions.run-integration-scheduler]
+verify_jwt = false
+
+[functions.asaas-webhook]
+verify_jwt = false
+
+[functions.client-self-signup]
+verify_jwt = false

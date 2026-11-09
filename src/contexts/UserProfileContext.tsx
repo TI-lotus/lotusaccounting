@@ -16,6 +16,8 @@ type UserProfileContextValue = UserProfileState & {
   fullName: string;
   initials: string;
   updateProfile: (updates: Partial<UserProfileState>) => void;
+  saveProfile: () => Promise<{ ok: boolean; emailConfirmationRequired: boolean }>;
+  uploadAvatar: (file: File) => Promise<boolean>;
 };
 
 const defaultProfile: UserProfileState = {
@@ -28,59 +30,59 @@ const defaultProfile: UserProfileState = {
   cnpj: "",
 };
 
-// Only these non-sensitive fields are persisted to localStorage.
-// Sensitive identifiers (cpf, cnpj, email) are loaded from the backend on demand.
-const PERSISTED_KEYS = ["firstName", "lastName", "avatarUrl", "companyName"] as const;
-const STORAGE_KEY = "lotus-user-profile";
-
 const UserProfileContext = createContext<UserProfileContextValue | undefined>(undefined);
 
 export const UserProfileProvider = ({ children }: { children: React.ReactNode }) => {
-  const { user } = useAuth();
-  const [profile, setProfile] = useState<UserProfileState>(() => {
-    if (typeof window === "undefined") return defaultProfile;
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      return stored ? { ...defaultProfile, ...JSON.parse(stored) } : defaultProfile;
-    } catch {
-      return defaultProfile;
-    }
-  });
+  const { user, profile: authProfile } = useAuth();
+  const [profile, setProfile] = useState<UserProfileState>(defaultProfile);
 
-  // Persist only non-sensitive fields
   useEffect(() => {
-    const safe: Partial<UserProfileState> = {};
-    for (const key of PERSISTED_KEYS) safe[key] = profile[key];
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(safe));
-  }, [profile]);
+    setProfile(defaultProfile);
+    if (!user || !authProfile?.tenant_id) return;
 
-  // Load sensitive identifiers from backend after auth
-  useEffect(() => {
-    if (!user) {
-      setProfile((current) => ({ ...current, email: "", cpf: "", cnpj: "" }));
-      return;
-    }
     let cancelled = false;
-    (async () => {
-      const { data } = await supabase
-        .from("profiles" as never)
-        .select("full_name, company_id")
-        .eq("user_id", user.id)
-        .maybeSingle();
+    const load = async () => {
+      const [profileResult, workspaceResult] = await Promise.all([
+        supabase.from("profiles").select("full_name, cpf, avatar_url").eq("user_id", user.id).maybeSingle(),
+        supabase.from("workspace_settings").select("office_name, cnpj").eq("tenant_id", authProfile.tenant_id).maybeSingle(),
+      ]);
       if (cancelled) return;
-      const full = (data as { full_name?: string } | null)?.full_name ?? "";
-      const [firstName = "", ...rest] = full.split(" ");
-      setProfile((current) => ({
-        ...current,
+
+      const fullName = profileResult.data?.full_name ?? authProfile.full_name ?? "";
+      const [firstName = "", ...rest] = fullName.split(" ");
+      setProfile({
+        firstName,
+        lastName: rest.join(" "),
         email: user.email ?? "",
-        firstName: firstName || current.firstName,
-        lastName: rest.join(" ") || current.lastName,
-      }));
-    })();
+        cpf: profileResult.data?.cpf ?? "",
+        avatarUrl: profileResult.data?.avatar_url ?? "",
+        companyName: workspaceResult.data?.office_name ?? "",
+        cnpj: workspaceResult.data?.cnpj ?? "",
+      });
+    };
+
+    void load();
+    const channel = supabase
+      .channel(`workspace-profile-${authProfile.tenant_id}-${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "workspace_settings", filter: `tenant_id=eq.${authProfile.tenant_id}` },
+        (payload) => {
+          const settings = payload.new as { office_name?: string | null; cnpj?: string | null };
+          setProfile((current) => ({
+            ...current,
+            companyName: settings.office_name ?? current.companyName,
+            cnpj: settings.cnpj ?? current.cnpj,
+          }));
+        },
+      )
+      .subscribe();
+
     return () => {
       cancelled = true;
+      void supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [authProfile?.full_name, authProfile?.tenant_id, user]);
 
   const value = useMemo<UserProfileContextValue>(() => {
     const fullName = `${profile.firstName} ${profile.lastName}`.trim();
@@ -89,8 +91,47 @@ export const UserProfileProvider = ({ children }: { children: React.ReactNode })
       fullName,
       initials: fullName.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase() || "LT",
       updateProfile: (updates) => setProfile((current) => ({ ...current, ...updates })),
+      saveProfile: async () => {
+        if (!user || !authProfile?.tenant_id) return { ok: false, emailConfirmationRequired: false };
+
+        const cpf = profile.cpf.replace(/\D/g, "");
+        if (cpf && cpf.length !== 11) return { ok: false, emailConfirmationRequired: false };
+
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .update({ full_name: fullName || null, cpf: cpf || null, avatar_url: profile.avatarUrl || null })
+          .eq("user_id", user.id)
+          .eq("tenant_id", authProfile.tenant_id);
+        if (profileError) return { ok: false, emailConfirmationRequired: false };
+
+        const nextEmail = profile.email.trim().toLowerCase();
+        if (nextEmail && nextEmail !== user.email?.toLowerCase()) {
+          const { error: emailError } = await supabase.auth.updateUser({ email: nextEmail });
+          if (emailError) return { ok: false, emailConfirmationRequired: false };
+          return { ok: true, emailConfirmationRequired: true };
+        }
+        return { ok: true, emailConfirmationRequired: false };
+      },
+      uploadAvatar: async (file) => {
+        if (!user || !authProfile?.tenant_id || authProfile.status !== "active") return false;
+        if (!file.type.match(/^image\/(jpeg|png|webp)$/) || file.size > 2 * 1024 * 1024) return false;
+        const extension = file.type.split("/")[1] === "jpeg" ? "jpg" : file.type.split("/")[1];
+        const path = `${user.id}/${crypto.randomUUID()}.${extension}`;
+        const { error: uploadError } = await supabase.storage.from("avatars").upload(path, file, {
+          contentType: file.type,
+          upsert: false,
+        });
+        if (uploadError) return false;
+        const { data: publicUrl } = supabase.storage.from("avatars").getPublicUrl(path);
+        const { error: profileError } = await supabase.rpc("update_own_avatar", {
+          next_avatar_url: publicUrl.publicUrl,
+        });
+        if (profileError) return false;
+        setProfile((current) => ({ ...current, avatarUrl: publicUrl.publicUrl }));
+        return true;
+      },
     };
-  }, [profile]);
+  }, [authProfile?.status, authProfile?.tenant_id, profile, user]);
 
   return <UserProfileContext.Provider value={value}>{children}</UserProfileContext.Provider>;
 };

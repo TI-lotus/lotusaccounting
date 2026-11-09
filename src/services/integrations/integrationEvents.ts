@@ -44,10 +44,9 @@ export const createIntegrationDomainEvent = async (params: {
     .insert({
       tenant_id: params.tenantId,
       event_type: params.eventType,
-      source: params.source,
       entity_type: params.entityType ?? null,
       entity_id: params.entityId ?? null,
-      payload: params.payload ?? {},
+      payload: { source: params.source, data: params.payload ?? {} },
     })
     .select("*")
     .maybeSingle();

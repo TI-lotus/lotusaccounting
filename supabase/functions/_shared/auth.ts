@@ -18,11 +18,12 @@ export const requireAuthContext = async (request: Request): Promise<AuthContext>
 
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("tenant_id, company_id, account_type")
+    .select("tenant_id, company_id, account_type, status")
     .eq("user_id", userData.user.id)
     .maybeSingle();
 
   if (profileError || !profile?.tenant_id) throw new Error("profile_not_found");
+  if (profile.status !== "active") throw new Error("forbidden");
 
   return {
     userId: userData.user.id,

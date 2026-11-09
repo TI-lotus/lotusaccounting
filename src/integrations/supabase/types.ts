@@ -144,6 +144,7 @@ export type Database = {
         Row: {
           created_at: string
           domain_event_id: string | null
+          effect_key: string | null
           error_message: string | null
           finished_at: string | null
           id: string
@@ -156,6 +157,7 @@ export type Database = {
         Insert: {
           created_at?: string
           domain_event_id?: string | null
+          effect_key?: string | null
           error_message?: string | null
           finished_at?: string | null
           id?: string
@@ -168,6 +170,7 @@ export type Database = {
         Update: {
           created_at?: string
           domain_event_id?: string | null
+          effect_key?: string | null
           error_message?: string | null
           finished_at?: string | null
           id?: string
@@ -212,6 +215,7 @@ export type Database = {
           phone: string | null
           responsible_user_id: string | null
           responsible_user_name: string | null
+          service_areas: string[]
           service_fee: number | null
           state: string | null
           status: string | null
@@ -228,6 +232,7 @@ export type Database = {
           phone?: string | null
           responsible_user_id?: string | null
           responsible_user_name?: string | null
+          service_areas?: string[]
           service_fee?: number | null
           state?: string | null
           status?: string | null
@@ -244,6 +249,7 @@ export type Database = {
           phone?: string | null
           responsible_user_id?: string | null
           responsible_user_name?: string | null
+          service_areas?: string[]
           service_fee?: number | null
           state?: string | null
           status?: string | null
@@ -310,7 +316,9 @@ export type Database = {
           channel: string | null
           company_id: string | null
           created_at: string | null
+          created_by: string | null
           id: string
+          recipient_id: string | null
           tenant_id: string | null
           title: string | null
         }
@@ -318,7 +326,9 @@ export type Database = {
           channel?: string | null
           company_id?: string | null
           created_at?: string | null
+          created_by?: string | null
           id?: string
+          recipient_id?: string | null
           tenant_id?: string | null
           title?: string | null
         }
@@ -326,7 +336,9 @@ export type Database = {
           channel?: string | null
           company_id?: string | null
           created_at?: string | null
+          created_by?: string | null
           id?: string
+          recipient_id?: string | null
           tenant_id?: string | null
           title?: string | null
         }
@@ -437,37 +449,61 @@ export type Database = {
       }
       domain_events: {
         Row: {
+          attempt_count: number
           created_at: string
           entity_id: string | null
           entity_type: string | null
           event_type: string
           id: string
+          last_error: string | null
+          locked_at: string | null
+          locked_by: string | null
+          max_attempts: number
+          origin_key: string | null
           payload: Json
           processed_at: string | null
+          scheduled_for: string
           status: string
           tenant_id: string
+          updated_at: string
         }
         Insert: {
+          attempt_count?: number
           created_at?: string
           entity_id?: string | null
           entity_type?: string | null
           event_type: string
           id?: string
+          last_error?: string | null
+          locked_at?: string | null
+          locked_by?: string | null
+          max_attempts?: number
+          origin_key?: string | null
           payload?: Json
           processed_at?: string | null
+          scheduled_for?: string
           status?: string
           tenant_id: string
+          updated_at?: string
         }
         Update: {
+          attempt_count?: number
           created_at?: string
           entity_id?: string | null
           entity_type?: string | null
           event_type?: string
           id?: string
+          last_error?: string | null
+          locked_at?: string | null
+          locked_by?: string | null
+          max_attempts?: number
+          origin_key?: string | null
           payload?: Json
           processed_at?: string | null
+          scheduled_for?: string
           status?: string
           tenant_id?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -517,9 +553,11 @@ export type Database = {
           completed_at: string | null
           created_at: string
           created_by: string | null
+          client_period_id: string | null
           description: string | null
           document_id: string | null
           due_date: string
+          generates_task: boolean
           id: string
           name: string
           payment_id: string | null
@@ -527,6 +565,9 @@ export type Database = {
           period_year: number | null
           priority: string
           recurrence: string
+          requires_evidence: boolean
+          service_area: string | null
+          source_template_id: string | null
           status: string
           task_id: string | null
           tax_regime: string | null
@@ -538,9 +579,11 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           created_by?: string | null
+          client_period_id?: string | null
           description?: string | null
           document_id?: string | null
           due_date: string
+          generates_task?: boolean
           id?: string
           name: string
           payment_id?: string | null
@@ -548,6 +591,9 @@ export type Database = {
           period_year?: number | null
           priority?: string
           recurrence?: string
+          requires_evidence?: boolean
+          service_area?: string | null
+          source_template_id?: string | null
           status?: string
           task_id?: string | null
           tax_regime?: string | null
@@ -559,9 +605,11 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           created_by?: string | null
+          client_period_id?: string | null
           description?: string | null
           document_id?: string | null
           due_date?: string
+          generates_task?: boolean
           id?: string
           name?: string
           payment_id?: string | null
@@ -569,6 +617,9 @@ export type Database = {
           period_year?: number | null
           priority?: string
           recurrence?: string
+          requires_evidence?: boolean
+          service_area?: string | null
+          source_template_id?: string | null
           status?: string
           task_id?: string | null
           tax_regime?: string | null
@@ -576,6 +627,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fiscal_obligations_client_period_id_fkey"
+            columns: ["client_period_id"]
+            isOneToOne: false
+            referencedRelation: "client_periods"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "fiscal_obligations_company_id_fkey"
             columns: ["company_id"]
@@ -598,6 +656,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "fiscal_obligations_source_template_id_fkey"
+            columns: ["source_template_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_obligation_templates"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "fiscal_obligations_task_id_fkey"
             columns: ["task_id"]
             isOneToOne: false
@@ -606,6 +671,68 @@ export type Database = {
           },
           {
             foreignKeyName: "fiscal_obligations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fiscal_obligation_templates: {
+        Row: {
+          active: boolean
+          created_at: string
+          default_due_day: number
+          description: string | null
+          generates_task: boolean
+          id: string
+          name: string
+          priority: string
+          recurrence: string
+          requires_evidence: boolean
+          service_area: string
+          sort_order: number
+          tax_regime: string
+          tenant_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          default_due_day?: number
+          description?: string | null
+          generates_task?: boolean
+          id?: string
+          name: string
+          priority?: string
+          recurrence?: string
+          requires_evidence?: boolean
+          service_area?: string
+          sort_order?: number
+          tax_regime: string
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          default_due_day?: number
+          description?: string | null
+          generates_task?: boolean
+          id?: string
+          name?: string
+          priority?: string
+          recurrence?: string
+          requires_evidence?: boolean
+          service_area?: string
+          sort_order?: number
+          tax_regime?: string
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fiscal_obligation_templates_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -901,6 +1028,7 @@ export type Database = {
           connection_id: string | null
           created_at: string
           id: string
+          idempotency_key: string | null
           job_type: string
           last_error: string | null
           locked_at: string | null
@@ -919,6 +1047,7 @@ export type Database = {
           connection_id?: string | null
           created_at?: string
           id?: string
+          idempotency_key?: string | null
           job_type: string
           last_error?: string | null
           locked_at?: string | null
@@ -937,6 +1066,7 @@ export type Database = {
           connection_id?: string | null
           created_at?: string
           id?: string
+          idempotency_key?: string | null
           job_type?: string
           last_error?: string | null
           locked_at?: string | null
@@ -1170,33 +1300,39 @@ export type Database = {
       invoices: {
         Row: {
           amount: number
+          billing_period: string | null
           company_id: string | null
           created_at: string | null
           due_date: string | null
           id: string
           issued_at: string | null
+          invoice_kind: string
           number: string | null
           status: string | null
           tenant_id: string | null
         }
         Insert: {
           amount: number
+          billing_period?: string | null
           company_id?: string | null
           created_at?: string | null
           due_date?: string | null
           id?: string
           issued_at?: string | null
+          invoice_kind?: string
           number?: string | null
           status?: string | null
           tenant_id?: string | null
         }
         Update: {
           amount?: number
+          billing_period?: string | null
           company_id?: string | null
           created_at?: string | null
           due_date?: string | null
           id?: string
           issued_at?: string | null
+          invoice_kind?: string
           number?: string | null
           status?: string | null
           tenant_id?: string | null
@@ -1223,8 +1359,10 @@ export type Database = {
           company_id: string | null
           conversation_id: string | null
           created_at: string | null
+          delivered_at: string
           id: string
           message: string | null
+          read_at: string | null
           sender_id: string | null
           tenant_id: string | null
         }
@@ -1232,8 +1370,10 @@ export type Database = {
           company_id?: string | null
           conversation_id?: string | null
           created_at?: string | null
+          delivered_at?: string
           id?: string
           message?: string | null
+          read_at?: string | null
           sender_id?: string | null
           tenant_id?: string | null
         }
@@ -1241,8 +1381,10 @@ export type Database = {
           company_id?: string | null
           conversation_id?: string | null
           created_at?: string | null
+          delivered_at?: string
           id?: string
           message?: string | null
+          read_at?: string | null
           sender_id?: string | null
           tenant_id?: string | null
         }
@@ -1356,8 +1498,10 @@ export type Database = {
       profiles: {
         Row: {
           account_type: string
+          avatar_url: string | null
           company_id: string | null
           created_at: string
+          cpf: string | null
           full_name: string | null
           id: string
           job_title: string | null
@@ -1369,8 +1513,10 @@ export type Database = {
         }
         Insert: {
           account_type?: string
+          avatar_url?: string | null
           company_id?: string | null
           created_at?: string
+          cpf?: string | null
           full_name?: string | null
           id?: string
           job_title?: string | null
@@ -1382,8 +1528,10 @@ export type Database = {
         }
         Update: {
           account_type?: string
+          avatar_url?: string | null
           company_id?: string | null
           created_at?: string
+          cpf?: string | null
           full_name?: string | null
           id?: string
           job_title?: string | null
@@ -1414,6 +1562,7 @@ export type Database = {
         Row: {
           assigned_to: string | null
           assigned_to_name: string | null
+          blocked_reason: string | null
           category: string | null
           company_id: string | null
           completed_at: string | null
@@ -1433,6 +1582,7 @@ export type Database = {
         Insert: {
           assigned_to?: string | null
           assigned_to_name?: string | null
+          blocked_reason?: string | null
           category?: string | null
           company_id?: string | null
           completed_at?: string | null
@@ -1452,6 +1602,7 @@ export type Database = {
         Update: {
           assigned_to?: string | null
           assigned_to_name?: string | null
+          blocked_reason?: string | null
           category?: string | null
           company_id?: string | null
           completed_at?: string | null
@@ -1583,9 +1734,64 @@ export type Database = {
           },
         ]
       }
+      user_notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          href: string
+          id: string
+          kind: string
+          metadata: Json
+          read_at: string | null
+          tenant_id: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          href?: string
+          id?: string
+          kind?: string
+          metadata?: Json
+          read_at?: string | null
+          tenant_id: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          href?: string
+          id?: string
+          kind?: string
+          metadata?: Json
+          read_at?: string | null
+          tenant_id?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_notifications_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_settings: {
         Row: {
           automation_preferences: Json
+          cnpj: string | null
           created_at: string
           currency: string
           fiscal_year_end: string
@@ -1598,6 +1804,7 @@ export type Database = {
         }
         Insert: {
           automation_preferences?: Json
+          cnpj?: string | null
           created_at?: string
           currency?: string
           fiscal_year_end?: string
@@ -1610,6 +1817,7 @@ export type Database = {
         }
         Update: {
           automation_preferences?: Json
+          cnpj?: string | null
           created_at?: string
           currency?: string
           fiscal_year_end?: string
@@ -1630,12 +1838,49 @@ export type Database = {
           },
         ]
       }
+      workspace_member_permissions: {
+        Row: {
+          permissions: Json
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+        }
+        Insert: {
+          permissions?: Json
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+          user_id: string
+        }
+        Update: {
+          permissions?: Json
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      can_delete_document_object: { Args: { object_name: string }; Returns: boolean }
       can_manage_current_tenant: { Args: never; Returns: boolean }
+      can_read_document_object: { Args: { object_name: string }; Returns: boolean }
+      can_upload_document_object: { Args: { object_name: string }; Returns: boolean }
+      claim_workspace_integration_job: {
+        Args: { worker_id: string; workspace_id: string }
+        Returns: Database["public"]["Tables"]["integration_jobs"]["Row"][]
+        SetofOptions: {
+          from: "*"
+          to: "integration_jobs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       claim_next_integration_job: {
         Args: { worker_id: string }
         Returns: {
@@ -1727,11 +1972,34 @@ export type Database = {
         }
         Returns: boolean
       }
+      has_workspace_permission: {
+        Args: { action_key: string; resource_key: string }
+        Returns: boolean
+      }
       integration_next_retry_at: {
         Args: { attempt_number: number }
         Returns: string
       }
+      list_workspace_member_directory: {
+        Args: never
+        Returns: {
+          account_type: string
+          avatar_url: string | null
+          full_name: string | null
+          user_id: string
+        }[]
+      }
+      mark_internal_conversation_read: {
+        Args: { target_conversation_id: string }
+        Returns: number
+      }
+      generate_monthly_service_fee_invoices: {
+        Args: { target_period?: string }
+        Returns: Database["public"]["Tables"]["invoices"]["Row"][]
+      }
       sanitize_integration_headers: { Args: { headers: Json }; Returns: Json }
+      profile_belongs_to_current_workspace: { Args: { target_user_id: string }; Returns: boolean }
+      update_own_avatar: { Args: { next_avatar_url: string }; Returns: string }
     }
     Enums: {
       app_role: "admin" | "collaborator" | "client"

@@ -11,26 +11,14 @@ import {
 } from "recharts";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-
-const data = [
-  { month: "Jan", revenue: 42000, expenses: 28000 },
-  { month: "Fev", revenue: 38000, expenses: 25000 },
-  { month: "Mar", revenue: 55000, expenses: 32000 },
-  { month: "Abr", revenue: 48000, expenses: 30000 },
-  { month: "Mai", revenue: 62000, expenses: 35000 },
-  { month: "Jun", revenue: 58000, expenses: 33000 },
-  { month: "Jul", revenue: 72000, expenses: 38000 },
-  { month: "Ago", revenue: 68000, expenses: 36000 },
-  { month: "Set", revenue: 78000, expenses: 40000 },
-  { month: "Out", revenue: 85000, expenses: 42000 },
-  { month: "Nov", revenue: 92000, expenses: 45000 },
-  { month: "Dez", revenue: 98000, expenses: 48000 },
-];
+import { useData } from "@/contexts/DataContext";
+import { monthlyCashflow, type DateRange } from "@/lib/financialMetrics";
 
 type Mode = "revenue" | "expenses" | "profit";
 
 interface RevenueChartProps {
   className?: string;
+  dateRange?: DateRange;
 }
 
 const formatBRL = (value: number) => `R$ ${(value / 1000).toLocaleString("pt-BR")}k`;
@@ -38,22 +26,23 @@ const GREEN = "hsl(142, 70%, 45%)";
 const RED = "hsl(0, 72%, 51%)";
 const YELLOW = "hsl(30, 41%, 60%)"; // brand gold #d2b58a
 
-export const RevenueChart = ({ className }: RevenueChartProps) => {
+export const RevenueChart = ({ className, dateRange }: RevenueChartProps) => {
+  const { payments } = useData();
   const [mode, setMode] = useState<Mode>("revenue");
 
   const chartData = useMemo(() => {
-    return data.map((d) => ({
+    return monthlyCashflow(payments, dateRange).map((d) => ({
       month: d.month,
       value: mode === "revenue" ? d.revenue : mode === "expenses" ? d.expenses : d.revenue - d.expenses,
     }));
-  }, [mode]);
+  }, [mode, payments, dateRange]);
 
   const average = useMemo(() => {
     const sum = chartData.reduce((s, d) => s + d.value, 0);
-    return Math.round(sum / chartData.length);
+    return chartData.length ? Math.round(sum / chartData.length) : 0;
   }, [chartData]);
 
-  const currentValue = chartData[chartData.length - 1].value;
+  const currentValue = chartData.at(-1)?.value ?? 0;
 
   // Color logic
   let strokeColor = YELLOW;
@@ -92,6 +81,7 @@ export const RevenueChart = ({ className }: RevenueChartProps) => {
         </div>
       </div>
       <div className="h-[300px]">
+        {chartData.length === 0 ? <p className="flex h-full items-center justify-center text-sm text-muted-foreground">Sem movimentações no período</p> :
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
             <defs>
@@ -119,7 +109,7 @@ export const RevenueChart = ({ className }: RevenueChartProps) => {
             />
             <Area type="monotone" dataKey="value" stroke={strokeColor} strokeWidth={2.5} fill={`url(#${gradientId})`} name={modeLabels[mode]} />
           </AreaChart>
-        </ResponsiveContainer>
+        </ResponsiveContainer>}
       </div>
     </div>
   );

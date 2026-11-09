@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 type Theme = "light" | "dark";
 
 export const useTheme = () => {
-  const [theme, setTheme] = useState<Theme>(() => {
+  const [theme, setThemeState] = useState<Theme>(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("lotus-theme") as Theme;
       if (stored) return stored;
@@ -11,6 +11,31 @@ export const useTheme = () => {
     }
     return "light";
   });
+  const themeRef = useRef<Theme>(theme);
+
+  useEffect(() => {
+    themeRef.current = theme;
+  }, [theme]);
+
+  const setTheme = useCallback((next: Theme | ((current: Theme) => Theme)) => {
+    const resolved = typeof next === "function" ? next(themeRef.current) : next;
+    themeRef.current = resolved;
+    setThemeState(resolved);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent<Theme>("lotus-theme-change", { detail: resolved }));
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleThemeChange = (event: Event) => {
+      const next = (event as CustomEvent<Theme>).detail;
+      if (next !== "light" && next !== "dark") return;
+      themeRef.current = next;
+      setThemeState(next);
+    };
+    window.addEventListener("lotus-theme-change", handleThemeChange);
+    return () => window.removeEventListener("lotus-theme-change", handleThemeChange);
+  }, []);
 
   useEffect(() => {
     const root = window.document.documentElement;

@@ -25,6 +25,7 @@ import {
 import { Plus, Receipt, FileText } from "lucide-react";
 import { useData } from "@/contexts/DataContext";
 import { useViewMode } from "@/contexts/ViewModeContext";
+import { useAuth } from "@/contexts/AuthContext";
 import type { Database } from "@/integrations/supabase/types";
 import { toast } from "sonner";
 import { toastWithUndo } from "@/lib/toastUndo";
@@ -73,7 +74,9 @@ const Invoices = () => {
     deleteInvoice,
     addPayment,
     updateInvoice,
+    generateMonthlyServiceFeeInvoices,
   } = useData();
+  const { profile } = useAuth();
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
@@ -85,10 +88,15 @@ const Invoices = () => {
     due_date: "",
     status: "pending",
   });
+  const activeClients = clients.filter((client) => client.status === "active");
 
   const create = async () => {
     if (!tenantId || !form.amount) {
       toast.error("Preencha o valor");
+      return;
+    }
+    if (form.status === "paid") {
+      toast.error("Crie a fatura como pendente e registre o pagamento para marcá-la como paga.");
       return;
     }
     const saved = await addInvoice({
@@ -111,10 +119,19 @@ const Invoices = () => {
     });
   };
 
+  const generateServiceFeeInvoices = async () => {
+    const created = await generateMonthlyServiceFeeInvoices();
+    if (created > 0) {
+      toast.success(`${created} fatura(s) mensal(is) de honorários gerada(s)`);
+    } else {
+      toast.info("Nenhuma fatura nova foi gerada para este mês");
+    }
+  };
+
   const removeInvoice = (inv: Invoice) => {
     setSelected(null);
     toastWithUndo({
-      message: "Fatura removida",
+      message: "Remoção de fatura agendada",
       description: inv.number || inv.id.slice(0, 8),
       onUndo: () => undefined,
       onConfirm: async () => {
@@ -137,7 +154,6 @@ const Invoices = () => {
       paid_at: new Date().toISOString(),
     });
     if (!saved) return;
-    await updateInvoice(inv.id, { status: "paid" });
     setSelected({ ...inv, status: "paid" });
     toast.success("Pagamento registrado e fatura marcada como paga");
   };
@@ -182,6 +198,12 @@ const Invoices = () => {
         description="Emissão e acompanhamento de faturas"
         primaryAction={
           isClientView ? undefined : (
+            <div className="flex flex-wrap gap-2">
+              {profile?.account_type === "admin" && (
+                <Button variant="outline" className="rounded-xl" onClick={generateServiceFeeInvoices}>
+                  Gerar honorários do mês
+                </Button>
+              )}
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
                 <Button className="rounded-xl gap-2">
@@ -223,7 +245,7 @@ const Invoices = () => {
                         <SelectValue placeholder="Selecionar" />
                       </SelectTrigger>
                       <SelectContent>
-                        {clients.map((c) => (
+                        {activeClients.map((c) => (
                           <SelectItem key={c.id} value={c.id}>
                             {c.name}
                           </SelectItem>
@@ -253,7 +275,6 @@ const Invoices = () => {
                       <SelectContent>
                         <SelectItem value="draft">Rascunho</SelectItem>
                         <SelectItem value="pending">Pendente</SelectItem>
-                        <SelectItem value="paid">Paga</SelectItem>
                         <SelectItem value="overdue">Atrasada</SelectItem>
                       </SelectContent>
                     </Select>
@@ -264,6 +285,7 @@ const Invoices = () => {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+            </div>
           )
         }
         kpis={[
@@ -357,7 +379,7 @@ const Invoices = () => {
                   Registrar pagamento
                 </Button>
               )}
-              {!isClientView && (
+              {!isClientView && selected.status !== "paid" && (
                 <Button
                   variant="destructive"
                   className="rounded-xl"

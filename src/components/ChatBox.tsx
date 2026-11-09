@@ -124,12 +124,7 @@ export const ChatBox = ({ state, onStateChange }: ChatBoxProps) => {
     return (
       <Button
         size="icon"
-        className="fixed bottom-5 right-5 z-40 h-14 w-14 rounded-full shadow-chat text-white border-2 border-white/20 hover:opacity-95"
-        style={{
-          backgroundImage: `url(${liaBg})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-        }}
+        className="fixed bottom-5 right-5 z-50 h-14 w-14 rounded-full border border-white/20 bg-black/70 text-white backdrop-blur-[22px] backdrop-saturate-150 hover:bg-black/60 hover:text-white"
         onClick={() => onStateChange("open")}
         aria-label="Abrir chat com a Lia"
       >
@@ -143,25 +138,10 @@ export const ChatBox = ({ state, onStateChange }: ChatBoxProps) => {
     return (
       <button
         onClick={() => onStateChange("open")}
-        className="fixed right-0 top-16 bottom-0 z-40 w-12 flex flex-col items-center justify-start gap-3 pt-4 border-l border-border bg-card shadow-chat hover:bg-accent/50 transition-colors"
+        className="fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full border border-white/20 bg-black/70 text-white backdrop-blur-[22px] backdrop-saturate-150 transition-colors hover:bg-black/60"
         aria-label="Expandir chat com a Lia"
       >
-        <div
-          className="h-9 w-9 rounded-xl text-white flex items-center justify-center"
-          style={{
-            backgroundImage: `url(${liaBg})`,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-          }}
-        >
-          <Sparkles className="h-4 w-4" />
-        </div>
-        <span
-          className="text-xs font-semibold tracking-wide text-muted-foreground"
-          style={{ writingMode: "vertical-rl" }}
-        >
-          Lia · Assistente
-        </span>
+        <MessageCircle className="h-5 w-5" />
       </button>
     );
   }
@@ -170,23 +150,22 @@ export const ChatBox = ({ state, onStateChange }: ChatBoxProps) => {
   return (
     <aside
       className={cn(
-        "fixed z-40 flex flex-col border-l border-border bg-card shadow-chat",
-        // Mobile: overlay fullscreen; Desktop: fixed right column
-        "inset-0 top-16 lg:inset-auto lg:top-16 lg:bottom-0 lg:right-0 lg:w-[380px]"
+        "fixed z-50 flex min-h-0 flex-col overflow-hidden border border-white/20 bg-card/95 shadow-chat backdrop-blur-xl backdrop-saturate-150",
+        "inset-x-3 bottom-3 top-20 rounded-2xl sm:inset-x-auto sm:right-5 sm:w-[min(420px,calc(100vw-2.5rem))]"
       )}
     >
       {/* Header */}
       <div
-        className="relative flex items-center justify-between px-4 py-3 text-white shrink-0"
+        className="relative flex shrink-0 items-center justify-between border-b border-white/15 px-4 py-3 text-white"
         style={{
           backgroundImage: `url(${liaBg})`,
           backgroundSize: "cover",
           backgroundPosition: "center",
         }}
       >
-        <div className="absolute inset-0 bg-black/40" />
+        <div className="absolute inset-0 bg-black/25 backdrop-blur-[22px] backdrop-saturate-150" />
         <div className="relative flex items-center gap-2">
-          <div className="p-1.5 rounded-lg bg-white/15 text-white backdrop-blur-sm">
+          <div className="rounded-lg border border-white/20 bg-white/15 p-1.5 text-white backdrop-blur-sm">
             <Sparkles className="h-4 w-4" />
           </div>
           <div>
@@ -217,7 +196,7 @@ export const ChatBox = ({ state, onStateChange }: ChatBoxProps) => {
       </div>
 
       {/* Messages */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto custom-scroll p-3 space-y-2">
+      <div ref={scrollRef} className="custom-scroll min-h-0 flex-1 space-y-2 overflow-y-auto p-3">
         {messages.map((m) => (
           <div
             key={m.id}
@@ -259,7 +238,7 @@ export const ChatBox = ({ state, onStateChange }: ChatBoxProps) => {
       </div>
 
       {/* Human handoff */}
-      <div className="px-3 pt-2 shrink-0">
+      <div className="shrink-0 px-3 pt-2">
         <Button
           variant="outline"
           size="sm"
@@ -273,7 +252,7 @@ export const ChatBox = ({ state, onStateChange }: ChatBoxProps) => {
 
       {/* Pending attachments */}
       {pendingFiles.length > 0 && (
-        <div className="px-3 pt-2 flex flex-wrap gap-1.5 shrink-0">
+        <div className="flex shrink-0 flex-wrap gap-1.5 px-3 pt-2">
           {pendingFiles.map((f, i) => (
             <div
               key={i}
@@ -296,7 +275,7 @@ export const ChatBox = ({ state, onStateChange }: ChatBoxProps) => {
       )}
 
       {/* Composer */}
-      <div className="border-t border-border p-2 flex items-end gap-2 shrink-0">
+      <div className="flex shrink-0 items-end gap-2 border-t border-border/70 bg-background/65 p-2 backdrop-blur-xl">
         <input
           ref={fileRef}
           type="file"

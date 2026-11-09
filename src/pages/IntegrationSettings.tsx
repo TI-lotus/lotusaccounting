@@ -52,12 +52,8 @@ import {
   getIntegrationCatalogItem,
 } from "@/lib/integrationCatalog";
 import type { Json } from "@/integrations/supabase/types";
-import {
-  buildPublicCredentialMetadata,
-  getConnectionHealthLabel,
-  readCredentialMetadata,
-} from "@/services/integrations/integrationConnections";
-import { storeIntegrationCredential } from "@/services/integrations/integrationCredentials";
+import { getConnectionHealthLabel, readCredentialMetadata } from "@/services/integrations/integrationConnections";
+import { revokeIntegrationCredentials, storeIntegrationCredential } from "@/services/integrations/integrationCredentials";
 import { enqueueHealthCheckJob } from "@/services/integrations/integrationJobs";
 import type { PublicCredentialMetadata } from "@/services/integrations/types";
 
@@ -172,7 +168,7 @@ const IntegrationSettings = () => {
       workflowNodes: updates.workflowNodes ?? workflowNodes,
     };
 
-    await upsertIntegrationConnection(id, {
+    return upsertIntegrationConnection(id, {
       status: updates.status ?? (isConnected ? "connected" : "disconnected"),
       account_label: integration.name,
       provider: id,
@@ -220,7 +216,7 @@ const IntegrationSettings = () => {
   };
 
   const handleSaveWorkflow = async () => {
-    await persistConnection({ workflowNodes });
+    if (!await persistConnection({ workflowNodes })) return;
     toast.success("Workflow salvo com sucesso!");
   };
 
@@ -279,7 +275,7 @@ const IntegrationSettings = () => {
         return;
       }
 
-      await persistConnection({ fields: fieldValues });
+      if (!await persistConnection({ fields: fieldValues })) return;
       toast.success("Configurações salvas com sucesso!");
     } catch (error) {
       const message =
@@ -289,12 +285,12 @@ const IntegrationSettings = () => {
   };
 
   const handleConnect = async () => {
-    await persistConnection({ status: "connected" });
-    toast.success(`${integration.name} conectado com sucesso!`);
+    if (!await persistConnection({ status: "pending" })) return;
+    toast.info(`${integration.name} aguardando validação de conexão.`);
   };
 
   const handleDisconnect = async () => {
-    await persistConnection({ status: "disconnected" });
+    if (!await persistConnection({ status: "disconnected" })) return;
     toast.success(`${integration.name} desconectado.`);
   };
 
@@ -326,33 +322,29 @@ const IntegrationSettings = () => {
   };
 
   const handleCreateCredential = () => {
-    if (!newCredName) {
-      toast.error("Informe um nome para a credencial");
-      return;
-    }
-    const newCred = buildPublicCredentialMetadata(newCredName);
-    const nextCredentials = [...credentials, newCred];
-    setCredentials(nextCredentials);
-    void persistConnection({ credentials: nextCredentials });
     setNewCredName("");
     setNewCredDialogOpen(false);
-    toast.success("Credencial registrada sem expor segredo no frontend.");
+    toast.info("Cadastre os campos secretos na aba Configurações para gravar uma credencial real.");
   };
 
-  const handleDeleteCredential = (credId: string) => {
-    const nextCredentials = credentials.filter((c) => c.id !== credId);
-    setCredentials(nextCredentials);
-    void persistConnection({ credentials: nextCredentials });
-    toast.success("Credencial removida!");
+  const handleDeleteCredential = async () => {
+    if (!connection?.id) {
+      toast.error("Não há credencial persistida para remover.");
+      return;
+    }
+    try {
+      await revokeIntegrationCredentials(connection.id);
+      setCredentials([]);
+      await refresh();
+      toast.success("Credenciais revogadas e conexão desconectada.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "erro desconhecido";
+      toast.error("Não foi possível revogar as credenciais: " + message);
+    }
   };
 
-  const handleToggleCredential = (credId: string) => {
-    const nextCredentials = credentials.map((c) =>
-      c.id === credId ? { ...c, active: !c.active } : c,
-    );
-    setCredentials(nextCredentials);
-    void persistConnection({ credentials: nextCredentials });
-    toast.success("Status da credencial atualizado!");
+  const handleToggleCredential = () => {
+    toast.info("Para alterar uma credencial, substitua os campos secretos na aba Configurações.");
   };
 
   return (
@@ -765,7 +757,7 @@ const IntegrationSettings = () => {
                         variant="outline"
                         size="sm"
                         className="rounded-lg gap-1"
-                        onClick={() => handleToggleCredential(cred.id)}
+                        onClick={handleToggleCredential}
                       >
                         {cred.active ? (
                           <PowerOff className="h-3 w-3" />
@@ -778,7 +770,7 @@ const IntegrationSettings = () => {
                         variant="outline"
                         size="sm"
                         className="rounded-lg gap-1 text-destructive"
-                        onClick={() => handleDeleteCredential(cred.id)}
+                        onClick={handleDeleteCredential}
                       >
                         <Trash2 className="h-3 w-3" />
                         Remover

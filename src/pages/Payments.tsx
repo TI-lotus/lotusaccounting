@@ -11,6 +11,8 @@ import {
   ArrowDownCircle,
   ArrowUpCircle,
   Copy,
+  CheckCircle2,
+  RotateCcw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -51,6 +53,7 @@ interface Payment {
   companyId: string | null;
   invoiceId: string | null;
   clientName: string;
+  reconciledAt: string | null;
 }
 
 const currentMonthRange = () => {
@@ -72,7 +75,6 @@ const Payments = () => {
     payments: paymentRows,
     addPayment,
     updatePayment,
-    updateInvoice,
   } = useData();
   const [valueSort, setValueSort] = useState<"none" | "asc" | "desc">("none");
   const [dateSort, setDateSort] = useState<"newest" | "oldest">("newest");
@@ -82,16 +84,6 @@ const Payments = () => {
   const [view, setView] = useState<"list" | "calendar" | "timeline">("list");
   const [dateRange, setDateRange] = useState(currentMonthRange);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [selectedMethod, setSelectedMethod] = useState<
-    "boleto" | "pix" | "card" | null
-  >(null);
-  const [methodModalOpen, setMethodModalOpen] = useState(false);
-  const [cardData, setCardData] = useState({
-    number: "",
-    name: "",
-    expiry: "",
-    cvv: "",
-  });
   const [newPayment, setNewPayment] = useState({
     description: "",
     amount: "",
@@ -132,6 +124,7 @@ const Payments = () => {
       clientName: row.company_id
         ? (clientNameById.get(row.company_id) ?? "Cliente não encontrado")
         : "Sem cliente",
+      reconciledAt: row.reconciled_at,
     }));
   }, [clients, paymentRows]);
 
@@ -142,8 +135,8 @@ const Payments = () => {
       if (valueSort === "asc") return a.amount - b.amount;
       if (valueSort === "desc") return b.amount - a.amount;
       return dateSort === "newest"
-        ? new Date(b.date).getTime() - new Date(a.date).getTime()
-        : new Date(a.date).getTime() - new Date(b.date).getTime();
+        ? new Date(b.rawDate ?? 0).getTime() - new Date(a.rawDate ?? 0).getTime()
+        : new Date(a.rawDate ?? 0).getTime() - new Date(b.rawDate ?? 0).getTime();
     });
 
   const handleAddPayment = async () => {
@@ -188,17 +181,16 @@ const Payments = () => {
   const handleToggleStatus = async (id: string) => {
     const p = payments.find((x) => x.id === id);
     if (!p) return;
+    if (p.reconciledAt) {
+      toast.error("Pagamentos conciliados não podem ter o status alterado manualmente.");
+      return;
+    }
     const nextStatus: "completed" | "pending" =
       p.status === "completed" ? "pending" : "completed";
-    await updatePayment(id, {
+    if (!await updatePayment(id, {
       status: nextStatus,
       paid_at: nextStatus === "completed" ? new Date().toISOString() : null,
-    });
-    if (p.invoiceId) {
-      await updateInvoice(p.invoiceId, {
-        status: nextStatus === "completed" ? "paid" : "pending",
-      });
-    }
+    })) return;
     toast.success("Status atualizado!");
   };
 
@@ -278,7 +270,7 @@ const Payments = () => {
                         <SelectValue placeholder="Selecione um cliente" />
                       </SelectTrigger>
                       <SelectContent>
-                        {clients.map((client) => (
+                        {clients.filter((client) => client.status === "active").map((client) => (
                           <SelectItem key={client.id} value={client.id}>
                             {client.name}
                           </SelectItem>
@@ -420,7 +412,7 @@ const Payments = () => {
                 Pagamento de honorários Lotus
               </h2>
               <p className="text-sm text-muted-foreground">
-                Escolha uma forma de pagamento e consulte o extrato mensal.
+                Consulte o extrato mensal. Pagamento online indisponível.
               </p>
             </div>
             <div className="grid gap-3 md:grid-cols-3">
@@ -435,10 +427,7 @@ const Payments = () => {
                     key={method.id}
                     variant="outline"
                     className="h-20 rounded-xl flex-col"
-                    onClick={() => {
-                      setSelectedMethod(method.id as typeof selectedMethod);
-                      setMethodModalOpen(true);
-                    }}
+                    disabled
                   >
                     <Icon className="h-5 w-5" />
                     {method.label}
@@ -449,177 +438,11 @@ const Payments = () => {
           </div>
         )}
 
-        {/* Payment method modal */}
-        <Dialog open={methodModalOpen} onOpenChange={setMethodModalOpen}>
-          <DialogContent className="sm:max-w-[460px]">
-            <DialogHeader>
-              <DialogTitle>
-                {selectedMethod === "boleto" && "Pagamento via Boleto"}
-                {selectedMethod === "pix" && "Pagamento via Pix"}
-                {selectedMethod === "card" && "Pagamento com Cartão"}
-              </DialogTitle>
-              <DialogDescription>
-                {selectedMethod === "boleto" &&
-                  "Use o código de barras abaixo para pagar em qualquer banco."}
-                {selectedMethod === "pix" &&
-                  "Escaneie o QR code ou copie a chave Pix."}
-                {selectedMethod === "card" &&
-                  "Preencha os dados do seu cartão de crédito."}
-              </DialogDescription>
-            </DialogHeader>
-
-            {selectedMethod === "boleto" && (
-              <div className="space-y-4">
-                <div className="rounded-xl border border-border p-4 bg-card">
-                  <div
-                    className="flex items-end gap-px h-16 mb-3"
-                    aria-label="código de barras"
-                  >
-                    {Array.from({ length: 60 }).map((_, i) => (
-                      <div
-                        key={i}
-                        style={{
-                          width: Math.random() > 0.5 ? 2 : 3,
-                          height: "100%",
-                          background:
-                            Math.random() > 0.3
-                              ? "hsl(var(--foreground))"
-                              : "transparent",
-                        }}
-                      />
-                    ))}
-                  </div>
-                  <p className="text-sm font-mono text-center break-all">
-                    23793.38128 60028.123456 78901.234567 8 92340000150000
-                  </p>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Valor</span>
-                  <span className="font-semibold">R$ 1.500,00</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Vencimento</span>
-                  <span className="font-semibold">10/02/2026</span>
-                </div>
-                <Button
-                  className="w-full rounded-xl gap-2"
-                  onClick={() => {
-                    navigator.clipboard.writeText(
-                      "23793381286002812345678901234567892340000150000",
-                    );
-                    toast.success("Código copiado!");
-                  }}
-                >
-                  <Copy className="h-4 w-4" />
-                  Copiar código de barras
-                </Button>
-              </div>
-            )}
-
-            {selectedMethod === "pix" && (
-              <div className="space-y-4">
-                <div className="flex justify-center">
-                  <div className="rounded-xl border border-border p-4 bg-white">
-                    <div
-                      className="w-48 h-48 grid grid-cols-[repeat(20,1fr)] gap-px"
-                      aria-label="QR code Pix"
-                    >
-                      {Array.from({ length: 400 }).map((_, i) => (
-                        <div
-                          key={i}
-                          style={{
-                            background: Math.random() > 0.5 ? "#000" : "#fff",
-                          }}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                </div>
-                <div className="rounded-xl border border-border p-3 bg-muted/40 text-xs font-mono break-all">
-                  00020126360014BR.GOV.BCB.PIX0114+551199999999952040000530398654041500.005802BR5925LOTUS
-                  CONTABILIDADE LTDA6009SAO PAULO62070503***6304ABCD
-                </div>
-                <Button
-                  className="w-full rounded-xl gap-2"
-                  onClick={() => {
-                    navigator.clipboard.writeText(
-                      "00020126360014BR.GOV.BCB.PIX...",
-                    );
-                    toast.success("Chave Pix copiada!");
-                  }}
-                >
-                  <Copy className="h-4 w-4" />
-                  Copiar chave Pix
-                </Button>
-              </div>
-            )}
-
-            {selectedMethod === "card" && (
-              <div className="space-y-3">
-                <div className="space-y-2">
-                  <Label>Número do cartão</Label>
-                  <Input
-                    placeholder="0000 0000 0000 0000"
-                    value={cardData.number}
-                    onChange={(e) =>
-                      setCardData({ ...cardData, number: e.target.value })
-                    }
-                    className="rounded-xl"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Nome impresso</Label>
-                  <Input
-                    placeholder="Nome como está no cartão"
-                    value={cardData.name}
-                    onChange={(e) =>
-                      setCardData({ ...cardData, name: e.target.value })
-                    }
-                    className="rounded-xl"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label>Validade</Label>
-                    <Input
-                      placeholder="MM/AA"
-                      value={cardData.expiry}
-                      onChange={(e) =>
-                        setCardData({ ...cardData, expiry: e.target.value })
-                      }
-                      className="rounded-xl"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>CVV</Label>
-                    <Input
-                      placeholder="123"
-                      value={cardData.cvv}
-                      onChange={(e) =>
-                        setCardData({ ...cardData, cvv: e.target.value })
-                      }
-                      className="rounded-xl"
-                    />
-                  </div>
-                </div>
-                <Button
-                  className="w-full rounded-xl mt-2"
-                  onClick={() => {
-                    toast.success("Pagamento autorizado!");
-                    setMethodModalOpen(false);
-                  }}
-                >
-                  Pagar R$ 1.500,00
-                </Button>
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
 
         {view === "timeline" && (
           <TimelineView
             title="Timeline financeira"
-            events={payments.map((payment) => ({
+            events={payments.map((payment, index) => ({
               day: payment.rawDate ? new Date(payment.rawDate).getDate() : 1,
               title: payment.description,
               subtitle: payment.category,
@@ -689,11 +512,8 @@ const Payments = () => {
                 filteredPayments.map((payment, index) => (
                   <div
                     key={payment.id}
-                    className="flex items-center gap-4 p-4 rounded-xl hover:bg-accent/50 transition-colors border border-transparent hover:border-border cursor-pointer"
+                    className="flex items-center gap-4 p-4 rounded-xl hover:bg-accent/50 transition-colors border border-transparent hover:border-border"
                     style={{ animationDelay: `${index * 50}ms` }}
-                    onClick={() =>
-                      viewMode !== "client" && handleToggleStatus(payment.id)
-                    }
                   >
                     <div
                       className={cn(
@@ -722,7 +542,6 @@ const Payments = () => {
                         payment.status === "completed" ? "default" : "secondary"
                       }
                       className={cn(
-                        "cursor-pointer",
                         payment.status === "completed" &&
                           "bg-emerald-100 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950 dark:text-emerald-400",
                       )}
@@ -742,6 +561,22 @@ const Payments = () => {
                       {payment.type === "income" ? "+" : "-"}R${" "}
                       {payment.amount.toLocaleString("pt-BR")}
                     </p>
+                    {viewMode !== "client" && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="rounded-xl"
+                        disabled={!!payment.reconciledAt}
+                        onClick={() => handleToggleStatus(payment.id)}
+                      >
+                        {payment.status === "completed" ? (
+                          <RotateCcw className="mr-2 h-4 w-4" />
+                        ) : (
+                          <CheckCircle2 className="mr-2 h-4 w-4" />
+                        )}
+                        {payment.reconciledAt ? "Conciliado" : payment.status === "completed" ? "Reabrir" : "Confirmar"}
+                      </Button>
+                    )}
                   </div>
                 ))
               )}

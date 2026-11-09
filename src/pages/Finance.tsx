@@ -12,6 +12,8 @@ import {
 } from "lucide-react";
 import { useData } from "@/contexts/DataContext";
 import { RevenueChart } from "@/components/dashboard/RevenueChart";
+import { KPITrend } from "@/components/dashboard/KPICard";
+import { contractedMonthlyFees } from "@/lib/financialMetrics";
 
 const brl = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -19,7 +21,7 @@ const isIncome = (direction: string | null) =>
   direction === "entrada" || direction === "income";
 
 const Finance = () => {
-  const { payments, invoices } = useData();
+  const { payments, invoices, clients } = useData();
 
   const kpi = useMemo(() => {
     const income = payments
@@ -34,10 +36,16 @@ const Finance = () => {
     const overdue = invoices
       .filter((i) => i.status === "overdue")
       .reduce((s, i) => s + Number(i.amount), 0);
-    return { income, expense, profit: income - expense, pending, overdue };
-  }, [payments, invoices]);
+    return { income, expense, profit: income - expense, pending, overdue, contractedFees: contractedMonthlyFees(clients) };
+  }, [payments, invoices, clients]);
 
   const cards = [
+    {
+      label: "Honorários mensais contratados",
+      value: brl(kpi.contractedFees),
+      icon: Receipt,
+      color: "text-primary",
+    },
     {
       label: "Receitas",
       value: brl(kpi.income),
@@ -80,21 +88,22 @@ const Finance = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {cards.map((c) => {
             const Icon = c.icon;
             return (
               <Card key={c.label}>
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-muted-foreground">
-                      {c.label}
-                    </span>
-                    <Icon className={`h-4 w-4 ${c.color}`} />
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-secondary">
+                      <Icon className="h-4 w-4 text-foreground" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm text-muted-foreground">{c.label}</p>
+                      <p className="text-xl font-semibold text-foreground">{c.value}</p>
+                    </div>
+                    <KPITrend />
                   </div>
-                  <p className={`text-xl font-semibold ${c.color}`}>
-                    {c.value}
-                  </p>
                 </CardContent>
               </Card>
             );

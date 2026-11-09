@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Search, Building2, MapPin, Calendar, FileText, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { querySerproCnpj } from "@/services/commercialMvp";
 
 interface CNPJData {
   razao_social?: string;
@@ -22,29 +23,8 @@ interface CNPJData {
   cep?: string;
   atividade_principal?: { text?: string; code?: string }[];
   capital_social?: number;
-  // open.cnpja.com fields
-  company?: {
-    name?: string;
-    equity?: number;
-    nature?: { id?: number; text?: string };
-    size?: { id?: number; text?: string };
-    members?: { person?: { name?: string }; role?: { text?: string } }[];
-  };
-  alias?: string;
-  founded?: string;
-  status?: { id?: number; text?: string };
-  address?: {
-    street?: string;
-    number?: string;
-    details?: string;
-    district?: string;
-    city?: string;
-    state?: string;
-    zip?: string;
-  };
-  mainActivity?: { id?: number; text?: string };
-  sideActivities?: { id?: number; text?: string }[];
-  taxId?: string;
+  cnae_principal?: unknown;
+  rawProvider?: "serpro";
 }
 
 const SearchCNPJ = () => {
@@ -74,14 +54,10 @@ const SearchCNPJ = () => {
     setCompanyData(null);
 
     try {
-      const response = await fetch(`https://open.cnpja.com/office/${cleanCnpj}`);
-      if (!response.ok) {
-        throw new Error(`Erro ${response.status}`);
-      }
-      const data = await response.json();
+      const data = await querySerproCnpj(cleanCnpj);
       setCompanyData(data);
     } catch (error) {
-      toast.error("Não foi possível consultar o CNPJ. Verifique o número e tente novamente.");
+      toast.error(error instanceof Error ? error.message : "Não foi possível consultar o CNPJ. Verifique o número e tente novamente.");
     } finally {
       setLoading(false);
     }
@@ -95,18 +71,18 @@ const SearchCNPJ = () => {
     return `${raw.slice(0, 2)}.${raw.slice(2, 5)}.${raw.slice(5, 8)}/${raw.slice(8, 12)}-${raw.slice(12)}`;
   };
 
-  const companyName = companyData?.company?.name || companyData?.razao_social || "—";
-  const tradeName = companyData?.alias || companyData?.nome_fantasia || "—";
-  const status = companyData?.status?.text || companyData?.situacao_cadastral || "—";
-  const founded = companyData?.founded || companyData?.data_abertura || "—";
-  const nature = companyData?.company?.nature?.text || companyData?.natureza_juridica || "—";
-  const mainActivity = companyData?.mainActivity?.text || companyData?.atividade_principal?.[0]?.text || "—";
-  const equity = companyData?.company?.equity ?? companyData?.capital_social;
+  const companyName = companyData?.razao_social || "—";
+  const tradeName = companyData?.nome_fantasia || "—";
+  const status = companyData?.situacao_cadastral || "—";
+  const founded = companyData?.data_abertura || "—";
+  const nature = companyData?.natureza_juridica || "—";
+  const mainActivity =
+    typeof companyData?.cnae_principal === "string"
+      ? companyData.cnae_principal
+      : companyData?.atividade_principal?.[0]?.text || "—";
+  const equity = companyData?.capital_social;
 
-  const addr = companyData?.address;
-  const address = addr
-    ? `${addr.street || ""}, ${addr.number || ""} ${addr.details ? `- ${addr.details}` : ""} - ${addr.district || ""}, ${addr.city || ""} - ${addr.state || ""}, CEP ${addr.zip || ""}`
-    : companyData?.logradouro
+  const address = companyData?.logradouro
     ? `${companyData.logradouro}, ${companyData.numero || ""} - ${companyData.bairro || ""}, ${companyData.municipio || ""} - ${companyData.uf || ""}`
     : "—";
 
@@ -162,6 +138,7 @@ const SearchCNPJ = () => {
                 <div>
                   <CardTitle>{companyName}</CardTitle>
                   <CardDescription>{tradeName}</CardDescription>
+                  <p className="mt-1 text-xs text-muted-foreground">Fonte: SERPRO Consulta CNPJ</p>
                 </div>
               </div>
             </CardHeader>

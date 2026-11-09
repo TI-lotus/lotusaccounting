@@ -28,3 +28,12 @@ export const storeIntegrationCredential = async (params: {
   if (error) throw error;
   return data;
 };
+
+export const revokeIntegrationCredentials = async (connectionId: string) => {
+  const { data, error } = await supabase.functions.invoke<{ revoked: boolean }>(
+    "revoke-integration-credentials",
+    { body: { connectionId } },
+  );
+  if (error) throw error;
+  return data;
+};

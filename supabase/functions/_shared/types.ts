@@ -4,6 +4,8 @@ export type IntegrationProvider =
   | "gmail"
   | "whatsapp"
   | "banking"
+  | "inter"
+  | "asaas"
   | "receita-federal"
   | "serpro"
   | string;

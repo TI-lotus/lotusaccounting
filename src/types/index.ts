@@ -18,6 +18,7 @@ export interface ClientData {
   name: string;
   cnpj: string;
   taxRegime: "simples_nacional" | "lucro_presumido" | "lucro_real" | "mei";
+  serviceAreas: OperationalServiceArea[];
   responsibleUserId: string;
   responsibleUserName: string;
   serviceFee: number;
@@ -29,9 +30,106 @@ export interface ClientData {
   createdAt: string;
 }
 
+export type ClientPeriodStatus =
+  | "not_started"
+  | "waiting_documents"
+  | "in_progress"
+  | "in_review"
+  | "delivered"
+  | "closed"
+  | "blocked";
+
+export interface ClientPeriodData {
+  id: string;
+  tenantId: string;
+  companyId: string;
+  periodMonth: number;
+  periodYear: number;
+  status: ClientPeriodStatus;
+  progressPercent: number;
+  startedAt: string | null;
+  deliveredAt: string | null;
+  closedAt: string | null;
+  blockedReason: string | null;
+  responsibleUserId: string | null;
+  createdBy: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ClientPeriodStepKey =
+  | "documents"
+  | "classification"
+  | "fiscal"
+  | "accounting"
+  | "review"
+  | "delivery";
+
+export type ClientPeriodStepStatus =
+  | "pending"
+  | "in_progress"
+  | "completed"
+  | "blocked"
+  | "waived";
+
+export interface ClientPeriodStepData {
+  id: string;
+  tenantId: string;
+  clientPeriodId: string;
+  companyId: string;
+  stepKey: ClientPeriodStepKey;
+  title: string;
+  description: string | null;
+  status: ClientPeriodStepStatus;
+  dueDate: string | null;
+  completedAt: string | null;
+  blockedReason: string | null;
+  position: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type OperationalServiceArea =
+  | "fiscal"
+  | "contabil"
+  | "folha"
+  | "financeiro_bpo"
+  | "societario";
+
+export type ClientPeriodChecklistStatus =
+  | "pending"
+  | "in_progress"
+  | "in_review"
+  | "completed"
+  | "blocked"
+  | "waived";
+
+export interface ClientPeriodChecklistItemData {
+  id: string;
+  tenantId: string;
+  companyId: string;
+  clientPeriodId: string;
+  checklistItemId: string;
+  taskId: string | null;
+  assignedToId: string | null;
+  serviceArea: OperationalServiceArea;
+  title: string;
+  description: string | null;
+  status: ClientPeriodChecklistStatus;
+  dueDate: string | null;
+  requiresReview: boolean;
+  requiresDocument: boolean;
+  evidenceDocumentId: string | null;
+  completedAt: string | null;
+  blockedReason: string | null;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // --- Tasks ---
 export type TaskType = "monthly" | "annual" | "one_time";
-export type TaskStatus = "pending" | "in_progress" | "completed" | "overdue";
+export type TaskStatus = "pending" | "in_progress" | "completed" | "overdue" | "blocked";
 export type TaskPriority = "low" | "medium" | "high";
 
 export interface TaskData {
@@ -47,8 +145,42 @@ export interface TaskData {
   clientName: string | null;
   assignedToId: string;
   assignedToName: string;
+  blockedReason?: string | null;
   createdAt: string;
   completedAt: string | null;
+}
+
+export type TaskReviewStatus = "pending_review" | "approved" | "rejected";
+
+export interface TaskReviewData {
+  id: string;
+  tenantId: string;
+  taskId: string;
+  reviewerId: string | null;
+  status: TaskReviewStatus;
+  requestedAt: string;
+  reviewedAt: string | null;
+  comment: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type OperationalCommentTargetType =
+  | "task"
+  | "checklist_item"
+  | "client_period"
+  | "fiscal_obligation";
+
+export interface OperationalCommentData {
+  id: string;
+  tenantId: string;
+  companyId: string | null;
+  targetType: OperationalCommentTargetType;
+  targetId: string;
+  authorId: string | null;
+  body: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // --- Documents ---
@@ -85,6 +217,32 @@ export interface DocumentData {
   createdAt: string;
   classifiedAutomatically: boolean;
   classificationConfidence: number;
+}
+
+export type DocumentRequestStatus =
+  | "requested"
+  | "uploaded"
+  | "approved"
+  | "rejected"
+  | "waived";
+
+export interface DocumentRequestData {
+  id: string;
+  tenantId: string;
+  companyId: string;
+  clientPeriodId: string | null;
+  requestedBy: string | null;
+  assignedTo: string | null;
+  title: string;
+  description: string | null;
+  documentType: string | null;
+  dueDate: string | null;
+  status: DocumentRequestStatus;
+  documentId: string | null;
+  rejectionReason: string | null;
+  waivedReason: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // --- Notifications ---

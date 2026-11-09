@@ -17,14 +17,17 @@ import {
   ScrollText,
   MessageSquare,
   Activity,
+  CalendarClock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -34,7 +37,12 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { useData } from "@/contexts/DataContext";
-import { ClientData } from "@/types";
+import {
+  ClientData,
+  ClientPeriodChecklistStatus,
+  ClientPeriodStatus,
+  ClientPeriodStepStatus,
+} from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -59,10 +67,84 @@ const taxRegimeLabels: Record<string, string> = {
   mei: "MEI",
 };
 
+const periodStatusLabels: Record<ClientPeriodStatus, string> = {
+  not_started: "Não iniciada",
+  waiting_documents: "Aguardando documentos",
+  in_progress: "Em execução",
+  in_review: "Em revisão",
+  delivered: "Entregue",
+  closed: "Fechada",
+  blocked: "Bloqueada",
+};
+
+const periodStatusStyles: Record<ClientPeriodStatus, string> = {
+  not_started: "bg-muted text-muted-foreground",
+  waiting_documents: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300",
+  in_progress: "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300",
+  in_review: "bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300",
+  delivered: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
+  closed: "bg-gilver text-[hsl(0,0%,9%)]",
+  blocked: "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300",
+};
+
+const stepStatusLabels: Record<ClientPeriodStepStatus, string> = {
+  pending: "Pendente",
+  in_progress: "Em andamento",
+  completed: "Concluída",
+  blocked: "Bloqueada",
+  waived: "Dispensada",
+};
+
+const stepStatusStyles: Record<ClientPeriodStepStatus, string> = {
+  pending: "bg-muted text-muted-foreground",
+  in_progress: "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300",
+  completed: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
+  blocked: "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300",
+  waived: "bg-slate-100 text-slate-700 dark:bg-slate-950 dark:text-slate-300",
+};
+
+const checklistStatusLabels: Record<ClientPeriodChecklistStatus, string> = {
+  pending: "Pendente",
+  in_progress: "Em andamento",
+  in_review: "Em revisão",
+  completed: "Concluído",
+  blocked: "Bloqueado",
+  waived: "Dispensado",
+};
+
+const checklistStatusStyles: Record<ClientPeriodChecklistStatus, string> = {
+  pending: "bg-muted text-muted-foreground",
+  in_progress: "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300",
+  in_review: "bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300",
+  completed: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
+  blocked: "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300",
+  waived: "bg-slate-100 text-slate-700 dark:bg-slate-950 dark:text-slate-300",
+};
+
+const serviceAreaLabels: Record<string, string> = {
+  fiscal: "Fiscal",
+  contabil: "Contábil",
+  folha: "Folha",
+  financeiro_bpo: "Financeiro/BPO",
+  societario: "Societário",
+};
+
+const serviceAreaOptions: { value: ClientData["serviceAreas"][number]; label: string }[] = [
+  { value: "fiscal", label: "Fiscal" },
+  { value: "contabil", label: "Contábil" },
+  { value: "folha", label: "Folha" },
+  { value: "financeiro_bpo", label: "Financeiro/BPO" },
+  { value: "societario", label: "Societário" },
+];
+
 const brl = (value: number) =>
   value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const fmt = (value?: string | null) =>
   value ? new Date(value).toLocaleDateString("pt-BR") : "—";
+const currentPeriod = () => {
+  const now = new Date();
+  return { month: now.getMonth() + 1, year: now.getFullYear() };
+};
 const metadataText = (
   metadata: Database["public"]["Tables"]["activity_logs"]["Row"]["metadata"],
   key: string,
@@ -140,6 +222,10 @@ const ClientDetail = () => {
     invoices,
     payments,
     fiscalObligations,
+    clientPeriods,
+    clientPeriodSteps,
+    clientPeriodChecklistItems,
+    documentRequests,
   } = useData();
 
   const client = clients.find((c) => c.id === id);
@@ -205,6 +291,60 @@ const ClientDetail = () => {
       ),
     [client?.id, fiscalObligations],
   );
+
+  const activePeriod = useMemo(() => currentPeriod(), []);
+  const clientPeriodHistory = useMemo(
+    () =>
+      clientPeriods
+        .filter((period) => period.companyId === client?.id)
+        .sort((a, b) => b.periodYear - a.periodYear || b.periodMonth - a.periodMonth),
+    [client?.id, clientPeriods],
+  );
+  const currentClientPeriod = useMemo(
+    () =>
+      clientPeriodHistory.find(
+        (period) =>
+          period.periodMonth === activePeriod.month &&
+          period.periodYear === activePeriod.year,
+      ) ?? null,
+    [activePeriod.month, activePeriod.year, clientPeriodHistory],
+  );
+  const currentPeriodSteps = useMemo(
+    () =>
+      currentClientPeriod
+        ? clientPeriodSteps
+            .filter((step) => step.clientPeriodId === currentClientPeriod.id)
+            .sort((a, b) => a.position - b.position)
+        : [],
+    [clientPeriodSteps, currentClientPeriod],
+  );
+  const currentPeriodDoneSteps = currentPeriodSteps.filter(
+    (step) => step.status === "completed" || step.status === "waived",
+  ).length;
+  const currentPeriodChecklistItems = useMemo(
+    () =>
+      currentClientPeriod
+        ? clientPeriodChecklistItems
+            .filter((item) => item.clientPeriodId === currentClientPeriod.id)
+            .sort((a, b) => a.sortOrder - b.sortOrder || a.title.localeCompare(b.title))
+        : [],
+    [clientPeriodChecklistItems, currentClientPeriod],
+  );
+  const currentPeriodDoneChecklistItems = currentPeriodChecklistItems.filter(
+    (item) => item.status === "completed" || item.status === "waived",
+  ).length;
+  const currentPeriodDocumentRequests = useMemo(
+    () =>
+      currentClientPeriod
+        ? documentRequests
+            .filter((request) => request.clientPeriodId === currentClientPeriod.id)
+            .sort((a, b) => (a.dueDate ?? "").localeCompare(b.dueDate ?? ""))
+        : [],
+    [currentClientPeriod, documentRequests],
+  );
+  const currentPeriodDoneDocumentRequests = currentPeriodDocumentRequests.filter(
+    (request) => request.status === "approved" || request.status === "waived",
+  ).length;
 
   const visibleClientActivities = useMemo(() => {
     const minDate =
@@ -306,7 +446,15 @@ const ClientDetail = () => {
           invoice.status === "pending" || invoice.status === "overdue",
       )
       .reduce((sum, invoice) => sum + Number(invoice.amount || 0), 0);
-    return { invoiced, paidInvoices, received, pending };
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    const currentMonthReceived = clientPayments
+      .filter((payment) =>
+        payment.status === "completed" &&
+        (payment.direction === "entrada" || payment.direction === "income") &&
+        (payment.paid_at ?? payment.created_at)?.slice(0, 7) === currentMonth,
+      )
+      .reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+    return { invoiced, paidInvoices, received, pending, currentMonthReceived };
   }, [clientInvoices, clientPayments]);
 
   if (!client) {
@@ -329,6 +477,7 @@ const ClientDetail = () => {
       phone: client.phone,
       cnpj: client.cnpj,
       taxRegime: client.taxRegime,
+      serviceAreas: client.serviceAreas,
       serviceFee: client.serviceFee,
       city: client.city,
       state: client.state,
@@ -336,10 +485,20 @@ const ClientDetail = () => {
     setIsEditing(true);
   };
 
-  const saveEditing = () => {
-    updateClient(client.id, editData);
+  const saveEditing = async () => {
+    if (!await updateClient(client.id, editData)) return;
     setIsEditing(false);
     toast.success("Cliente atualizado com sucesso!");
+  };
+
+  const toggleServiceArea = (service: ClientData["serviceAreas"][number], checked: boolean) => {
+    setEditData((current) => {
+      const currentAreas = current.serviceAreas ?? client.serviceAreas;
+      const next = checked
+        ? Array.from(new Set([...currentAreas, service]))
+        : currentAreas.filter((item) => item !== service);
+      return { ...current, serviceAreas: next.length ? next : currentAreas };
+    });
   };
 
   return (
@@ -408,6 +567,10 @@ const ClientDetail = () => {
             <TabsTrigger value="info" className="gap-2">
               <Building2 className="h-4 w-4" />
               Cadastro
+            </TabsTrigger>
+            <TabsTrigger value="period" className="gap-2">
+              <CalendarClock className="h-4 w-4" />
+              Ciclo do mês
             </TabsTrigger>
             <TabsTrigger value="financial" className="gap-2">
               <Wallet className="h-4 w-4" />
@@ -501,6 +664,30 @@ const ClientDetail = () => {
                       <p className="text-sm p-2 bg-muted rounded-xl">
                         {taxRegimeLabels[client.taxRegime]}
                       </p>
+                    )}
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>Serviços contratados</Label>
+                    {isEditing ? (
+                      <div className="grid gap-2 rounded-xl border border-border p-3 sm:grid-cols-2">
+                        {serviceAreaOptions.map((service) => (
+                          <label key={service.value} className="flex items-center gap-2 text-sm">
+                            <Checkbox
+                              checked={(editData.serviceAreas ?? client.serviceAreas).includes(service.value)}
+                              onCheckedChange={(value) => toggleServiceArea(service.value, value === true)}
+                            />
+                            <span>{service.label}</span>
+                          </label>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex flex-wrap gap-2 rounded-xl bg-muted p-2">
+                        {client.serviceAreas.map((service) => (
+                          <Badge key={service} variant="secondary">
+                            {serviceAreaLabels[service] ?? service}
+                          </Badge>
+                        ))}
+                      </div>
                     )}
                   </div>
                 </CardContent>
@@ -647,6 +834,212 @@ const ClientDetail = () => {
             </Card>
           </TabsContent>
 
+          <TabsContent value="period" className="mt-6 space-y-4">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Competência atual</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {!currentClientPeriod ? (
+                    <div className="py-8 text-center">
+                      <CalendarClock className="mx-auto mb-3 h-10 w-10 text-muted-foreground opacity-50" />
+                      <p className="text-sm text-muted-foreground">
+                        Nenhuma competência criada para este cliente no mês atual.
+                      </p>
+                      <Button
+                        variant="outline"
+                        className="mt-4 rounded-xl"
+                        onClick={() => navigate("/periods")}
+                      >
+                        Abrir ciclo mensal
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-5">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <p className="text-sm text-muted-foreground">
+                            {String(currentClientPeriod.periodMonth).padStart(2, "0")}/{currentClientPeriod.periodYear}
+                          </p>
+                          <Badge className={periodStatusStyles[currentClientPeriod.status]}>
+                            {periodStatusLabels[currentClientPeriod.status]}
+                          </Badge>
+                        </div>
+                        <Button
+                          variant="outline"
+                          className="rounded-xl"
+                          onClick={() => navigate("/periods")}
+                        >
+                          Ver operação
+                        </Button>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Progresso operacional</span>
+                          <span className="font-medium">{currentClientPeriod.progressPercent}%</span>
+                        </div>
+                        <Progress value={currentClientPeriod.progressPercent} className="h-2" />
+                        <p className="text-xs text-muted-foreground">
+                          {currentPeriodDoneChecklistItems}/{currentPeriodChecklistItems.length || 0} itens de checklist · {currentPeriodDoneSteps}/{currentPeriodSteps.length || 0} etapas macro
+                        </p>
+                      </div>
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        {currentPeriodSteps.map((step) => (
+                          <div key={step.id} className="rounded-xl border border-border p-3">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-medium">{step.title}</p>
+                                <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                                  {step.description || "Etapa operacional da competência."}
+                                </p>
+                              </div>
+                              <Badge className={stepStatusStyles[step.status]}>
+                                {stepStatusLabels[step.status]}
+                              </Badge>
+                            </div>
+                            {step.blockedReason && (
+                              <p className="mt-2 text-xs text-red-600">{step.blockedReason}</p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      {currentPeriodChecklistItems.length > 0 && (
+                        <div className="space-y-3 border-t border-border pt-4">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div>
+                              <p className="text-sm font-medium">Checklist gerado</p>
+                              <p className="text-xs text-muted-foreground">
+                                Itens operacionais criados pelo regime tributário do cliente.
+                              </p>
+                            </div>
+                            <Badge variant="outline">
+                              {currentPeriodDoneChecklistItems}/{currentPeriodChecklistItems.length}
+                            </Badge>
+                          </div>
+                          <div className="grid gap-2 sm:grid-cols-2">
+                            {currentPeriodChecklistItems.slice(0, 8).map((item) => (
+                              <div key={item.id} className="rounded-xl border border-border p-3">
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="min-w-0">
+                                    <p className="truncate text-sm font-medium">{item.title}</p>
+                                    <p className="mt-1 text-xs text-muted-foreground">
+                                      {serviceAreaLabels[item.serviceArea]} · venc. {item.dueDate ? fmt(`${item.dueDate}T00:00:00`) : "sem prazo"}
+                                    </p>
+                                  </div>
+                                  <Badge className={checklistStatusStyles[item.status]}>
+                                    {checklistStatusLabels[item.status]}
+                                  </Badge>
+                                </div>
+                                <div className="mt-2 flex flex-wrap gap-1.5">
+                                  {item.requiresReview && <Badge variant="secondary" className="text-[10px]">Revisão</Badge>}
+                                  {item.requiresDocument && <Badge variant="secondary" className="text-[10px]">Documento</Badge>}
+                                  {item.taskId && <Badge variant="outline" className="text-[10px]">Tarefa vinculada</Badge>}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          {currentPeriodChecklistItems.length > 8 && (
+                            <Button variant="outline" className="rounded-xl" onClick={() => navigate("/periods")}>
+                              Ver checklist completo
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                      {currentPeriodDocumentRequests.length > 0 && (
+                        <div className="space-y-3 border-t border-border pt-4">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div>
+                              <p className="text-sm font-medium">Documentos solicitados</p>
+                              <p className="text-xs text-muted-foreground">
+                                Pendências documentais vinculadas à competência.
+                              </p>
+                            </div>
+                            <Badge variant="outline">
+                              {currentPeriodDoneDocumentRequests}/{currentPeriodDocumentRequests.length}
+                            </Badge>
+                          </div>
+                          <div className="grid gap-2 sm:grid-cols-2">
+                            {currentPeriodDocumentRequests.slice(0, 8).map((request) => {
+                              const statusLabel =
+                                request.status === "requested"
+                                  ? "Solicitado"
+                                  : request.status === "uploaded"
+                                    ? "Enviado"
+                                    : request.status === "approved"
+                                      ? "Aprovado"
+                                      : request.status === "rejected"
+                                        ? "Recusado"
+                                        : "Dispensado";
+                              const statusClass =
+                                request.status === "approved"
+                                  ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
+                                  : request.status === "uploaded"
+                                    ? "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
+                                    : request.status === "rejected"
+                                      ? "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300"
+                                      : request.status === "waived"
+                                        ? "bg-slate-100 text-slate-700 dark:bg-slate-950 dark:text-slate-300"
+                                        : "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300";
+                              return (
+                                <div key={request.id} className="rounded-xl border border-border p-3">
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div className="min-w-0">
+                                      <p className="truncate text-sm font-medium">{request.title}</p>
+                                      <p className="mt-1 text-xs text-muted-foreground">
+                                        Venc. {request.dueDate ? fmt(`${request.dueDate}T00:00:00`) : "sem prazo"}
+                                      </p>
+                                    </div>
+                                    <Badge className={statusClass}>{statusLabel}</Badge>
+                                  </div>
+                                  {request.rejectionReason && <p className="mt-2 text-xs text-red-600">{request.rejectionReason}</p>}
+                                  {request.waivedReason && <p className="mt-2 text-xs text-muted-foreground">{request.waivedReason}</p>}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Histórico de competências</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {clientPeriodHistory.length === 0 ? (
+                    <p className="py-8 text-center text-sm text-muted-foreground">
+                      Ainda não há competências criadas para este cliente.
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {clientPeriodHistory.slice(0, 8).map((period) => (
+                        <div key={period.id} className="flex items-center justify-between rounded-xl border border-border p-3">
+                          <div>
+                            <p className="text-sm font-medium">
+                              {String(period.periodMonth).padStart(2, "0")}/{period.periodYear}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Atualizada em {fmt(period.updatedAt)}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <Badge className={periodStatusStyles[period.status]}>
+                              {periodStatusLabels[period.status]}
+                            </Badge>
+                            <p className="mt-1 text-xs text-muted-foreground">{period.progressPercent}%</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
           <TabsContent value="documents" className="mt-6">
             <Card>
               <CardHeader>
@@ -762,6 +1155,14 @@ const ClientDetail = () => {
                     {client.serviceFee.toLocaleString("pt-BR", {
                       minimumFractionDigits: 2,
                     })}
+                  </p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-6">
+                  <p className="text-xs text-muted-foreground">Saldo estimado de honorários no mês</p>
+                  <p className="text-2xl font-semibold mt-1">
+                    {brl(Math.max(0, client.serviceFee - financialSummary.currentMonthReceived))}
                   </p>
                 </CardContent>
               </Card>

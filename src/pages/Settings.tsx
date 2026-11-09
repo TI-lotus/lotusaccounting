@@ -21,18 +21,33 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useUserProfile } from "@/contexts/UserProfileContext";
 import { useData } from "@/contexts/DataContext";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   defaultAutomationPreferences,
   defaultNotificationChannels,
 } from "@/lib/workspaceSettingsDefaults";
 import { useTheme } from "@/hooks/useTheme";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Json } from "@/integrations/supabase/types";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 type ThemePreference = "light" | "dark" | "system";
+type MfaFactor = {
+  id: string;
+  friendly_name?: string;
+  status: "verified" | "unverified";
+};
 const isThemePreference = (value: string | null): value is ThemePreference =>
   value === "light" || value === "dark" || value === "system";
 
@@ -43,14 +58,15 @@ export const SettingsContent = ({
 }) => {
   const profile = useUserProfile();
   const { workspaceSettings, updateWorkspaceSettings } = useData();
+  const { profile: authProfile, refreshMfaState } = useAuth();
   const { theme, setTheme } = useTheme();
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const [themePref, setThemePref] = useState<ThemePreference>(() => {
-    const stored = localStorage.getItem("lotus-theme-pref");
-    return isThemePreference(stored) ? stored : "light";
-  });
+  const [themePref, setThemePref] = useState<ThemePreference>(theme);
+  const [themeReady, setThemeReady] = useState(false);
+  const [themeTouched, setThemeTouched] = useState(false);
   useEffect(() => {
+    if (!themeReady || !themeTouched) return;
     localStorage.setItem("lotus-theme-pref", themePref);
     if (themePref === "system") {
       const isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -58,9 +74,10 @@ export const SettingsContent = ({
     } else {
       setTheme(themePref);
     }
-  }, [themePref, setTheme]);
+  }, [themePref, themeReady, themeTouched, setTheme]);
 
   const [officeName, setOfficeName] = useState("");
+  const [officeCnpj, setOfficeCnpj] = useState("");
   const [fiscalYearEnd, setFiscalYearEnd] = useState("Dezembro");
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [paymentAlerts, setPaymentAlerts] = useState(true);
@@ -75,13 +92,108 @@ export const SettingsContent = ({
   const [automationPrefs, setAutomationPrefs] = useState(
     defaultAutomationPreferences,
   );
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [mfaDialogOpen, setMfaDialogOpen] = useState(false);
+  const [mfaFactors, setMfaFactors] = useState<MfaFactor[]>([]);
+  const [mfaEnrollment, setMfaEnrollment] = useState<{
+    factorId: string;
+    qrCode: string;
+    secret: string;
+  } | null>(null);
+  const [mfaCode, setMfaCode] = useState("");
+  const [mfaLoading, setMfaLoading] = useState(false);
+  const isAdmin = authProfile?.account_type === "admin";
+
+  const loadMfaFactors = useCallback(async () => {
+    const { data, error } = await supabase.auth.mfa.listFactors();
+    if (error) throw error;
+    setMfaFactors(data.totp.map((factor) => ({
+      id: factor.id,
+      friendly_name: factor.friendly_name,
+      status: factor.status,
+    })));
+  }, []);
+
+  const openMfaDialog = async (open: boolean) => {
+    setMfaDialogOpen(open);
+    if (!open) return;
+    try {
+      await loadMfaFactors();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Nao foi possivel carregar a configuracao de 2FA.");
+    }
+  };
+
+  const startMfaEnrollment = async () => {
+    setMfaLoading(true);
+    try {
+      const { data, error } = await supabase.auth.mfa.enroll({
+        factorType: "totp",
+        friendlyName: "Lotus Authenticator",
+      });
+      if (error) throw error;
+      setMfaEnrollment({
+        factorId: data.id,
+        qrCode: data.totp.qr_code,
+        secret: data.totp.secret,
+      });
+      setMfaCode("");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Nao foi possivel iniciar o 2FA.");
+    } finally {
+      setMfaLoading(false);
+    }
+  };
+
+  const confirmMfaEnrollment = async () => {
+    if (!mfaEnrollment || mfaCode.trim().length !== 6) {
+      toast.error("Informe o codigo de seis digitos do autenticador.");
+      return;
+    }
+    setMfaLoading(true);
+    try {
+      const { error } = await supabase.auth.mfa.challengeAndVerify({
+        factorId: mfaEnrollment.factorId,
+        code: mfaCode.trim(),
+      });
+      if (error) throw error;
+      setMfaEnrollment(null);
+      setMfaCode("");
+      await loadMfaFactors();
+      await refreshMfaState();
+      toast.success("Autenticacao em duas etapas ativada.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Codigo invalido.");
+    } finally {
+      setMfaLoading(false);
+    }
+  };
+
+  const removeMfaFactor = async (factorId: string) => {
+    if (!window.confirm("Desativar este autenticador? O proximo acesso voltara a exigir apenas a senha.")) return;
+    setMfaLoading(true);
+    try {
+      const { error } = await supabase.auth.mfa.unenroll({ factorId });
+      if (error) throw error;
+      await loadMfaFactors();
+      await refreshMfaState();
+      toast.success("Autenticacao em duas etapas desativada.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Nao foi possivel desativar o 2FA.");
+    } finally {
+      setMfaLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!workspaceSettings) return;
-    if (isThemePreference(workspaceSettings.theme_preference)) {
+    if (showHeader && isThemePreference(workspaceSettings.theme_preference)) {
       setThemePref(workspaceSettings.theme_preference);
     }
-    setOfficeName(profile.companyName || workspaceSettings.office_name || "");
+    setThemeReady(true);
+    setOfficeName(workspaceSettings.office_name || "");
+    setOfficeCnpj(workspaceSettings.cnpj || "");
     setFiscalYearEnd(workspaceSettings.fiscal_year_end);
 
     const channels =
@@ -119,11 +231,26 @@ export const SettingsContent = ({
       ...defaultAutomationPreferences,
       ...automations,
     });
-  }, [profile.companyName, workspaceSettings]);
+  }, [workspaceSettings]);
 
   const handleSaveSettings = async () => {
+    if (!isAdmin) {
+      toast.error("Somente administradores podem alterar dados de identificação e do escritório.");
+      return;
+    }
+    const normalizedCnpj = officeCnpj.replace(/\D/g, "");
+    if (normalizedCnpj && normalizedCnpj.length !== 14) {
+      toast.error("O CNPJ do escritório deve conter 14 dígitos");
+      return;
+    }
+    const profileSaved = await profile.saveProfile();
+    if (!profileSaved.ok) {
+      toast.error("Não foi possível salvar seu perfil. Confira CPF, e-mail e permissões.");
+      return;
+    }
     const saved = await updateWorkspaceSettings({
       office_name: officeName || workspaceSettings?.office_name,
+      cnpj: normalizedCnpj || null,
       fiscal_year_end: fiscalYearEnd,
       currency: "BRL",
       theme_preference: themePref,
@@ -136,7 +263,29 @@ export const SettingsContent = ({
       } as Json,
       automation_preferences: automationPrefs as unknown as Json,
     });
-    if (saved) toast.success("Configurações salvas com sucesso!");
+    if (saved) {
+      profile.updateProfile({ companyName: saved.office_name || "", cnpj: saved.cnpj || "" });
+      toast.success(profileSaved.emailConfirmationRequired ? "Configurações salvas. Confirme o novo e-mail para concluir a alteração." : "Configurações salvas com sucesso!");
+    }
+  };
+
+  const handlePasswordUpdate = async () => {
+    if (newPassword.length < 8) {
+      toast.error("A nova senha deve ter pelo menos 8 caracteres");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error("As senhas não coincidem");
+      return;
+    }
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) {
+      toast.error("Não foi possível alterar a senha: " + error.message);
+      return;
+    }
+    setNewPassword("");
+    setConfirmPassword("");
+    toast.success("Senha atualizada com sucesso");
   };
 
   return (
@@ -168,9 +317,10 @@ export const SettingsContent = ({
             </Avatar>
             <button
               type="button"
-              onClick={() => fileRef.current?.click()}
+              onClick={() => isAdmin && fileRef.current?.click()}
               className="absolute -bottom-1 -right-1 h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-soft-lg hover:opacity-90"
               aria-label="Trocar foto"
+              disabled={!isAdmin}
             >
               <Camera className="h-4 w-4" />
             </button>
@@ -179,13 +329,15 @@ export const SettingsContent = ({
               type="file"
               accept="image/*"
               className="hidden"
-              onChange={(e) => {
+              onChange={async (e) => {
                 const file = e.target.files?.[0];
                 if (!file) return;
-                const reader = new FileReader();
-                reader.onload = () =>
-                  profile.updateProfile({ avatarUrl: String(reader.result) });
-                reader.readAsDataURL(file);
+                const uploaded = await profile.uploadAvatar(file);
+                if (!uploaded) {
+                  toast.error("Use uma imagem JPG, PNG ou WebP de até 2 MB.");
+                  return;
+                }
+                toast.success("Foto de perfil atualizada");
               }}
             />
           </div>
@@ -198,6 +350,7 @@ export const SettingsContent = ({
                   onChange={(e) =>
                     profile.updateProfile({ firstName: e.target.value })
                   }
+                  disabled={!isAdmin}
                   className="rounded-xl"
                 />
               </div>
@@ -208,6 +361,7 @@ export const SettingsContent = ({
                   onChange={(e) =>
                     profile.updateProfile({ lastName: e.target.value })
                   }
+                  disabled={!isAdmin}
                   className="rounded-xl"
                 />
               </div>
@@ -219,12 +373,13 @@ export const SettingsContent = ({
                 onChange={(e) =>
                   profile.updateProfile({ email: e.target.value })
                 }
+                disabled={!isAdmin}
                 className="rounded-xl"
               />
             </div>
             <div className="space-y-2">
               <Label>CPF</Label>
-              <Input value={profile.cpf} className="rounded-xl" disabled />
+              <Input value={profile.cpf} onChange={(e) => profile.updateProfile({ cpf: e.target.value })} placeholder="000.000.000-00" className="rounded-xl" disabled={!isAdmin} />
             </div>
           </div>
         </div>
@@ -243,15 +398,15 @@ export const SettingsContent = ({
               value={officeName}
               onChange={(e) => {
                 setOfficeName(e.target.value);
-                profile.updateProfile({ companyName: e.target.value });
               }}
+              disabled={!isAdmin}
               className="rounded-xl"
             />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>CNPJ</Label>
-              <Input value={profile.cnpj} className="rounded-xl" disabled />
+              <Input value={officeCnpj} onChange={(e) => setOfficeCnpj(e.target.value)} placeholder="00.000.000/0000-00" className="rounded-xl" disabled={!isAdmin} />
             </div>
             <div className="space-y-2">
               <Label>Encerramento do Exercício Fiscal</Label>
@@ -259,6 +414,7 @@ export const SettingsContent = ({
                 value={fiscalYearEnd}
                 onChange={(e) => setFiscalYearEnd(e.target.value)}
                 className="rounded-xl"
+                disabled={!isAdmin}
               />
             </div>
           </div>
@@ -281,7 +437,10 @@ export const SettingsContent = ({
             </div>
             <Select
               value={themePref}
-              onValueChange={(v: ThemePreference) => setThemePref(v)}
+              onValueChange={(v: ThemePreference) => {
+                setThemeTouched(true);
+                setThemePref(v);
+              }}
             >
               <SelectTrigger className="w-44 rounded-xl">
                 <SelectValue />
@@ -457,21 +616,21 @@ export const SettingsContent = ({
                 Adicione uma camada extra de segurança
               </p>
             </div>
-            <Button variant="outline" size="sm" className="rounded-lg">
-              Ativar
+            <Button variant="outline" size="sm" className="rounded-lg" onClick={() => void openMfaDialog(true)}>
+              Configurar
             </Button>
           </div>
           <Separator />
-          <div className="flex items-center justify-between">
+          <div className="space-y-3">
             <div>
               <p className="font-medium">Alterar Senha</p>
-              <p className="text-sm text-muted-foreground">
-                Atualize a senha da sua conta
-              </p>
+              <p className="text-sm text-muted-foreground">Atualize a senha da sua conta.</p>
             </div>
-            <Button variant="outline" size="sm" className="rounded-lg">
-              Atualizar
-            </Button>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Nova senha" className="rounded-xl" />
+              <Input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Confirmar nova senha" className="rounded-xl" />
+            </div>
+            <Button variant="outline" size="sm" className="rounded-lg" onClick={handlePasswordUpdate}>Atualizar senha</Button>
           </div>
         </div>
       </div>
@@ -481,6 +640,70 @@ export const SettingsContent = ({
           Salvar Alterações
         </Button>
       </div>
+
+      <Dialog open={mfaDialogOpen} onOpenChange={(open) => void openMfaDialog(open)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Autenticacao em duas etapas</DialogTitle>
+            <DialogDescription>
+              Use um aplicativo autenticador compativel com codigos TOTP.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {mfaEnrollment ? (
+              <>
+                <div className="flex justify-center rounded-xl bg-white p-3">
+                  <img src={mfaEnrollment.qrCode} alt="QR code para configurar o autenticador" className="h-40 w-40" />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Caso nao consiga escanear, informe esta chave no aplicativo: <span className="font-mono text-foreground break-all">{mfaEnrollment.secret}</span>
+                </p>
+                <div className="space-y-2">
+                  <Label htmlFor="settingsMfaCode">Codigo de seis digitos</Label>
+                  <Input
+                    id="settingsMfaCode"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    maxLength={6}
+                    value={mfaCode}
+                    onChange={(event) => setMfaCode(event.target.value.replace(/\D/g, ""))}
+                    className="rounded-xl text-center tracking-[0.3em]"
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                {mfaFactors.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Nenhum autenticador configurado nesta conta.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {mfaFactors.map((factor) => (
+                      <div key={factor.id} className="flex items-center justify-between gap-3 rounded-xl border border-border p-3">
+                        <div>
+                          <p className="text-sm font-medium">{factor.friendly_name || "Aplicativo autenticador"}</p>
+                          <p className="text-xs text-muted-foreground">{factor.status === "verified" ? "Ativo" : "Aguardando confirmacao"}</p>
+                        </div>
+                        <Button variant="outline" size="sm" disabled={mfaLoading} onClick={() => void removeMfaFactor(factor.id)}>Remover</Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <Button className="w-full" disabled={mfaLoading} onClick={() => void startMfaEnrollment()}>
+                  Configurar aplicativo autenticador
+                </Button>
+              </>
+            )}
+          </div>
+
+          {mfaEnrollment && (
+            <DialogFooter>
+              <Button variant="outline" disabled={mfaLoading} onClick={() => setMfaEnrollment(null)}>Cancelar</Button>
+              <Button disabled={mfaLoading} onClick={() => void confirmMfaEnrollment()}>Confirmar codigo</Button>
+            </DialogFooter>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

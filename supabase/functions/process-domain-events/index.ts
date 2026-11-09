@@ -1,9 +1,12 @@
 import { handleCors } from "../_shared/cors.ts";
 import { errorResponse, jsonResponse } from "../_shared/responses.ts";
 import { requireAuthContext, requireWorkspaceManager } from "../_shared/auth.ts";
+import { requireScheduler } from "../_shared/scheduler.ts";
 import { createServiceClient } from "../_shared/supabase.ts";
+import { logIntegrationError } from "../_shared/errors.ts";
 
 type DomainEvent = {
+  attempt_count: number;
   id: string;
   tenant_id: string;
   event_type: string;
@@ -20,58 +23,36 @@ type AutomationRule = {
   action_payload: Record<string, unknown>;
 };
 
-const createTaskFromRule = async (
-  event: DomainEvent,
-  rule: AutomationRule,
-) => {
-  const supabase = createServiceClient();
-  const payload = rule.action_payload ?? {};
-  const dueDays = Number(payload.dueDays ?? 1);
-  const dueDate = new Date();
-  dueDate.setDate(dueDate.getDate() + dueDays);
+type RequestScope = { tenantId: string; workerId: string };
 
-  const { data, error } = await supabase
-    .from("tasks")
-    .insert({
-      tenant_id: event.tenant_id,
-      company_id:
-        typeof event.payload.company_id === "string"
-          ? event.payload.company_id
-          : null,
-      title: String(payload.title ?? rule.name),
-      description: String(
-        payload.description ??
-          `Tarefa criada automaticamente pelo evento ${event.event_type}.`,
-      ),
-      task_type: "one_time",
-      status: "pending",
-      priority: String(payload.priority ?? "medium"),
-      category: String(payload.category ?? "Automação"),
-      due_date: dueDate.toISOString(),
-    })
-    .select("*")
-    .maybeSingle();
+const resolveScope = async (request: Request): Promise<RequestScope> => {
+  if (request.headers.has("x-lotus-scheduler-key")) {
+    requireScheduler(request);
+    const body = (await request.json()) as { tenantId?: unknown };
+    if (typeof body.tenantId !== "string") throw new Error("tenant_required");
+    return { tenantId: body.tenantId, workerId: `scheduler-${crypto.randomUUID()}` };
+  }
 
-  if (error) throw error;
-  return data;
+  const context = await requireAuthContext(request);
+  requireWorkspaceManager(context);
+  return { tenantId: context.tenantId, workerId: `manual-${context.userId}` };
 };
 
 Deno.serve(async (request) => {
   const corsResponse = handleCors(request);
   if (corsResponse) return corsResponse;
+  if (request.method !== "POST") return errorResponse("method_not_allowed", 405);
 
   try {
-    const context = await requireAuthContext(request);
-    requireWorkspaceManager(context);
+    const scope = await resolveScope(request);
 
     const supabase = createServiceClient();
     const { data: events, error: eventsError } = await supabase
-      .from("domain_events")
-      .select("*")
-      .eq("tenant_id", context.tenantId)
-      .eq("status", "pending")
-      .order("created_at", { ascending: true })
-      .limit(10);
+      .rpc("claim_workspace_domain_events", {
+        worker_id: scope.workerId,
+        workspace_id: scope.tenantId,
+        batch_size: 10,
+      });
 
     if (eventsError) throw eventsError;
 
@@ -80,43 +61,50 @@ Deno.serve(async (request) => {
       const { data: rules, error: rulesError } = await supabase
         .from("automation_rules")
         .select("*")
-        .eq("tenant_id", context.tenantId)
+        .eq("tenant_id", scope.tenantId)
         .eq("enabled", true)
         .eq("trigger_event_type", event.event_type);
 
       if (rulesError) throw rulesError;
 
-      for (const rule of (rules ?? []) as AutomationRule[]) {
-        try {
-          const result =
-            rule.action_type === "create_task"
-              ? await createTaskFromRule(event, rule)
-              : { skipped: true, actionType: rule.action_type };
-
-          await supabase.from("automation_runs").insert({
-            tenant_id: context.tenantId,
+      try {
+        for (const rule of (rules ?? []) as AutomationRule[]) {
+          if (rule.action_type !== "create_task") {
+            throw new Error(`unsupported_automation_action:${rule.action_type}`);
+          }
+          const { error: actionError } = await supabase.rpc("execute_task_automation", {
+            event_id: event.id,
             rule_id: rule.id,
-            domain_event_id: event.id,
-            status: "completed",
-            result: result ?? {},
+            workspace_id: scope.tenantId,
           });
-        } catch (error) {
-          await supabase.from("automation_runs").insert({
-            tenant_id: context.tenantId,
-            rule_id: rule.id,
-            domain_event_id: event.id,
-            status: "failed",
-            error_message:
-              error instanceof Error ? error.message : "Erro desconhecido",
-          });
+          if (actionError) throw actionError;
         }
-      }
 
-      await supabase
-        .from("domain_events")
-        .update({ status: "processed", processed_at: new Date().toISOString() })
-        .eq("id", event.id);
-      processed.push(event.id);
+        const { error: completeError } = await supabase.rpc("complete_workspace_domain_event", {
+          event_id: event.id,
+          workspace_id: scope.tenantId,
+        });
+        if (completeError) throw completeError;
+        processed.push(event.id);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Erro desconhecido";
+        await logIntegrationError({
+          tenantId: scope.tenantId,
+          provider: "lotus",
+          source: "domain_event_worker",
+          operation: event.event_type,
+          error,
+          retryable: true,
+          attemptNumber: event.attempt_count,
+          context: { eventId: event.id, entityType: event.entity_type, entityId: event.entity_id },
+        });
+        const { error: failError } = await supabase.rpc("fail_workspace_domain_event", {
+          event_id: event.id,
+          workspace_id: scope.tenantId,
+          error_message: message,
+        });
+        if (failError) throw failError;
+      }
     }
 
     return jsonResponse({ processed });

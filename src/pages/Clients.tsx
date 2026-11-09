@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,11 +31,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { useData } from "@/contexts/DataContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { ClientData } from "@/types";
+import type { ClientPeriodStatus } from "@/types";
 import { cn } from "@/lib/utils";
+import { useWorkspaceMembers } from "@/hooks/useWorkspaceMembers";
 
 const taxRegimeLabels: Record<string, string> = {
   simples_nacional: "Simples Nacional",
@@ -43,10 +47,46 @@ const taxRegimeLabels: Record<string, string> = {
   mei: "MEI",
 };
 
+const serviceAreaOptions: { value: ClientData["serviceAreas"][number]; label: string }[] = [
+  { value: "fiscal", label: "Fiscal" },
+  { value: "contabil", label: "Contábil" },
+  { value: "folha", label: "Folha" },
+  { value: "financeiro_bpo", label: "Financeiro/BPO" },
+  { value: "societario", label: "Societário" },
+];
+
+const periodStatusLabels: Record<ClientPeriodStatus | "not_created", string> = {
+  not_created: "Sem competência",
+  not_started: "Não iniciada",
+  waiting_documents: "Aguardando documentos",
+  in_progress: "Em execução",
+  in_review: "Em revisão",
+  delivered: "Entregue",
+  closed: "Fechada",
+  blocked: "Bloqueada",
+};
+
+const periodStatusStyles: Record<ClientPeriodStatus | "not_created", string> = {
+  not_created: "bg-muted text-muted-foreground",
+  not_started: "bg-muted text-muted-foreground",
+  waiting_documents: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300",
+  in_progress: "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300",
+  in_review: "bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300",
+  delivered: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
+  closed: "bg-gilver text-[hsl(0,0%,9%)]",
+  blocked: "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300",
+};
+
+const currentPeriod = () => {
+  const now = new Date();
+  return { month: now.getMonth() + 1, year: now.getFullYear() };
+};
+
 const Clients = () => {
   const navigate = useNavigate();
-  const { clients, addClient, updateClient, deleteClient } = useData();
+  const { clients, clientPeriods, addClient, updateClient, deleteClient, loading, refresh } = useData();
   const { user, profile } = useAuth();
+  const { byUserId } = useWorkspaceMembers();
   const [searchTerm, setSearchTerm] = useState("");
   const [feeRange, setFeeRange] = useState({ min: "", max: "" });
   const [contractSort, setContractSort] = useState("contract-desc");
@@ -54,11 +94,22 @@ const Clients = () => {
   const [responsibleFilter, setResponsibleFilter] = useState("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedClient, setSelectedClient] = useState<ClientData | null>(null);
   const [cnpjLoading, setCnpjLoading] = useState(false);
   const [newClient, setNewClient] = useState({
     name: "", email: "", phone: "", cnpj: "", taxRegime: "simples_nacional" as ClientData["taxRegime"],
+    serviceAreas: ["fiscal", "contabil"] as ClientData["serviceAreas"],
     serviceFee: "", city: "", state: "",
   });
+
+  const toggleNewClientService = (service: ClientData["serviceAreas"][number], checked: boolean) => {
+    setNewClient((current) => {
+      const next = checked
+        ? Array.from(new Set([...current.serviceAreas, service]))
+        : current.serviceAreas.filter((item) => item !== service);
+      return { ...current, serviceAreas: next.length ? next : current.serviceAreas };
+    });
+  };
 
   const handleFetchCNPJ = async () => {
     const clean = newClient.cnpj.replace(/\D/g, "");
@@ -95,6 +146,12 @@ const Clients = () => {
     return "ME";
   };
   const responsibles = Array.from(new Set(clients.map((client) => client.responsibleUserName)));
+  const activePeriod = currentPeriod();
+  const currentPeriodByClient = new Map(
+    clientPeriods
+      .filter((period) => period.periodMonth === activePeriod.month && period.periodYear === activePeriod.year)
+      .map((period) => [period.companyId, period]),
+  );
 
   const filteredClients = clients.filter((client) => {
     const matchesSearch =
@@ -112,7 +169,7 @@ const Clients = () => {
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
 
-  const handleAddClient = () => {
+  const handleAddClient = async () => {
     if (!newClient.name || !newClient.email) {
       toast.error("Preencha nome e email do cliente");
       return;
@@ -120,32 +177,34 @@ const Clients = () => {
 
     const responsibleName = profile?.full_name || user?.email || "Responsável";
 
-    addClient({
+    const saved = await addClient({
       name: newClient.name,
       email: newClient.email,
-      phone: newClient.phone || "(00) 00000-0000",
-      cnpj: newClient.cnpj || "00.000.000/0001-00",
+      phone: newClient.phone,
+      cnpj: newClient.cnpj,
       taxRegime: newClient.taxRegime,
+      serviceAreas: newClient.serviceAreas,
       responsibleUserId: user?.id ?? "",
       responsibleUserName: responsibleName,
       serviceFee: parseFloat(newClient.serviceFee) || 0,
-      city: newClient.city || "São Paulo",
-      state: newClient.state || "SP",
-      status: "pending",
+      city: newClient.city,
+      state: newClient.state,
+      status: "active",
     });
+    if (!saved) return;
 
-    setNewClient({ name: "", email: "", phone: "", cnpj: "", taxRegime: "simples_nacional", serviceFee: "", city: "", state: "" });
+    setNewClient({ name: "", email: "", phone: "", cnpj: "", taxRegime: "simples_nacional", serviceAreas: ["fiscal", "contabil"], serviceFee: "", city: "", state: "" });
     setDialogOpen(false);
     toast.success("Cliente adicionado com sucesso!");
   };
 
-  const handleDeleteClient = (id: string) => {
-    deleteClient(id);
-    toast.success("Cliente removido com sucesso!");
+  const handleDeleteClient = async (id: string) => {
+    if (!await deleteClient(id)) return;
+    toast.success("Cliente arquivado com sucesso!");
   };
 
-  const handleStatusChange = (id: string, status: ClientData["status"]) => {
-    updateClient(id, { status });
+  const handleStatusChange = async (id: string, status: ClientData["status"]) => {
+    if (!await updateClient(id, { status })) return;
     toast.success("Status atualizado!");
   };
 
@@ -213,6 +272,20 @@ const Clients = () => {
                     <Input id="fee" type="number" value={newClient.serviceFee} onChange={(e) => setNewClient({ ...newClient, serviceFee: e.target.value })} placeholder="0,00" className="rounded-xl" />
                   </div>
                 </div>
+                <div className="grid gap-2">
+                  <Label>Serviços contratados</Label>
+                  <div className="grid gap-2 rounded-xl border border-border p-3 sm:grid-cols-2">
+                    {serviceAreaOptions.map((service) => (
+                      <label key={service.value} className="flex items-center gap-2 text-sm">
+                        <Checkbox
+                          checked={newClient.serviceAreas.includes(service.value)}
+                          onCheckedChange={(value) => toggleNewClientService(service.value, value === true)}
+                        />
+                        <span>{service.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="city">Cidade</Label>
@@ -274,12 +347,32 @@ const Clients = () => {
             </div>
           </div>
 
-          <div className={cn("grid gap-3", viewMode === "grid" ? "sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "grid-cols-1")}>
-            {filteredClients.map((client, index) => (
+          {loading && clients.length === 0 ? (
+            <div className="flex min-h-56 flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border text-center text-muted-foreground">
+              <Loader2 className="h-6 w-6 animate-spin" />
+              <p className="text-sm">Carregando clientes...</p>
+            </div>
+          ) : (
+            <div className={cn("grid gap-3", viewMode === "grid" ? "sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "grid-cols-1")}>
+              {filteredClients.map((client, index) => (
+              (() => {
+                const period = currentPeriodByClient.get(client.id);
+                const periodStatus = period?.status ?? "not_created";
+                const periodProgress = period?.status === "closed" ? 100 : period?.progressPercent ?? 0;
+                return (
               <div
                 key={client.id}
-                className={cn("rounded-xl border border-border p-4 hover:bg-accent/40 transition-colors flex", viewMode === "grid" ? "flex-col" : "items-center gap-4")}
+                className={cn("rounded-xl border border-border p-4 hover:bg-accent/40 transition-colors flex cursor-pointer", viewMode === "grid" ? "flex-col" : "items-center gap-4")}
                 style={{ animationDelay: `${index * 50}ms` }}
+                onClick={() => setSelectedClient(client)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    setSelectedClient(client);
+                  }
+                }}
               >
                 <div className="flex items-start justify-between gap-2">
                   <p className="font-semibold truncate text-sm">{client.name}</p>
@@ -292,20 +385,35 @@ const Clients = () => {
                   </div>
                   <div className="flex flex-wrap items-center gap-1 mt-2">
                     <Badge variant="outline" className="text-[10px]">{taxRegimeLabels[client.taxRegime]}</Badge>
+                    <Badge variant="outline" className="text-[10px]">{client.serviceAreas.length} serviço(s)</Badge>
                     <Badge variant="outline" className="text-[10px]">{getClientSize(client)}</Badge>
+                    <Badge className={cn("text-[10px]", periodStatusStyles[periodStatus])}>{periodStatusLabels[periodStatus]}</Badge>
                   </div>
-                  <p className="text-[11px] text-muted-foreground mt-2 truncate">Resp.: {client.responsibleUserName}</p>
+                  <div className="mt-2 flex min-w-0 items-center gap-1.5 text-[11px] text-muted-foreground">
+                    <Avatar className="h-5 w-5 shrink-0">
+                      <AvatarImage src={byUserId.get(client.responsibleUserId)?.avatarUrl ?? undefined} />
+                      <AvatarFallback className="text-[9px]">{client.responsibleUserName?.charAt(0) || "?"}</AvatarFallback>
+                    </Avatar>
+                    <span className="truncate">Resp.: {client.responsibleUserName || "Sem responsável"}</span>
+                  </div>
+                  <div className="mt-3 space-y-1">
+                    <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                      <span>Competência atual</span>
+                      <span>{periodProgress}%</span>
+                    </div>
+                    <Progress value={periodProgress} className="h-1.5" />
+                  </div>
                 </div>
                 <div className="flex items-center justify-between pt-3 mt-2 border-t border-border">
                   <div><p className="font-semibold text-sm">R$ {client.serviceFee.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p><p className="text-[10px] text-muted-foreground">{client.city}/{client.state}</p></div>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="rounded-lg">
+                    <Button variant="ghost" size="icon" className="rounded-lg" onClick={(event) => event.stopPropagation()}>
                       <MoreHorizontal className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="rounded-xl">
-                    <DropdownMenuItem className="gap-2" onClick={() => navigate(`/clients/${client.id}`)}>
+                  <DropdownMenuContent align="end" className="rounded-xl" onClick={(event) => event.stopPropagation()}>
+                    <DropdownMenuItem className="gap-2" onClick={() => setSelectedClient(client)}>
                       <Eye className="h-4 w-4" />
                       Ver Detalhes
                     </DropdownMenuItem>
@@ -329,16 +437,71 @@ const Clients = () => {
                 </DropdownMenu>
                 </div>
               </div>
-            ))}
+                );
+              })()
+              ))}
 
-            {filteredClients.length === 0 && (
-              <div className="text-center py-12 text-muted-foreground">
-                <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Nenhum cliente encontrado</p>
+              {filteredClients.length === 0 && (
+                <div className="col-span-full flex flex-col items-center py-12 text-center text-muted-foreground">
+                  <Users className="mx-auto mb-4 h-12 w-12 opacity-50" />
+                  <p>Nenhum cliente encontrado</p>
+                  <Button variant="outline" size="sm" className="mt-4 rounded-xl" onClick={() => void refresh()}>
+                    Atualizar lista
+                  </Button>
+                </div>
+              )}
               </div>
-            )}
-          </div>
+          )}
         </div>
+
+        <Dialog open={Boolean(selectedClient)} onOpenChange={(open) => !open && setSelectedClient(null)}>
+          <DialogContent className="sm:max-w-[540px]">
+            {selectedClient && (
+              <>
+                <DialogHeader>
+                  <DialogTitle>{selectedClient.name}</DialogTitle>
+                  <DialogDescription>
+                    {taxRegimeLabels[selectedClient.taxRegime]} · {getClientSize(selectedClient)}
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant={selectedClient.status === "active" ? "default" : selectedClient.status === "pending" ? "secondary" : "outline"} className={cn(selectedClient.status === "active" && "bg-emerald-100 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950 dark:text-emerald-400")}>
+                      {selectedClient.status === "active" ? "Ativo" : selectedClient.status === "pending" ? "Pendente" : "Inativo"}
+                    </Badge>
+                    <Badge variant="outline">Honorários R$ {selectedClient.serviceFee.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</Badge>
+                    {selectedClient.serviceAreas.map((service) => (
+                      <Badge key={service} variant="secondary">{serviceAreaOptions.find((option) => option.value === service)?.label ?? service}</Badge>
+                    ))}
+                  </div>
+                  <div className="grid gap-3 text-sm sm:grid-cols-2">
+                    <div><p className="text-xs text-muted-foreground">E-mail</p><p className="font-medium break-words">{selectedClient.email || "—"}</p></div>
+                    <div><p className="text-xs text-muted-foreground">Telefone</p><p className="font-medium">{selectedClient.phone || "—"}</p></div>
+                    <div><p className="text-xs text-muted-foreground">CNPJ</p><p className="font-medium">{selectedClient.cnpj || "—"}</p></div>
+                    <div><p className="text-xs text-muted-foreground">Localidade</p><p className="font-medium">{selectedClient.city || "—"}/{selectedClient.state || "—"}</p></div>
+                    <div className="sm:col-span-2"><p className="text-xs text-muted-foreground">Responsável</p><p className="font-medium">{selectedClient.responsibleUserName || "Sem responsável"}</p></div>
+                  </div>
+                </div>
+                <DialogFooter className="flex-col gap-2 sm:flex-row sm:justify-between">
+                  <Button variant="destructive" className="rounded-xl" onClick={() => { void handleDeleteClient(selectedClient.id); setSelectedClient(null); }}>
+                    <Trash2 className="mr-2 h-4 w-4" />Remover
+                  </Button>
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="outline" className="rounded-xl" onClick={() => void handleStatusChange(selectedClient.id, selectedClient.status === "active" ? "inactive" : "active")}>
+                      {selectedClient.status === "active" ? "Inativar" : "Ativar"}
+                    </Button>
+                    <Button variant="outline" className="rounded-xl" onClick={() => navigate(`/clients/${selectedClient.id}`)}>
+                      <Eye className="mr-2 h-4 w-4" />Abrir cadastro
+                    </Button>
+                    <Button className="rounded-xl" onClick={() => navigate(`/clients/${selectedClient.id}`)}>
+                      <Edit className="mr-2 h-4 w-4" />Editar
+                    </Button>
+                  </div>
+                </DialogFooter>
+              </>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );

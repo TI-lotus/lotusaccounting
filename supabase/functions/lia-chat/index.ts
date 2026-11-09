@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { requireAuthContext } from '../_shared/auth.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -44,8 +45,9 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json().catch(() => null)
+    const context = await requireAuthContext(req)
     const message = typeof body?.message === 'string' ? body.message.trim() : ''
-    const history = Array.isArray(body?.history) ? body.history : []
+    const history = Array.isArray(body?.history) ? body.history.slice(-20) : []
 
     if (!message) {
       return new Response(JSON.stringify({ error: 'Mensagem obrigatória' }), {
@@ -63,8 +65,9 @@ Deno.serve(async (req) => {
 
     const response = await fetch(LIA_WEBHOOK_URL, {
       method: 'POST',
+      signal: AbortSignal.timeout(30000),
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message, history, source: 'lotus-app', userId: claimsData.claims.sub }),
+      body: JSON.stringify({ message, history, source: 'lotus-app', userId: context.userId, tenantId: context.tenantId, companyId: context.companyId, role: context.role }),
     })
 
     const text = await response.text()
@@ -98,7 +101,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('lia-chat error', error)
     return new Response(JSON.stringify({ error: 'Erro interno ao falar com a Lia' }), {
-      status: 500,
+      status: error instanceof Error && error.message === 'forbidden' ? 403 : 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   }

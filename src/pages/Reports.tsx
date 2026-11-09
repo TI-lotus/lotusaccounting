@@ -20,6 +20,8 @@ import { QuickStats } from "@/components/dashboard/QuickStats";
 import { CalendarEventView } from "@/components/CalendarEventView";
 import { useData } from "@/contexts/DataContext";
 import { useViewMode } from "@/contexts/ViewModeContext";
+import { withinDateRange } from "@/lib/financialMetrics";
+import { Input } from "@/components/ui/input";
 
 const formatCurrency = (value: number) =>
   value.toLocaleString("pt-BR", {
@@ -51,16 +53,21 @@ const Reports = () => {
   const { viewMode } = useViewMode();
   const {
     clients,
-    documents,
-    invoices,
-    payments,
-    tasks,
-    fiscalObligations,
+    documents: allDocuments,
+    invoices: allInvoices,
+    payments: allPayments,
+    tasks: allTasks,
+    fiscalObligations: allFiscalObligations,
     generateMonthlyFiscalObligations,
     updateFiscalObligation,
   } = useData();
   const [view, setView] = useState<"dashboard" | "calendar">("dashboard");
   const [dateRange, setDateRange] = useState(currentMonthRange);
+  const documents = useMemo(() => allDocuments.filter((doc) => withinDateRange(doc.createdAt, dateRange)), [allDocuments, dateRange]);
+  const invoices = useMemo(() => allInvoices.filter((invoice) => withinDateRange(invoice.issued_at ?? invoice.created_at, dateRange)), [allInvoices, dateRange]);
+  const payments = useMemo(() => allPayments.filter((payment) => withinDateRange(payment.paid_at ?? payment.created_at, dateRange)), [allPayments, dateRange]);
+  const tasks = useMemo(() => allTasks.filter((task) => withinDateRange(task.completedAt ?? task.createdAt, dateRange)), [allTasks, dateRange]);
+  const fiscalObligations = useMemo(() => allFiscalObligations.filter((obligation) => withinDateRange(obligation.due_date, dateRange)), [allFiscalObligations, dateRange]);
 
   const paidRevenue = useMemo(
     () =>
@@ -72,7 +79,7 @@ const Reports = () => {
   const openRevenue = useMemo(
     () =>
       invoices
-        .filter((invoice) => invoice.status !== "paid")
+        .filter((invoice) => ["pending", "overdue"].includes(invoice.status ?? ""))
         .reduce((sum, invoice) => sum + Number(invoice.amount ?? 0), 0),
     [invoices],
   );
@@ -81,7 +88,7 @@ const Reports = () => {
       payments
         .filter(
           (payment) =>
-            payment.direction === "expense" || payment.direction === "saida",
+            payment.status === "completed" && (payment.direction === "expense" || payment.direction === "saida"),
         )
         .reduce((sum, payment) => sum + Number(payment.amount ?? 0), 0),
     [payments],
@@ -98,7 +105,7 @@ const Reports = () => {
   const overdueTasks = tasks.filter((task) => task.status === "overdue");
   const overdueObligations = fiscalObligations.filter(
     (obligation) =>
-      obligation.status !== "completed" &&
+          !["completed", "cancelled"].includes(obligation.status) &&
       new Date(`${obligation.due_date}T00:00:00`) < new Date(),
   );
   const processedDocuments = documents.filter(
@@ -145,6 +152,59 @@ const Reports = () => {
     ],
     [todayLabel],
   );
+  const calendarEvents = useMemo(() => {
+    const eventDay = (date: string) => Number(date.slice(8, 10));
+    const isInRange = (date: string | null | undefined) =>
+      withinDateRange(date, dateRange);
+
+    return [
+      ...allInvoices
+        .filter((invoice) => isInRange(invoice.due_date))
+        .map((invoice) => ({
+          day: eventDay(invoice.due_date as string),
+          title: `Fatura ${invoice.number ?? invoice.id.slice(0, 8)}`,
+          subtitle: clients.find((client) => client.id === invoice.company_id)?.name ?? "Sem cliente",
+          amount: formatCurrency(Number(invoice.amount ?? 0)),
+          status: invoice.status === "paid" ? "Recebida" : invoice.status === "overdue" ? "Vencida" : "A receber",
+        })),
+      ...allPayments
+        .filter((payment) => isInRange(payment.due_date ?? payment.paid_at ?? payment.created_at))
+        .map((payment) => {
+          const date = (payment.due_date ?? payment.paid_at ?? payment.created_at) as string;
+          return {
+            day: eventDay(date),
+            title: payment.description ?? "Pagamento",
+            subtitle: clients.find((client) => client.id === payment.company_id)?.name ?? "Sem cliente",
+            amount: formatCurrency(Number(payment.amount ?? 0)),
+            status: payment.status === "completed" ? "Concluido" : payment.status ?? "Pendente",
+          };
+        }),
+      ...allTasks
+        .filter((task) => isInRange(task.dueDate))
+        .map((task) => ({
+          day: eventDay(task.dueDate),
+          title: task.title,
+          subtitle: task.clientName ?? "Sem cliente",
+          status: task.status === "completed" ? "Concluida" : task.status === "overdue" ? "Atrasada" : "Tarefa",
+        })),
+      ...allDocuments
+        .filter((document) => isInRange(document.createdAt))
+        .map((document) => ({
+          day: eventDay(document.createdAt),
+          title: document.name,
+          subtitle: document.clientName ?? "Sem cliente",
+          status: document.status === "processed" ? "Processado" : "Documento",
+        })),
+      ...allFiscalObligations
+        .filter((obligation) => isInRange(obligation.due_date))
+        .map((obligation) => ({
+          day: eventDay(obligation.due_date),
+          title: obligation.name,
+          subtitle: clients.find((client) => client.id === obligation.company_id)?.name ?? "Sem cliente",
+          status: obligation.status === "completed" ? "Entregue" : "Obrigacao fiscal",
+        })),
+    ];
+  }, [allDocuments, allFiscalObligations, allInvoices, allPayments, allTasks, clients, dateRange]);
   const kpiData = [
     {
       label: "Receita Total",
@@ -235,7 +295,7 @@ const Reports = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between animate-fade-in">
+        <div className="flex flex-wrap gap-4 items-center justify-between animate-fade-in">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">
               Relatórios
@@ -274,18 +334,16 @@ const Reports = () => {
           </div>
         </div>
 
+        <div className="flex flex-wrap gap-3">
+          <label className="text-sm space-y-1">Início<Input type="date" value={dateRange.start} max={dateRange.end} onChange={(event) => event.target.value && setDateRange({ ...dateRange, start: event.target.value })} /></label>
+          <label className="text-sm space-y-1">Fim<Input type="date" value={dateRange.end} min={dateRange.start} onChange={(event) => event.target.value && setDateRange({ ...dateRange, end: event.target.value })} /></label>
+        </div>
         {view === "calendar" && (
           <CalendarEventView
-            title="Calendário de relatórios"
+            title="Calendário operacional"
             dateRange={dateRange}
             onDateRangeChange={setDateRange}
-            events={reports.map((report, index) => ({
-              day: index + 1,
-              title: report.name,
-              subtitle: `${report.period} • ${report.type}`,
-              time: "10:00",
-              status: `Gerado em ${report.generated}`,
-            }))}
+            events={calendarEvents}
           />
         )}
 
@@ -308,7 +366,7 @@ const Reports = () => {
                       <p
                         className={`text-xs ${kpi.positive ? "text-emerald-600" : "text-red-600"}`}
                       >
-                        {kpi.change} vs mês anterior
+                        {kpi.change}
                       </p>
                     </CardContent>
                   </Card>
@@ -338,8 +396,8 @@ const Reports = () => {
 
               <TabsContent value="overview" className="space-y-6 mt-6">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  <RevenueChart className="lg:col-span-2" />
-                  <QuickStats />
+                  <RevenueChart className="lg:col-span-2" dateRange={dateRange} />
+                  <QuickStats dateRange={dateRange} />
                 </div>
               </TabsContent>
 

@@ -23,7 +23,7 @@ const Lia = () => (
       <Card>
         <CardContent className="pt-6">
           <p className="text-sm text-muted-foreground">
-            Abra o painel de chat no lado direito para conversar com a Lia. Ela pode responder perguntas sobre seus
+            A janela da Lia aparece sobre a página, no canto direito, para você continuar navegando enquanto conversa. Ela pode responder perguntas sobre seus
             dados, gerar relatórios rápidos e acionar automações no n8n.
           </p>
         </CardContent>

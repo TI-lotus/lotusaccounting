@@ -6,22 +6,33 @@ import {
   Receipt,
   CheckSquare,
   ScrollText,
-  BarChart3,
   Filter,
+  ExternalLink,
+  Trash2,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useData } from "@/contexts/DataContext";
 import { cn } from "@/lib/utils";
-import { format, isSameDay, startOfDay, addDays } from "date-fns";
+import { format, isSameDay, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useNavigate } from "react-router-dom";
 
-type AgendaKind = "task" | "payment" | "document" | "obligation" | "report";
+type AgendaKind = "task" | "payment" | "document" | "obligation";
 
 interface AgendaItem {
   id: string;
+  sourceId: string;
   kind: AgendaKind;
   title: string;
   subtitle?: string;
@@ -59,12 +70,6 @@ const kindConfig: Record<
     color: "text-amber-600 dark:text-amber-400",
     badge: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300",
   },
-  report: {
-    label: "Relatório",
-    icon: BarChart3,
-    color: "text-slate-600 dark:text-slate-400",
-    badge: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
-  },
 };
 
 const filterOptions: { key: AgendaKind | "all"; label: string }[] = [
@@ -73,16 +78,17 @@ const filterOptions: { key: AgendaKind | "all"; label: string }[] = [
   { key: "payment", label: "Pagamentos" },
   { key: "document", label: "Documentos" },
   { key: "obligation", label: "Obrigações" },
-  { key: "report", label: "Relatórios" },
 ];
 
 const Agenda = () => {
-  const { tasks, documents, payments, invoices, clients, fiscalObligations } =
+  const navigate = useNavigate();
+  const { tasks, documents, payments, invoices, clients, fiscalObligations, updateTaskStatus, deleteTask } =
     useData();
   const [selectedDate, setSelectedDate] = useState<Date>(
     startOfDay(new Date()),
   );
   const [activeFilter, setActiveFilter] = useState<AgendaKind | "all">("all");
+  const [selectedItem, setSelectedItem] = useState<AgendaItem | null>(null);
 
   const items = useMemo<AgendaItem[]>(() => {
     const clientNameById = new Map(
@@ -92,6 +98,7 @@ const Agenda = () => {
       .filter((t) => !!t.dueDate)
       .map((t) => ({
         id: `task-${t.id}`,
+        sourceId: t.id,
         kind: "task",
         title: t.title,
         subtitle: t.clientName ?? "Sem cliente",
@@ -103,6 +110,7 @@ const Agenda = () => {
       .slice(0, 20)
       .map((d) => ({
         id: `doc-${d.id}`,
+        sourceId: d.id,
         kind: "document",
         title: d.name,
         subtitle: d.clientName ?? "Sem cliente",
@@ -113,6 +121,7 @@ const Agenda = () => {
       .filter((payment) => !!payment.due_date)
       .map((payment) => ({
         id: `payment-${payment.id}`,
+        sourceId: payment.id,
         kind: "payment",
         title: payment.description ?? "Pagamento",
         subtitle: payment.company_id
@@ -130,6 +139,7 @@ const Agenda = () => {
       .filter((invoice) => !!invoice.due_date)
       .map((invoice) => ({
         id: `invoice-${invoice.id}`,
+        sourceId: invoice.id,
         kind: "payment",
         title: `Fatura ${invoice.number ?? invoice.id.slice(0, 8)}`,
         subtitle: invoice.company_id
@@ -141,6 +151,7 @@ const Agenda = () => {
     const obligationItems: AgendaItem[] = fiscalObligations.map(
       (obligation) => ({
         id: `obligation-${obligation.id}`,
+        sourceId: obligation.id,
         kind: "obligation",
         title: obligation.name,
         subtitle: obligation.company_id
@@ -150,16 +161,6 @@ const Agenda = () => {
         meta: obligation.status === "completed" ? "Entregue" : "Fiscal",
       }),
     );
-    const reportItems: AgendaItem[] = [
-      {
-        id: "report-monthly-closing",
-        kind: "report",
-        title: "Fechamento mensal",
-        subtitle: `${documents.length} documentos no período`,
-        date: addDays(startOfDay(new Date()), 6),
-        meta: "Recorrente",
-      },
-    ];
 
     return [
       ...taskItems,
@@ -167,7 +168,6 @@ const Agenda = () => {
       ...paymentItems,
       ...invoiceItems,
       ...obligationItems,
-      ...reportItems,
     ];
   }, [clients, documents, fiscalObligations, invoices, payments, tasks]);
 
@@ -199,14 +199,20 @@ const Agenda = () => {
     .sort((a, b) => a.date.getTime() - b.date.getTime())
     .slice(0, 8);
 
+  const openModule = (item: AgendaItem) => {
+    if (item.kind === "task") navigate("/tasks");
+    if (item.kind === "document") navigate("/documents");
+    if (item.kind === "payment") navigate("/payments");
+    if (item.kind === "obligation") navigate("/agenda");
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
         <div className="animate-fade-in">
           <h1 className="text-2xl font-semibold tracking-tight">Agenda</h1>
           <p className="text-muted-foreground">
-            Visão unificada de tarefas, pagamentos, documentos, obrigações e
-            relatórios.
+            Visão unificada de tarefas, pagamentos, documentos e obrigações.
           </p>
         </div>
 
@@ -257,7 +263,10 @@ const Agenda = () => {
                     return (
                       <button
                         key={item.id}
-                        onClick={() => setSelectedDate(startOfDay(item.date))}
+                        onClick={() => {
+                          setSelectedDate(startOfDay(item.date));
+                          setSelectedItem(item);
+                        }}
                         className="w-full text-left flex items-start gap-2 p-2 rounded-lg hover:bg-accent/50 transition-colors"
                       >
                         <Icon
@@ -305,9 +314,10 @@ const Agenda = () => {
                     const cfg = kindConfig[item.kind];
                     const Icon = cfg.icon;
                     return (
-                      <div
+                      <button
                         key={item.id}
-                        className="flex items-start gap-3 p-3 rounded-xl border border-border hover:bg-accent/40 transition-colors"
+                        onClick={() => setSelectedItem(item)}
+                        className="flex w-full items-start gap-3 p-3 rounded-xl border border-border text-left hover:bg-accent/40 transition-colors"
                       >
                         <div className={cn("p-2 rounded-lg", cfg.badge)}>
                           <Icon className="h-4 w-4" />
@@ -330,7 +340,7 @@ const Agenda = () => {
                             </span>
                           )}
                         </div>
-                      </div>
+                      </button>
                     );
                   })}
                 </div>
@@ -338,6 +348,47 @@ const Agenda = () => {
             </CardContent>
           </Card>
         </div>
+
+        <Dialog open={Boolean(selectedItem)} onOpenChange={(open) => !open && setSelectedItem(null)}>
+          <DialogContent className="sm:max-w-[520px]">
+            {selectedItem && (() => {
+              const cfg = kindConfig[selectedItem.kind];
+              const Icon = cfg.icon;
+              return (
+                <>
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                      <span className={cn("rounded-lg p-2", cfg.badge)}><Icon className="h-4 w-4" /></span>
+                      {selectedItem.title}
+                    </DialogTitle>
+                    <DialogDescription>{cfg.label} · {format(selectedItem.date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-3 py-2 text-sm">
+                    <div><p className="text-xs text-muted-foreground">Cliente</p><p className="font-medium">{selectedItem.subtitle || "Sem cliente"}</p></div>
+                    <div><p className="text-xs text-muted-foreground">Detalhe</p><p className="font-medium">{selectedItem.meta || "—"}</p></div>
+                  </div>
+                  <DialogFooter className="flex-col gap-2 sm:flex-row sm:justify-between">
+                    {selectedItem.kind === "task" && (
+                      <Button variant="destructive" className="rounded-xl" onClick={() => { void deleteTask(selectedItem.sourceId); setSelectedItem(null); }}>
+                        <Trash2 className="mr-2 h-4 w-4" />Remover
+                      </Button>
+                    )}
+                    <div className="flex flex-wrap gap-2">
+                      <Button variant="outline" className="rounded-xl" onClick={() => openModule(selectedItem)}>
+                        <ExternalLink className="mr-2 h-4 w-4" />Abrir módulo
+                      </Button>
+                      {selectedItem.kind === "task" && (
+                        <Button className="rounded-xl" onClick={() => { void updateTaskStatus(selectedItem.sourceId, "completed"); setSelectedItem(null); }}>
+                          Concluir
+                        </Button>
+                      )}
+                    </div>
+                  </DialogFooter>
+                </>
+              );
+            })()}
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );

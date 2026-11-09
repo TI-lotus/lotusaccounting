@@ -1,4 +1,5 @@
 import { createServiceClient } from "./supabase.ts";
+import { decryptSecretPayload, encryptSecretPayload } from "./secret-crypto.ts";
 
 export const loadCredential = async (
   tenantId: string,
@@ -15,7 +16,8 @@ export const loadCredential = async (
     .maybeSingle();
 
   if (error) throw error;
-  return data;
+  if (!data) return null;
+  return { ...data, secret_payload: await decryptSecretPayload(data.secret_payload) };
 };
 
 export const upsertCredential = async (params: {
@@ -35,7 +37,7 @@ export const upsertCredential = async (params: {
         connection_id: params.connectionId,
         provider: params.provider,
         secret_type: params.secretType,
-        secret_payload: params.secretPayload,
+        secret_payload: await encryptSecretPayload(params.secretPayload),
         expires_at: params.expiresAt ?? null,
         rotated_at: new Date().toISOString(),
       },

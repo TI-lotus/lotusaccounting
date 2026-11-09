@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import {
   CheckCircle2,
@@ -8,17 +8,22 @@ import {
   Calendar,
   AlertCircle,
   AlertTriangle,
+  LockKeyhole,
   LayoutList,
   Columns3,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -34,6 +39,7 @@ import {
 } from "@/components/ui/select";
 import { useData } from "@/contexts/DataContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { TaskData, TaskStatus, TaskPriority, TaskType } from "@/types";
 import { filterTasks } from "@/lib/taskUtils";
 import { useViewMode } from "@/contexts/ViewModeContext";
@@ -50,7 +56,7 @@ const currentMonthRange = () => {
 };
 
 const Tasks = () => {
-  const { tasks, addTask, updateTaskStatus, clients } = useData();
+  const { tasks, addTask, updateTaskStatus, deleteTask, clients, tenantId } = useData();
   const { viewMode } = useViewMode();
   const { user, profile } = useAuth();
   const [statusFilter, setStatusFilter] = useState<TaskStatus | "all">("all");
@@ -62,6 +68,12 @@ const Tasks = () => {
     viewMode === "client" ? "grid" : "list",
   );
   const [dateRange, setDateRange] = useState(currentMonthRange);
+  const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
+  const [dragOverStatus, setDragOverStatus] = useState<TaskStatus | null>(null);
+  const [selectedTask, setSelectedTask] = useState<TaskData | null>(null);
+  const [blockTarget, setBlockTarget] = useState<TaskData | null>(null);
+  const [blockReason, setBlockReason] = useState("");
+  const [activeAssignees, setActiveAssignees] = useState<Array<{ user_id: string; full_name: string | null; avatar_url: string | null }>>([]);
   const [newTask, setNewTask] = useState({
     title: "",
     description: "",
@@ -74,14 +86,23 @@ const Tasks = () => {
   });
 
   const currentUserName = profile?.full_name || user?.email || "Você";
-  const assignees = Array.from(
-    new Map([
-      ...(user?.id ? [[user.id, currentUserName] as [string, string]] : []),
-      ...tasks
-        .filter((t) => t.assignedToId)
-        .map((t) => [t.assignedToId, t.assignedToName] as [string, string]),
-    ]).entries(),
-  );
+  const activeClients = useMemo(() => clients.filter((client) => client.status === "active"), [clients]);
+  useEffect(() => {
+    if (!tenantId || viewMode === "client") {
+      setActiveAssignees([]);
+      return;
+    }
+    void supabase
+      .from("profiles")
+      .select("user_id, full_name, avatar_url")
+      .eq("tenant_id", tenantId)
+      .eq("status", "active")
+      .order("full_name")
+      .then(({ data }) => setActiveAssignees(data ?? []));
+  }, [tenantId, viewMode]);
+  const assignees = activeAssignees.length
+    ? activeAssignees.map((member) => [member.user_id, member.full_name || "Sem nome"] as [string, string])
+    : user?.id ? [[user.id, currentUserName] as [string, string]] : [];
 
   const filteredTasks = filterTasks(tasks, {
     status: statusFilter,
@@ -98,14 +119,14 @@ const Tasks = () => {
     updateTaskStatus(taskId, newStatus);
   };
 
-  const handleCreateTask = () => {
+  const handleCreateTask = async () => {
     if (!newTask.title.trim()) return;
     const selectedClient = clients.find((c) => c.id === newTask.clientId);
     const assigneeName =
       assignees.find(([id]) => id === newTask.assignedToId)?.[1] ||
       "Sem responsável";
 
-    addTask({
+    const saved = await addTask({
       title: newTask.title,
       description: newTask.description,
       status: "pending",
@@ -118,6 +139,7 @@ const Tasks = () => {
       assignedToId: newTask.assignedToId,
       assignedToName: assigneeName,
     });
+    if (!saved) return;
 
     setNewTask({
       title: "",
@@ -140,6 +162,8 @@ const Tasks = () => {
         return <Clock className="h-5 w-5 text-amber-500" />;
       case "overdue":
         return <AlertTriangle className="h-5 w-5 text-red-500" />;
+      case "blocked":
+        return <LockKeyhole className="h-5 w-5 text-red-600" />;
       default:
         return <Circle className="h-5 w-5 text-muted-foreground" />;
     }
@@ -174,12 +198,49 @@ const Tasks = () => {
   ).length;
   const completedCount = tasks.filter((t) => t.status === "completed").length;
   const overdueCount = tasks.filter((t) => t.status === "overdue").length;
+  const blockedCount = tasks.filter((t) => t.status === "blocked").length;
+
+  const openBlockDialog = (task: TaskData) => {
+    setBlockTarget(task);
+    setBlockReason(task.blockedReason ?? "");
+  };
+
+  const handleBlockTask = async () => {
+    if (!blockTarget) return;
+    const ok = await updateTaskStatus(blockTarget.id, "blocked", blockReason);
+    if (!ok) return;
+    setSelectedTask(null);
+    setBlockTarget(null);
+    setBlockReason("");
+  };
+
+  const moveTaskToStatus = async (status: TaskStatus) => {
+    if (!draggedTaskId || viewMode === "client") return;
+    const task = tasks.find((item) => item.id === draggedTaskId);
+    setDragOverStatus(null);
+    setDraggedTaskId(null);
+    if (!task || task.status === status) return;
+    await updateTaskStatus(task.id, status);
+  };
 
   const KanbanCard = ({ task }: { task: TaskData }) => (
     <div
+      draggable={viewMode !== "client"}
+      onDragStart={(event) => {
+        if (viewMode === "client") return;
+        event.dataTransfer.effectAllowed = "move";
+        event.dataTransfer.setData("text/plain", task.id);
+        setDraggedTaskId(task.id);
+      }}
+      onDragEnd={() => {
+        setDraggedTaskId(null);
+        setDragOverStatus(null);
+      }}
+      onClick={() => setSelectedTask(task)}
       className={cn(
-        "glass rounded-xl p-3 space-y-2.5 cursor-pointer hover:shadow-md transition-all",
-        task.status === "overdue" && "border border-red-500/30 bg-red-500/5",
+        "glass rounded-xl p-3 space-y-2.5 cursor-grab active:cursor-grabbing",
+        draggedTaskId === task.id && "opacity-45",
+        (task.status === "overdue" || task.status === "blocked") && "border border-red-500/30 bg-red-500/5",
       )}
     >
       <div className="flex items-start justify-between gap-2">
@@ -198,6 +259,11 @@ const Tasks = () => {
           {task.description}
         </p>
       )}
+      {task.blockedReason && (
+        <p className="rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-xs text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
+          {task.blockedReason}
+        </p>
+      )}
       <div className="flex items-center gap-1.5 flex-wrap">
         {task.clientName && (
           <Badge variant="outline" className="text-[10px] py-0 px-1.5">
@@ -208,9 +274,10 @@ const Tasks = () => {
       </div>
       <div className="flex items-center justify-between pt-1.5 border-t border-border/50">
         <div className="flex items-center gap-1.5">
-          <div className="h-5 w-5 rounded-full bg-muted flex items-center justify-center text-[9px] font-medium text-muted-foreground">
-            {task.assignedToName?.charAt(0)}
-          </div>
+          <Avatar className="h-5 w-5">
+            <AvatarImage src={activeAssignees.find((member) => member.user_id === task.assignedToId)?.avatar_url ?? undefined} />
+            <AvatarFallback className="text-[9px] font-medium text-muted-foreground">{task.assignedToName?.charAt(0)}</AvatarFallback>
+          </Avatar>
           <span className="text-[11px] text-muted-foreground">
             {task.assignedToName}
           </span>
@@ -225,8 +292,9 @@ const Tasks = () => {
           variant="outline"
           size="sm"
           className="w-full text-xs h-7 rounded-lg"
-          onClick={() => {
-            if (task.status === "pending" || task.status === "overdue")
+          onClick={(event) => {
+            event.stopPropagation();
+            if (task.status === "pending" || task.status === "overdue" || task.status === "blocked")
               updateTaskStatus(task.id, "in_progress");
             else if (task.status === "in_progress")
               updateTaskStatus(task.id, "completed");
@@ -386,7 +454,7 @@ const Tasks = () => {
                             <SelectValue placeholder="Selecione" />
                           </SelectTrigger>
                           <SelectContent>
-                            {clients.map((c) => (
+                            {activeClients.map((c) => (
                               <SelectItem key={c.id} value={c.id}>
                                 {c.name}
                               </SelectItem>
@@ -426,7 +494,7 @@ const Tasks = () => {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-fade-in">
+        <div className="grid grid-cols-2 gap-4 animate-fade-in md:grid-cols-5">
           <div className="glass rounded-2xl p-4 flex items-center gap-4">
             <div className="p-3 rounded-xl bg-red-500/10">
               <AlertTriangle className="h-5 w-5 text-red-500" />
@@ -434,6 +502,15 @@ const Tasks = () => {
             <div>
               <p className="text-2xl font-semibold">{overdueCount}</p>
               <p className="text-sm text-muted-foreground">Atrasadas</p>
+            </div>
+          </div>
+          <div className="glass rounded-2xl p-4 flex items-center gap-4">
+            <div className="p-3 rounded-xl bg-red-500/10">
+              <LockKeyhole className="h-5 w-5 text-red-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-semibold">{blockedCount}</p>
+              <p className="text-sm text-muted-foreground">Bloqueadas</p>
             </div>
           </div>
           <div className="glass rounded-2xl p-4 flex items-center gap-4">
@@ -472,6 +549,7 @@ const Tasks = () => {
               [
                 ["all", "Todas"],
                 ["overdue", "Atrasadas"],
+                ["blocked", "Bloqueadas"],
                 ["pending", "Pendentes"],
                 ["in_progress", "Em Andamento"],
                 ["completed", "Concluídas"],
@@ -506,7 +584,7 @@ const Tasks = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos clientes</SelectItem>
-                  {clients.map((c) => (
+                  {activeClients.map((c) => (
                     <SelectItem key={c.id} value={c.id}>
                       {c.name}
                     </SelectItem>
@@ -554,17 +632,25 @@ const Tasks = () => {
                   ? "Concluída"
                   : task.status === "overdue"
                     ? "Atrasada"
+                    : task.status === "blocked"
+                      ? "Bloqueada"
                     : "Pendente",
             }))}
           />
         ) : viewType === "grid" ? (
-          <div className="grid grid-cols-1 gap-4 animate-fade-in md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 animate-fade-in md:grid-cols-2 xl:grid-cols-5">
             {(
               [
                 {
                   key: "overdue",
                   label: "Atraso",
                   color: "text-red-600",
+                  bg: "bg-red-500/10",
+                },
+                {
+                  key: "blocked",
+                  label: "Bloqueado",
+                  color: "text-red-700",
                   bg: "bg-red-500/10",
                 },
                 {
@@ -593,7 +679,21 @@ const Tasks = () => {
               return (
                 <div
                   key={col.key}
-                  className="rounded-2xl border border-border bg-card/50 p-3 space-y-3 min-h-[300px]"
+                  onDragOver={(event) => {
+                    if (viewMode === "client") return;
+                    event.preventDefault();
+                    event.dataTransfer.dropEffect = "move";
+                    setDragOverStatus(col.key);
+                  }}
+                  onDragLeave={() => setDragOverStatus((current) => current === col.key ? null : current)}
+                  onDrop={(event) => {
+                    event.preventDefault();
+                    void moveTaskToStatus(col.key);
+                  }}
+                  className={cn(
+                    "min-h-[300px] space-y-3 rounded-2xl border bg-card/50 p-3 transition-colors",
+                    dragOverStatus === col.key && "border-gilver bg-gilver/10",
+                  )}
                 >
                   <div
                     className={cn(
@@ -628,16 +728,18 @@ const Tasks = () => {
             {filteredTasks.map((task, index) => (
               <div
                 key={task.id}
+                onClick={() => setSelectedTask(task)}
                 className={cn(
-                  "glass rounded-2xl p-4 flex items-start gap-4 transition-all",
+                  "glass rounded-2xl p-4 flex items-start gap-4 transition-all cursor-pointer hover:bg-accent/35",
                   task.status === "completed" && "opacity-60",
-                  task.status === "overdue" && "border border-red-500/30",
+                  (task.status === "overdue" || task.status === "blocked") && "border border-red-500/30",
                 )}
                 style={{ animationDelay: `${index * 50}ms` }}
               >
                 <Checkbox
                   checked={task.status === "completed"}
                   onCheckedChange={() => toggleTaskStatus(task.id)}
+                  onClick={(event) => event.stopPropagation()}
                   className="mt-1"
                 />
                 <div className="flex-1 min-w-0">
@@ -660,6 +762,11 @@ const Tasks = () => {
                   <p className="text-sm text-muted-foreground mt-1">
                     {task.description}
                   </p>
+                  {task.blockedReason && (
+                    <p className="mt-2 rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-xs text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
+                      {task.blockedReason}
+                    </p>
+                  )}
                   <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground flex-wrap">
                     <span className="flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
@@ -672,12 +779,12 @@ const Tasks = () => {
                 </div>
                 <div className="flex flex-col items-center gap-1">
                   {getStatusIcon(task.status)}
-                  {task.status !== "completed" && task.status !== "overdue" && (
+                  {task.status !== "completed" && task.status !== "overdue" && task.status !== "blocked" && (
                     <Button
                       variant="ghost"
                       size="sm"
                       className="text-xs h-6 px-2"
-                      onClick={() => updateTaskStatus(task.id, "in_progress")}
+                      onClick={(event) => { event.stopPropagation(); void updateTaskStatus(task.id, "in_progress"); }}
                     >
                       Iniciar
                     </Button>
@@ -694,6 +801,89 @@ const Tasks = () => {
             )}
           </div>
         )}
+
+        <Dialog open={Boolean(selectedTask)} onOpenChange={(open) => !open && setSelectedTask(null)}>
+          <DialogContent className="sm:max-w-[560px]">
+            {selectedTask && (
+              <>
+                <DialogHeader>
+                  <DialogTitle>{selectedTask.title}</DialogTitle>
+                  <DialogDescription>{selectedTask.clientName ?? "Sem cliente"} · {selectedTask.category}</DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {getPriorityBadge(selectedTask.priority)}
+                    {getTypeBadge(selectedTask.type)}
+                    <Badge variant="outline" className="text-xs">
+                      {selectedTask.status === "completed" ? "Concluída" : selectedTask.status === "in_progress" ? "Em andamento" : selectedTask.status === "overdue" ? "Atrasada" : selectedTask.status === "blocked" ? "Bloqueada" : "Pendente"}
+                    </Badge>
+                  </div>
+                  {selectedTask.description && <p className="rounded-xl bg-muted/45 p-3 text-sm text-muted-foreground">{selectedTask.description}</p>}
+                  {selectedTask.blockedReason && (
+                    <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
+                      {selectedTask.blockedReason}
+                    </p>
+                  )}
+                  <div className="grid gap-3 text-sm sm:grid-cols-2">
+                    <div><p className="text-xs text-muted-foreground">Prazo</p><p className="font-medium">{new Date(selectedTask.dueDate).toLocaleDateString("pt-BR")}</p></div>
+                    <div><p className="text-xs text-muted-foreground">Responsável</p><p className="font-medium">{selectedTask.assignedToName || "Sem responsável"}</p></div>
+                    <div><p className="text-xs text-muted-foreground">Criada em</p><p className="font-medium">{new Date(selectedTask.createdAt).toLocaleDateString("pt-BR")}</p></div>
+                    <div><p className="text-xs text-muted-foreground">Concluída em</p><p className="font-medium">{selectedTask.completedAt ? new Date(selectedTask.completedAt).toLocaleDateString("pt-BR") : "—"}</p></div>
+                  </div>
+                </div>
+                <DialogFooter className="flex-col gap-2 sm:flex-row sm:justify-between">
+                  {viewMode !== "client" && (
+                    <Button variant="destructive" className="rounded-xl" onClick={() => { void deleteTask(selectedTask.id); setSelectedTask(null); }}>
+                      <Trash2 className="mr-2 h-4 w-4" />Remover
+                    </Button>
+                  )}
+                  <div className="flex flex-wrap gap-2">
+                    {selectedTask.status !== "pending" && (
+                      <Button variant="outline" className="rounded-xl" onClick={() => { void updateTaskStatus(selectedTask.id, "pending"); setSelectedTask(null); }}>Marcar pendente</Button>
+                    )}
+                    {selectedTask.status !== "in_progress" && selectedTask.status !== "completed" && (
+                      <Button variant="outline" className="rounded-xl" onClick={() => { void updateTaskStatus(selectedTask.id, "in_progress"); setSelectedTask(null); }}>Iniciar</Button>
+                    )}
+                    {selectedTask.status !== "blocked" && selectedTask.status !== "completed" && (
+                      <Button variant="outline" className="rounded-xl" onClick={() => openBlockDialog(selectedTask)}>Bloquear</Button>
+                    )}
+                    {selectedTask.status !== "completed" && (
+                      <Button className="rounded-xl" onClick={() => { void updateTaskStatus(selectedTask.id, "completed"); setSelectedTask(null); }}>Concluir</Button>
+                    )}
+                  </div>
+                </DialogFooter>
+              </>
+            )}
+          </DialogContent>
+        </Dialog>
+        <Dialog open={Boolean(blockTarget)} onOpenChange={(open) => {
+          if (!open) {
+            setBlockTarget(null);
+            setBlockReason("");
+          }
+        }}>
+          <DialogContent className="sm:max-w-[520px]">
+            <DialogHeader>
+              <DialogTitle>Bloquear tarefa</DialogTitle>
+              <DialogDescription>
+                {blockTarget?.title ?? "Informe o motivo do bloqueio operacional."}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-2 py-2">
+              <Label>Motivo do bloqueio</Label>
+              <Textarea
+                value={blockReason}
+                onChange={(event) => setBlockReason(event.target.value)}
+                placeholder="Ex.: aguardando documento do cliente, orientação do sócio ou dado externo"
+                className="min-h-28"
+              />
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setBlockTarget(null)}>Cancelar</Button>
+              <Button onClick={() => void handleBlockTask()}>Bloquear</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );

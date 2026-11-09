@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import { KPITrend } from "@/components/dashboard/KPICard";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -789,29 +790,44 @@ export default function Agents() {
 
           <TabsContent value="executions" className="mt-6 space-y-4">
             {/* Execution stats */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <Card className="px-4 py-3">
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="h-4 w-4 text-emerald-500" />
-                  <span className="text-sm text-muted-foreground">Sucesso</span>
+                <div className="flex items-end justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-foreground" />
+                      <span className="text-sm text-muted-foreground">Sucesso</span>
+                    </div>
+                    <div className="text-xl font-semibold text-foreground mt-1">{successCount}</div>
+                  </div>
+                  <KPITrend tone="positive" />
                 </div>
-                <div className="text-xl font-semibold mt-1">{successCount}</div>
               </Card>
               <Card className="px-4 py-3">
-                <div className="flex items-center gap-2">
-                  <XCircle className="h-4 w-4 text-red-500" />
-                  <span className="text-sm text-muted-foreground">Erros</span>
+                <div className="flex items-end justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <XCircle className="h-4 w-4 text-foreground" />
+                      <span className="text-sm text-muted-foreground">Erros</span>
+                    </div>
+                    <div className="text-xl font-semibold text-foreground mt-1">{errorCount}</div>
+                  </div>
+                  <KPITrend tone="negative" />
                 </div>
-                <div className="text-xl font-semibold mt-1">{errorCount}</div>
               </Card>
               <Card className="px-4 py-3">
-                <div className="flex items-center gap-2">
-                  <Play className="h-4 w-4 text-blue-500" />
-                  <span className="text-sm text-muted-foreground">
-                    Executando
-                  </span>
+                <div className="flex items-end justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <Play className="h-4 w-4 text-foreground" />
+                      <span className="text-sm text-muted-foreground">
+                        Executando
+                      </span>
+                    </div>
+                    <div className="text-xl font-semibold text-foreground mt-1">{runningCount}</div>
+                  </div>
+                  <KPITrend />
                 </div>
-                <div className="text-xl font-semibold mt-1">{runningCount}</div>
               </Card>
             </div>
 

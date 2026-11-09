@@ -16,12 +16,16 @@ import Reports from "./pages/Reports";
 import Integrations from "./pages/Integrations";
 import IntegrationSettings from "./pages/IntegrationSettings";
 import Messages from "./pages/Messages";
+import Notifications from "./pages/Notifications";
 import Settings from "./pages/Settings";
+import OperationalTemplates from "./pages/OperationalTemplates";
 import SearchCNPJ from "./pages/SearchCNPJ";
 import AffiliationProgram from "./pages/AffiliationProgram";
 import Upgrade from "./pages/Upgrade";
 import Agents from "./pages/Agents";
 import Tasks from "./pages/Tasks";
+import WorkQueue from "./pages/WorkQueue";
+import Periods from "./pages/Periods";
 import Staff from "./pages/Staff";
 import ClientDetail from "./pages/ClientDetail";
 import Agenda from "./pages/Agenda";
@@ -34,6 +38,11 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+const WorkspaceData = ({ children }: { children: React.ReactNode }) => {
+  const { user } = useAuth();
+  return <UserProfileProvider key={user?.id ?? "anonymous"}><DataProvider>{children}</DataProvider></UserProfileProvider>;
+};
+
 const ProtectedRoute = ({
   children,
   allowClient = true,
@@ -41,7 +50,7 @@ const ProtectedRoute = ({
   children: React.ReactNode;
   allowClient?: boolean;
 }) => {
-  const { session, loading, profile } = useAuth();
+  const { session, loading, mfaRequired, profile, profileError, signOut } = useAuth();
 
   if (loading) {
     return <div className="min-h-screen bg-background" />;
@@ -49,6 +58,20 @@ const ProtectedRoute = ({
 
   if (!session) {
     return <Navigate to="/auth" replace />;
+  }
+
+  if (mfaRequired) {
+    return <Navigate to="/auth?mfa=1" replace />;
+  }
+
+  if (!profile || profile.status !== "active" || !profile.tenant_id) {
+    return <main className="min-h-screen bg-background flex items-center justify-center p-6">
+      <div className="max-w-sm space-y-4 text-center">
+        <h1 className="text-xl font-semibold">Acesso indisponível</h1>
+        <p className="text-muted-foreground">{profileError || (profile?.status !== "active" && profile ? "Seu acesso está desativado. Contate o administrador do escritório." : "Seu perfil ainda não está vinculado a um escritório.")}</p>
+        <button className="rounded-md bg-secondary px-4 py-2 hover:brightness-110" onClick={() => void signOut()}>Voltar para o login</button>
+      </div>
+    </main>;
   }
 
   if (!allowClient && profile?.account_type === "client") {
@@ -69,8 +92,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <ViewModeProvider>
-        <UserProfileProvider>
-          <DataProvider>
+        <WorkspaceData>
             <TooltipProvider>
               <Toaster />
               <Sonner />
@@ -130,11 +152,28 @@ const App = () => (
                     element={protectedPage(<Messages />)}
                   />
                   <Route
+                    path="/notifications"
+                    element={protectedPage(<Notifications />)}
+                  />
+                  <Route
                     path="/settings"
                     element={protectedPage(<Settings />)}
                   />
+                  <Route
+                    path="/settings/templates"
+                    element={protectedPage(<OperationalTemplates />, {
+                      allowClient: false,
+                    })}
+                  />
                   <Route path="/upgrade" element={protectedPage(<Upgrade />)} />
                   <Route path="/tasks" element={protectedPage(<Tasks />)} />
+                  <Route
+                    path="/work-queue"
+                    element={protectedPage(<WorkQueue />, {
+                      allowClient: false,
+                    })}
+                  />
+                  <Route path="/periods" element={protectedPage(<Periods />)} />
                   <Route
                     path="/staff"
                     element={protectedPage(<Staff />, { allowClient: false })}
@@ -168,8 +207,7 @@ const App = () => (
                 </Routes>
               </BrowserRouter>
             </TooltipProvider>
-          </DataProvider>
-        </UserProfileProvider>
+        </WorkspaceData>
       </ViewModeProvider>
     </AuthProvider>
   </QueryClientProvider>

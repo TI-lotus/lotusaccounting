@@ -4,12 +4,25 @@ import {
   useState,
   useCallback,
   useEffect,
+  useRef,
   ReactNode,
 } from "react";
 import {
   ClientData,
+  ClientPeriodChecklistItemData,
+  ClientPeriodChecklistStatus,
+  ClientPeriodData,
+  ClientPeriodStepData,
+  ClientPeriodStepStatus,
+  ClientPeriodStatus,
+  OperationalCommentData,
+  OperationalCommentTargetType,
   TaskData,
+  TaskReviewData,
+  TaskReviewStatus,
   DocumentData,
+  DocumentRequestData,
+  DocumentRequestStatus,
   Notification,
   PipelineExecution,
   TaskStatus,
@@ -34,10 +47,6 @@ import { useAuth } from "@/contexts/AuthContext";
 // =============================================
 
 type Row = Record<string, unknown>;
-type ProfileTenant = Pick<
-  Database["public"]["Tables"]["profiles"]["Row"],
-  "account_type" | "company_id" | "tenant_id"
->;
 type PaymentRow = Database["public"]["Tables"]["payments"]["Row"];
 type InvoiceRow = Database["public"]["Tables"]["invoices"]["Row"];
 type FiscalObligationRow =
@@ -62,6 +71,26 @@ type FiscalObligationInsert = Omit<
   Database["public"]["Tables"]["fiscal_obligations"]["Insert"],
   "id" | "created_at" | "tenant_id" | "updated_at"
 >;
+type LooseError = { message: string; code?: string } | null;
+type LooseResult<T> = { data: T | null; error: LooseError };
+type LooseQuery<T = unknown> = PromiseLike<LooseResult<T>> & {
+  select: (columns?: string) => LooseQuery<T>;
+  eq: (column: string, value: unknown) => LooseQuery<T>;
+  order: (column: string, options?: { ascending?: boolean }) => LooseQuery<T>;
+  insert: (values: unknown) => LooseQuery<T>;
+  update: (values: Record<string, unknown>) => LooseQuery<T>;
+  delete: () => LooseQuery<T>;
+  maybeSingle: () => Promise<LooseResult<T>>;
+};
+const operationalDb = supabase as unknown as {
+  from: <T = unknown>(table: string) => LooseQuery<T>;
+};
+const rpcDb = supabase as unknown as {
+  rpc: <T = unknown>(
+    fn: string,
+    args?: Record<string, unknown>,
+  ) => Promise<LooseResult<T>>;
+};
 
 export type WorkspaceSettingsData = WorkspaceSettingsRow;
 export type IntegrationConnectionData = IntegrationConnectionRow;
@@ -72,6 +101,7 @@ const createDefaultWorkspaceSettings = (
 ): WorkspaceSettingsData => ({
   tenant_id: tid,
   office_name: officeName,
+  cnpj: null,
   fiscal_year_end: "Dezembro",
   currency: "BRL",
   theme_preference: "light",
@@ -86,12 +116,17 @@ const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const asUuid = (v: string | null | undefined): string | null =>
   v && UUID_RE.test(v) ? v : null;
+const normalizeCnpj = (value: string) => value.replace(/\D/g, "") || null;
+const hasValidCnpj = (value: string | null) => value === null || value.length === 14;
 
 const mapClient = (r: Row): ClientData => ({
   id: String(r.id),
   name: String(r.name ?? ""),
   cnpj: String(r.cnpj ?? ""),
   taxRegime: (r.tax_regime as ClientData["taxRegime"]) ?? "simples_nacional",
+  serviceAreas: Array.isArray(r.service_areas) && r.service_areas.length
+    ? (r.service_areas as ClientData["serviceAreas"])
+    : ["fiscal", "contabil"],
   responsibleUserId: String(r.responsible_user_id ?? ""),
   responsibleUserName: String(r.responsible_user_name ?? ""),
   serviceFee: Number(r.service_fee ?? 0),
@@ -101,6 +136,64 @@ const mapClient = (r: Row): ClientData => ({
   email: String(r.email ?? ""),
   phone: String(r.phone ?? ""),
   createdAt: String(r.created_at ?? new Date().toISOString()),
+});
+
+const mapClientPeriod = (r: Row): ClientPeriodData => ({
+  id: String(r.id),
+  tenantId: String(r.tenant_id ?? ""),
+  companyId: String(r.company_id ?? ""),
+  periodMonth: Number(r.period_month ?? new Date().getMonth() + 1),
+  periodYear: Number(r.period_year ?? new Date().getFullYear()),
+  status: (r.status as ClientPeriodStatus) ?? "not_started",
+  progressPercent: Number(r.progress_percent ?? 0),
+  startedAt: r.started_at ? String(r.started_at) : null,
+  deliveredAt: r.delivered_at ? String(r.delivered_at) : null,
+  closedAt: r.closed_at ? String(r.closed_at) : null,
+  blockedReason: r.blocked_reason ? String(r.blocked_reason) : null,
+  responsibleUserId: r.responsible_user_id ? String(r.responsible_user_id) : null,
+  createdBy: r.created_by ? String(r.created_by) : null,
+  createdAt: String(r.created_at ?? new Date().toISOString()),
+  updatedAt: String(r.updated_at ?? new Date().toISOString()),
+});
+
+const mapClientPeriodStep = (r: Row): ClientPeriodStepData => ({
+  id: String(r.id),
+  tenantId: String(r.tenant_id ?? ""),
+  clientPeriodId: String(r.client_period_id ?? ""),
+  companyId: String(r.company_id ?? ""),
+  stepKey: r.step_key as ClientPeriodStepData["stepKey"],
+  title: String(r.title ?? ""),
+  description: r.description ? String(r.description) : null,
+  status: (r.status as ClientPeriodStepStatus) ?? "pending",
+  dueDate: r.due_date ? String(r.due_date) : null,
+  completedAt: r.completed_at ? String(r.completed_at) : null,
+  blockedReason: r.blocked_reason ? String(r.blocked_reason) : null,
+  position: Number(r.position ?? 0),
+  createdAt: String(r.created_at ?? new Date().toISOString()),
+  updatedAt: String(r.updated_at ?? new Date().toISOString()),
+});
+
+const mapClientPeriodChecklistItem = (r: Row): ClientPeriodChecklistItemData => ({
+  id: String(r.id),
+  tenantId: String(r.tenant_id ?? ""),
+  companyId: String(r.company_id ?? ""),
+  clientPeriodId: String(r.client_period_id ?? ""),
+  checklistItemId: String(r.checklist_item_id ?? ""),
+  taskId: r.task_id ? String(r.task_id) : null,
+  assignedToId: r.assigned_to ? String(r.assigned_to) : null,
+  serviceArea: r.service_area as ClientPeriodChecklistItemData["serviceArea"],
+  title: String(r.title ?? ""),
+  description: r.description ? String(r.description) : null,
+  status: (r.status as ClientPeriodChecklistStatus) ?? "pending",
+  dueDate: r.due_date ? String(r.due_date) : null,
+  requiresReview: Boolean(r.requires_review),
+  requiresDocument: Boolean(r.requires_document),
+  evidenceDocumentId: r.document_id ? String(r.document_id) : null,
+  completedAt: r.completed_at ? String(r.completed_at) : null,
+  blockedReason: r.blocked_reason ? String(r.blocked_reason) : null,
+  sortOrder: Number(r.sort_order ?? 0),
+  createdAt: String(r.created_at ?? new Date().toISOString()),
+  updatedAt: String(r.updated_at ?? new Date().toISOString()),
 });
 
 const mapTask = (r: Row, clientsById: Map<string, ClientData>): TaskData => ({
@@ -118,8 +211,34 @@ const mapTask = (r: Row, clientsById: Map<string, ClientData>): TaskData => ({
     : null,
   assignedToId: String(r.assigned_to ?? ""),
   assignedToName: String(r.assigned_to_name ?? "Sem responsável"),
+  blockedReason: r.blocked_reason ? String(r.blocked_reason) : null,
   createdAt: String(r.created_at ?? new Date().toISOString()),
   completedAt: r.completed_at ? String(r.completed_at) : null,
+});
+
+const mapTaskReview = (r: Row): TaskReviewData => ({
+  id: String(r.id),
+  tenantId: String(r.tenant_id ?? ""),
+  taskId: String(r.task_id ?? ""),
+  reviewerId: r.reviewer_id ? String(r.reviewer_id) : null,
+  status: (r.status as TaskReviewStatus) ?? "pending_review",
+  requestedAt: String(r.requested_at ?? new Date().toISOString()),
+  reviewedAt: r.reviewed_at ? String(r.reviewed_at) : null,
+  comment: r.comment ? String(r.comment) : null,
+  createdAt: String(r.created_at ?? new Date().toISOString()),
+  updatedAt: String(r.updated_at ?? new Date().toISOString()),
+});
+
+const mapOperationalComment = (r: Row): OperationalCommentData => ({
+  id: String(r.id),
+  tenantId: String(r.tenant_id ?? ""),
+  companyId: r.company_id ? String(r.company_id) : null,
+  targetType: r.target_type as OperationalCommentTargetType,
+  targetId: String(r.target_id ?? ""),
+  authorId: r.author_id ? String(r.author_id) : null,
+  body: String(r.body ?? ""),
+  createdAt: String(r.created_at ?? new Date().toISOString()),
+  updatedAt: String(r.updated_at ?? new Date().toISOString()),
 });
 
 const mapDocument = (
@@ -156,6 +275,25 @@ const mapDocument = (
   mimeType: r.mime_type ? String(r.mime_type) : null,
 });
 
+const mapDocumentRequest = (r: Row): DocumentRequestData => ({
+  id: String(r.id),
+  tenantId: String(r.tenant_id ?? ""),
+  companyId: String(r.company_id ?? ""),
+  clientPeriodId: r.client_period_id ? String(r.client_period_id) : null,
+  requestedBy: r.requested_by ? String(r.requested_by) : null,
+  assignedTo: r.assigned_to ? String(r.assigned_to) : null,
+  title: String(r.title ?? ""),
+  description: r.description ? String(r.description) : null,
+  documentType: r.document_type ? String(r.document_type) : null,
+  dueDate: r.due_date ? String(r.due_date) : null,
+  status: (r.status as DocumentRequestStatus) ?? "requested",
+  documentId: r.document_id ? String(r.document_id) : null,
+  rejectionReason: r.rejection_reason ? String(r.rejection_reason) : null,
+  waivedReason: r.waived_reason ? String(r.waived_reason) : null,
+  createdAt: String(r.created_at ?? new Date().toISOString()),
+  updatedAt: String(r.updated_at ?? new Date().toISOString()),
+});
+
 // =============================================
 // Context
 // =============================================
@@ -165,22 +303,80 @@ interface DataContextType {
   tenantId: string | null;
 
   clients: ClientData[];
-  addClient: (client: Omit<ClientData, "id" | "createdAt">) => Promise<void>;
-  updateClient: (id: string, updates: Partial<ClientData>) => Promise<void>;
-  deleteClient: (id: string) => Promise<void>;
+  addClient: (client: Omit<ClientData, "id" | "createdAt">) => Promise<boolean>;
+  updateClient: (id: string, updates: Partial<ClientData>) => Promise<boolean>;
+  deleteClient: (id: string) => Promise<boolean>;
+  clientPeriods: ClientPeriodData[];
+  clientPeriodSteps: ClientPeriodStepData[];
+  clientPeriodChecklistItems: ClientPeriodChecklistItemData[];
+  createClientPeriod: (
+    companyId: string,
+    periodMonth: number,
+    periodYear: number,
+  ) => Promise<ClientPeriodData | null>;
+  generateClientPeriodsForMonth: (
+    periodMonth: number,
+    periodYear: number,
+  ) => Promise<number>;
+  updateClientPeriodStatus: (
+    id: string,
+    status: ClientPeriodStatus,
+    blockedReason?: string | null,
+  ) => Promise<boolean>;
+  updateClientPeriodStep: (
+    id: string,
+    status: ClientPeriodStepStatus,
+    blockedReason?: string | null,
+  ) => Promise<boolean>;
+  updateClientPeriodChecklistItem: (
+    id: string,
+    status: ClientPeriodChecklistStatus,
+    blockedReason?: string | null,
+  ) => Promise<boolean>;
+  linkClientPeriodChecklistEvidence: (
+    id: string,
+    documentId: string | null,
+  ) => Promise<boolean>;
+  updateClientPeriodChecklistPlanning: (
+    id: string,
+    updates: {
+      assignedToId?: string | null;
+      dueDate?: string | null;
+    },
+  ) => Promise<boolean>;
 
   tasks: TaskData[];
+  taskReviews: TaskReviewData[];
+  operationalComments: OperationalCommentData[];
   addTask: (
-    task: Omit<TaskData, "id" | "createdAt" | "completedAt">,
-  ) => Promise<void>;
-  updateTask: (id: string, updates: Partial<TaskData>) => Promise<void>;
-  updateTaskStatus: (id: string, status: TaskStatus) => Promise<void>;
-  deleteTask: (id: string) => Promise<void>;
+    task: Omit<TaskData, "id" | "createdAt" | "completedAt" | "blockedReason"> & {
+      blockedReason?: string | null;
+    },
+  ) => Promise<boolean>;
+  updateTask: (id: string, updates: Partial<TaskData>) => Promise<boolean>;
+  updateTaskStatus: (id: string, status: TaskStatus, blockedReason?: string | null) => Promise<boolean>;
+  deleteTask: (id: string) => Promise<boolean>;
+  requestTaskReview: (taskId: string) => Promise<TaskReviewData | null>;
+  approveTaskReview: (id: string, comment?: string | null) => Promise<boolean>;
+  rejectTaskReview: (id: string, comment: string) => Promise<boolean>;
+  createOperationalComment: (
+    targetType: OperationalCommentTargetType,
+    targetId: string,
+    body: string,
+  ) => Promise<OperationalCommentData | null>;
 
   documents: DocumentData[];
-  addDocument: (doc: DocumentData) => Promise<void>;
-  updateDocument: (id: string, updates: Partial<DocumentData>) => Promise<void>;
-  deleteDocument: (id: string) => Promise<void>;
+  documentRequests: DocumentRequestData[];
+  addDocument: (doc: DocumentData) => Promise<boolean>;
+  updateDocument: (id: string, updates: Partial<DocumentData>) => Promise<boolean>;
+  deleteDocument: (id: string) => Promise<boolean>;
+  createDocumentRequest: (
+    request: Omit<DocumentRequestData, "id" | "tenantId" | "requestedBy" | "status" | "documentId" | "rejectionReason" | "waivedReason" | "createdAt" | "updatedAt">,
+  ) => Promise<DocumentRequestData | null>;
+  updateDocumentRequest: (
+    id: string,
+    updates: Partial<Pick<DocumentRequestData, "status" | "documentId" | "rejectionReason" | "waivedReason">>,
+  ) => Promise<boolean>;
 
   payments: PaymentRow[];
   invoices: InvoiceRow[];
@@ -188,18 +384,19 @@ interface DataContextType {
   workspaceSettings: WorkspaceSettingsData | null;
   integrationConnections: IntegrationConnectionData[];
   addPayment: (payment: PaymentInsert) => Promise<PaymentRow | null>;
-  updatePayment: (id: string, updates: Partial<PaymentRow>) => Promise<void>;
-  deletePayment: (id: string) => Promise<void>;
+  updatePayment: (id: string, updates: Partial<PaymentRow>) => Promise<boolean>;
+  deletePayment: (id: string) => Promise<boolean>;
   addInvoice: (invoice: InvoiceInsert) => Promise<InvoiceRow | null>;
-  updateInvoice: (id: string, updates: Partial<InvoiceRow>) => Promise<void>;
-  deleteInvoice: (id: string) => Promise<void>;
+  updateInvoice: (id: string, updates: Partial<InvoiceRow>) => Promise<boolean>;
+  deleteInvoice: (id: string) => Promise<boolean>;
+  generateMonthlyServiceFeeInvoices: () => Promise<number>;
   addFiscalObligation: (
     obligation: FiscalObligationInsert,
   ) => Promise<FiscalObligationRow | null>;
   updateFiscalObligation: (
     id: string,
     updates: Partial<FiscalObligationRow>,
-  ) => Promise<void>;
+  ) => Promise<boolean>;
   generateMonthlyFiscalObligations: () => Promise<void>;
   updateWorkspaceSettings: (
     updates: WorkspaceSettingsUpdate,
@@ -209,7 +406,7 @@ interface DataContextType {
     updates: IntegrationConnectionUpdate,
   ) => Promise<IntegrationConnectionData | null>;
 
-  processFileUpload: (file: File) => Promise<void>;
+  processFileUpload: (file: File, documentRequestId?: string) => Promise<void>;
 
   notifications: Notification[];
   markNotificationRead: (id: string) => void;
@@ -222,7 +419,8 @@ interface DataContextType {
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export const DataProvider = ({ children }: { children: ReactNode }) => {
-  const { session, user } = useAuth();
+  const { session, user, profile, loading: authLoading } = useAuth();
+  const fetchRevision = useRef(0);
 
   const [tenantId, setTenantId] = useState<string | null>(null);
   const [profileCompanyId, setProfileCompanyId] = useState<string | null>(null);
@@ -230,8 +428,14 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   const [clients, setClients] = useState<ClientData[]>([]);
+  const [clientPeriods, setClientPeriods] = useState<ClientPeriodData[]>([]);
+  const [clientPeriodSteps, setClientPeriodSteps] = useState<ClientPeriodStepData[]>([]);
+  const [clientPeriodChecklistItems, setClientPeriodChecklistItems] = useState<ClientPeriodChecklistItemData[]>([]);
   const [tasks, setTasks] = useState<TaskData[]>([]);
+  const [taskReviews, setTaskReviews] = useState<TaskReviewData[]>([]);
+  const [operationalComments, setOperationalComments] = useState<OperationalCommentData[]>([]);
   const [documents, setDocuments] = useState<DocumentData[]>([]);
+  const [documentRequests, setDocumentRequests] = useState<DocumentRequestData[]>([]);
   const [payments, setPayments] = useState<PaymentRow[]>([]);
   const [invoices, setInvoices] = useState<InvoiceRow[]>([]);
   const [fiscalObligations, setFiscalObligations] = useState<
@@ -249,15 +453,24 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
 
   // -------- Fetch all --------
   const fetchAll = useCallback(async () => {
-    if (!user) {
+    const revision = ++fetchRevision.current;
+    if (!user || !profile?.tenant_id || profile.status !== "active") {
       setClients([]);
+      setClientPeriods([]);
+      setClientPeriodSteps([]);
+      setClientPeriodChecklistItems([]);
       setTasks([]);
+      setTaskReviews([]);
+      setOperationalComments([]);
       setDocuments([]);
+      setDocumentRequests([]);
       setPayments([]);
       setInvoices([]);
       setFiscalObligations([]);
       setWorkspaceSettings(null);
       setIntegrationConnections([]);
+      setNotifications([]);
+      setPipelineHistory([]);
       setTenantId(null);
       setProfileCompanyId(null);
       setAccountType(null);
@@ -266,74 +479,132 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     }
 
     setLoading(true);
-
-    // Resolve tenant from profile
-    const { data: prof } = await supabase
-      .from("profiles")
-      .select("tenant_id, company_id, account_type")
-      .eq("user_id", user.id)
-      .maybeSingle();
-
-    const profile = prof as ProfileTenant | null;
-    const tid = profile?.tenant_id ?? null;
+    try {
+    const tid = profile.tenant_id;
     setTenantId(tid);
     setProfileCompanyId(profile?.company_id ?? null);
     setAccountType(profile?.account_type ?? null);
 
-    if (!tid) {
-      setClients([]);
-      setTasks([]);
-      setDocuments([]);
-      setPayments([]);
-      setInvoices([]);
-      setFiscalObligations([]);
-      setWorkspaceSettings(null);
-      setIntegrationConnections([]);
-      setProfileCompanyId(null);
-      setAccountType(null);
-      setLoading(false);
-      return;
+    const companiesPromise = supabase
+      .from("companies")
+      .select("*")
+      .eq("tenant_id", tid)
+      .order("created_at", { ascending: false });
+
+    const secondaryDataPromise = Promise.all([
+      supabase.from("tasks").select("*").eq("tenant_id", tid).order("due_date", { ascending: true }),
+      supabase
+        .from("documents")
+        .select("*")
+        .eq("tenant_id", tid)
+        .order("created_at", { ascending: false }),
+      operationalDb
+        .from<Row[]>("document_requests")
+        .select("*")
+        .eq("tenant_id", tid)
+        .order("due_date", { ascending: true }),
+      supabase
+        .from("payments")
+        .select("*")
+        .eq("tenant_id", tid)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("invoices")
+        .select("*")
+        .eq("tenant_id", tid)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("fiscal_obligations")
+        .select("*")
+        .eq("tenant_id", tid)
+        .order("due_date", { ascending: true }),
+      supabase.from("workspace_settings").select("*").eq("tenant_id", tid).maybeSingle(),
+      listIntegrationConnections().catch((error) => {
+        console.error("Failed to load integration connections", error);
+        return [];
+      }),
+      operationalDb
+        .from<Row[]>("client_periods")
+        .select("*")
+        .eq("tenant_id", tid)
+        .order("period_year", { ascending: false })
+        .order("period_month", { ascending: false }),
+      operationalDb
+        .from<Row[]>("client_period_steps")
+        .select("*")
+        .eq("tenant_id", tid)
+        .order("position", { ascending: true }),
+      operationalDb
+        .from<Row[]>("client_period_checklist_items")
+        .select("*")
+        .eq("tenant_id", tid)
+        .order("sort_order", { ascending: true }),
+      operationalDb
+        .from<Row[]>("task_reviews")
+        .select("*")
+        .eq("tenant_id", tid)
+        .order("requested_at", { ascending: false }),
+      operationalDb
+        .from<Row[]>("operational_comments")
+        .select("*")
+        .eq("tenant_id", tid)
+        .order("created_at", { ascending: false }),
+    ]);
+
+    const companiesRes = await companiesPromise;
+    if (revision !== fetchRevision.current) return;
+    if (companiesRes.error) {
+      console.error("Could not load workspace clients", companiesRes.error);
+      toast.error("Não foi possível carregar os clientes. Tente atualizar a lista.");
     }
+    const clientList = (companiesRes.data ?? []).map(mapClient);
+    const clientsById = new Map(clientList.map((c) => [c.id, c]));
+    setClients(clientList);
+    // A tela de Clientes não deve ficar bloqueada por consultas secundárias
+    // (tarefas, documentos, integrações etc.) que carregam em paralelo.
+    setLoading(false);
 
     const [
-      companiesRes,
       tasksRes,
       docsRes,
+      documentRequestsRes,
       paymentsRes,
       invoicesRes,
       fiscalObligationsRes,
       workspaceSettingsRes,
       integrationConnectionsRes,
-    ] = await Promise.all([
-      supabase
-        .from("companies")
-        .select("*")
-        .order("created_at", { ascending: false }),
-      supabase.from("tasks").select("*").order("due_date", { ascending: true }),
-      supabase
-        .from("documents")
-        .select("*")
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("payments")
-        .select("*")
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("invoices")
-        .select("*")
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("fiscal_obligations")
-        .select("*")
-        .order("due_date", { ascending: true }),
-      supabase.from("workspace_settings").select("*").maybeSingle(),
-      listIntegrationConnections(),
-    ]);
+      clientPeriodsRes,
+      clientPeriodStepsRes,
+      clientPeriodChecklistItemsRes,
+      taskReviewsRes,
+      operationalCommentsRes,
+    ] = await secondaryDataPromise;
+    if (revision !== fetchRevision.current) return;
+    const failures = [
+      companiesRes,
+      tasksRes,
+      docsRes,
+      documentRequestsRes,
+      paymentsRes,
+      invoicesRes,
+      fiscalObligationsRes,
+      workspaceSettingsRes,
+      clientPeriodsRes,
+      clientPeriodStepsRes,
+      clientPeriodChecklistItemsRes,
+      taskReviewsRes,
+      operationalCommentsRes,
+    ].filter((result) => result.error);
+    if (failures.length) {
+      console.error("Some workspace data could not be loaded", failures);
+      toast.error("Alguns dados do workspace não puderam ser carregados. Tente atualizar a página.");
+    }
 
-    const clientList = (companiesRes.data ?? []).map(mapClient);
-    const clientsById = new Map(clientList.map((c) => [c.id, c]));
-
-    setClients(clientList);
+    setClientPeriods((clientPeriodsRes.data ?? []).map(mapClientPeriod));
+    setClientPeriodSteps((clientPeriodStepsRes.data ?? []).map(mapClientPeriodStep));
+    setClientPeriodChecklistItems((clientPeriodChecklistItemsRes.data ?? []).map(mapClientPeriodChecklistItem));
+    setTaskReviews((taskReviewsRes.data ?? []).map(mapTaskReview));
+    setOperationalComments((operationalCommentsRes.data ?? []).map(mapOperationalComment));
     setTasks(
       sortTasks(
         computeTaskStatuses(
@@ -342,6 +613,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       ),
     );
     setDocuments((docsRes.data ?? []).map((r) => mapDocument(r, clientsById)));
+    setDocumentRequests((documentRequestsRes.data ?? []).map(mapDocumentRequest));
     setPayments((paymentsRes.data ?? []) as PaymentRow[]);
     setInvoices((invoicesRes.data ?? []) as InvoiceRow[]);
     setFiscalObligations(
@@ -380,20 +652,41 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       ...integrationAlerts,
       ...prev.filter((item) => item.type !== "integration_alert"),
     ]);
-    setLoading(false);
-  }, [user]);
+    } catch (error) {
+      if (revision === fetchRevision.current) toast.error("Erro ao carregar dados: " + (error instanceof Error ? error.message : "Tente novamente."));
+    } finally {
+      if (revision === fetchRevision.current) setLoading(false);
+    }
+  }, [user, profile]);
 
   useEffect(() => {
+    const revisionCounter = fetchRevision;
+    setClients([]); setTasks([]); setTaskReviews([]); setOperationalComments([]); setDocuments([]); setDocumentRequests([]); setPayments([]); setInvoices([]);
+    setClientPeriods([]); setClientPeriodSteps([]); setClientPeriodChecklistItems([]); setFiscalObligations([]); setWorkspaceSettings(null); setIntegrationConnections([]);
+    setNotifications([]); setPipelineHistory([]); setTenantId(null);
+    return () => { ++revisionCounter.current; };
+  }, [user?.id, profile?.tenant_id]);
+
+  useEffect(() => {
+    if (authLoading) return;
     if (session === null && !user) {
       // not logged in
       setClients([]);
+      setClientPeriods([]);
+      setClientPeriodSteps([]);
+      setClientPeriodChecklistItems([]);
       setTasks([]);
+      setTaskReviews([]);
+      setOperationalComments([]);
       setDocuments([]);
+      setDocumentRequests([]);
       setPayments([]);
       setInvoices([]);
       setFiscalObligations([]);
       setWorkspaceSettings(null);
       setIntegrationConnections([]);
+      setNotifications([]);
+      setPipelineHistory([]);
       setTenantId(null);
       setProfileCompanyId(null);
       setAccountType(null);
@@ -401,24 +694,89 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
     void fetchAll();
-  }, [session, user, fetchAll]);
+  }, [session, user, fetchAll, authLoading]);
+
+  useEffect(() => {
+    if (!user || !profile?.tenant_id || profile.status !== "active") return;
+
+    const channel = supabase
+      .channel(`workspace-data-${profile.tenant_id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "companies", filter: `tenant_id=eq.${profile.tenant_id}` },
+        () => void fetchAll(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "workspace_settings", filter: `tenant_id=eq.${profile.tenant_id}` },
+        () => void fetchAll(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "client_periods", filter: `tenant_id=eq.${profile.tenant_id}` },
+        () => void fetchAll(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "client_period_steps", filter: `tenant_id=eq.${profile.tenant_id}` },
+        () => void fetchAll(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "client_period_checklist_items", filter: `tenant_id=eq.${profile.tenant_id}` },
+        () => void fetchAll(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "tasks", filter: `tenant_id=eq.${profile.tenant_id}` },
+        () => void fetchAll(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "document_requests", filter: `tenant_id=eq.${profile.tenant_id}` },
+        () => void fetchAll(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "operational_comments", filter: `tenant_id=eq.${profile.tenant_id}` },
+        () => void fetchAll(),
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [fetchAll, profile?.status, profile?.tenant_id, user]);
 
   // -------- Clients --------
   const addClient = useCallback(
     async (client: Omit<ClientData, "id" | "createdAt">) => {
       if (!tenantId) {
         toast.error("Tenant não encontrado");
-        return;
+        return false;
+      }
+      const cnpj = normalizeCnpj(client.cnpj);
+      if (!hasValidCnpj(cnpj)) {
+        toast.error("O CNPJ deve conter 14 dígitos");
+        return false;
+      }
+      const existingClient = cnpj
+        ? clients.find((item) => normalizeCnpj(item.cnpj) === cnpj)
+        : undefined;
+      if (existingClient) {
+        toast.error(`O CNPJ já está cadastrado para ${existingClient.name}`);
+        return false;
       }
       const { data, error } = await supabase
         .from("companies")
         .insert({
           tenant_id: tenantId,
           name: client.name,
-          cnpj: client.cnpj || null,
+          cnpj,
           email: client.email || null,
           phone: client.phone || null,
           tax_regime: client.taxRegime,
+          service_areas: client.serviceAreas?.length ? client.serviceAreas : ["fiscal", "contabil"],
           service_fee: client.serviceFee || 0,
           city: client.city || null,
           state: client.state || null,
@@ -429,22 +787,41 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         .select("*")
         .maybeSingle();
       if (error) {
-        toast.error("Erro ao adicionar cliente: " + error.message);
-        return;
+        if (error.code === "23505" && error.message.includes("companies_tenant_normalized_cnpj_unique")) {
+          toast.error("Este CNPJ já está cadastrado neste escritório");
+        } else {
+          toast.error("Erro ao adicionar cliente: " + error.message);
+        }
+        return false;
       }
       if (data) setClients((prev) => [mapClient(data), ...prev]);
+      if (data) await fetchAll();
+      return Boolean(data);
     },
-    [tenantId],
+    [clients, fetchAll, tenantId],
   );
 
   const updateClient = useCallback(
     async (id: string, updates: Partial<ClientData>) => {
-      const patch: Row = {};
+      if (!tenantId) {
+        toast.error("Tenant não encontrado");
+        return false;
+      }
+      const patch: Database["public"]["Tables"]["companies"]["Update"] = {};
       if (updates.name !== undefined) patch.name = updates.name;
-      if (updates.cnpj !== undefined) patch.cnpj = updates.cnpj;
+      if (updates.cnpj !== undefined) {
+        const cnpj = normalizeCnpj(updates.cnpj);
+        if (!hasValidCnpj(cnpj)) {
+          toast.error("O CNPJ deve conter 14 dígitos");
+          return false;
+        }
+        patch.cnpj = cnpj;
+      }
       if (updates.email !== undefined) patch.email = updates.email;
       if (updates.phone !== undefined) patch.phone = updates.phone;
       if (updates.taxRegime !== undefined) patch.tax_regime = updates.taxRegime;
+      if (updates.serviceAreas !== undefined)
+        patch.service_areas = updates.serviceAreas.length ? updates.serviceAreas : ["fiscal", "contabil"];
       if (updates.serviceFee !== undefined)
         patch.service_fee = updates.serviceFee;
       if (updates.city !== undefined) patch.city = updates.city;
@@ -455,32 +832,310 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       if (updates.responsibleUserName !== undefined)
         patch.responsible_user_name = updates.responsibleUserName;
 
-      setClients((prev) =>
-        prev.map((c) => (c.id === id ? { ...c, ...updates } : c)),
-      );
       if (Object.keys(patch).length) {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from("companies")
           .update(patch)
-          .eq("id", id);
-        if (error) toast.error("Erro ao atualizar cliente: " + error.message);
+          .eq("id", id).eq("tenant_id", tenantId).select("*").maybeSingle();
+        if (error || !data) { toast.error("Erro ao atualizar cliente: " + (error?.message ?? "Acesso negado ou registro não encontrado")); return false; }
+        setClients((prev) => prev.map((c) => c.id === id ? mapClient(data) : c));
       }
+      return true;
     },
-    [],
+    [tenantId],
   );
 
   const deleteClient = useCallback(async (id: string) => {
-    setClients((prev) => prev.filter((c) => c.id !== id));
-    const { error } = await supabase.from("companies").delete().eq("id", id);
-    if (error) toast.error("Erro ao remover cliente: " + error.message);
-  }, []);
+    if (!tenantId) {
+      toast.error("Tenant não encontrado");
+      return false;
+    }
+    const { data, error } = await supabase
+      .from("companies")
+      .update({ status: "inactive" })
+      .eq("id", id)
+      .eq("tenant_id", tenantId)
+      .select("*")
+      .maybeSingle();
+    if (error || !data) { toast.error("Erro ao arquivar cliente: " + (error?.message ?? "Acesso negado ou registro não encontrado")); return false; }
+    setClients((prev) => prev.map((client) => client.id === id ? mapClient(data) : client));
+    return true;
+  }, [tenantId]);
+
+  // -------- Client periods --------
+  const createClientPeriod = useCallback(
+    async (companyId: string, periodMonth: number, periodYear: number) => {
+      if (!tenantId) {
+        toast.error("Tenant não encontrado");
+        return null;
+      }
+      if (accountType === "client") {
+        toast.error("Seu perfil não pode iniciar competências");
+        return null;
+      }
+      const client = clients.find((item) => item.id === companyId);
+      if (!client || client.status !== "active") {
+        toast.error("Selecione um cliente ativo para iniciar a competência");
+        return null;
+      }
+      const existing = clientPeriods.find((period) =>
+        period.companyId === companyId
+        && period.periodMonth === periodMonth
+        && period.periodYear === periodYear
+      );
+      if (existing) return existing;
+
+      const payload = {
+        tenant_id: tenantId,
+        company_id: companyId,
+        period_month: periodMonth,
+        period_year: periodYear,
+        status: "waiting_documents",
+        responsible_user_id: asUuid(client.responsibleUserId),
+        created_by: user?.id ?? null,
+      };
+      const { data, error } = await operationalDb
+        .from<Row>("client_periods")
+        .insert(payload)
+        .select("*")
+        .maybeSingle();
+      if (error) {
+        if (error.code === "23505") {
+          const { data: current, error: currentError } = await operationalDb
+            .from<Row>("client_periods")
+            .select("*")
+            .eq("tenant_id", tenantId)
+            .eq("company_id", companyId)
+            .eq("period_month", periodMonth)
+            .eq("period_year", periodYear)
+            .maybeSingle();
+          if (currentError || !current) {
+            toast.error("Competência já existe, mas não foi possível carregá-la.");
+            return null;
+          }
+          const mapped = mapClientPeriod(current);
+          setClientPeriods((prev) => [...prev.filter((period) => period.id !== mapped.id), mapped]);
+          void fetchAll();
+          return mapped;
+        }
+        toast.error("Erro ao iniciar competência: " + error.message);
+        return null;
+      }
+      if (!data) return null;
+      const mapped = mapClientPeriod(data);
+      setClientPeriods((prev) => [mapped, ...prev]);
+      void fetchAll();
+      return mapped;
+    },
+    [accountType, clientPeriods, clients, fetchAll, tenantId, user?.id],
+  );
+
+  const generateClientPeriodsForMonth = useCallback(
+    async (periodMonth: number, periodYear: number) => {
+      if (!tenantId) {
+        toast.error("Tenant não encontrado");
+        return 0;
+      }
+      if (accountType === "client") {
+        toast.error("Seu perfil não pode gerar competências");
+        return 0;
+      }
+      const existingKeys = new Set(
+        clientPeriods.map((period) => `${period.companyId}-${period.periodMonth}-${period.periodYear}`),
+      );
+      const inserts = clients
+        .filter((client) => client.status === "active")
+        .filter((client) => !existingKeys.has(`${client.id}-${periodMonth}-${periodYear}`))
+        .map((client) => ({
+          tenant_id: tenantId,
+          company_id: client.id,
+          period_month: periodMonth,
+          period_year: periodYear,
+          status: "waiting_documents",
+          responsible_user_id: asUuid(client.responsibleUserId),
+          created_by: user?.id ?? null,
+        }));
+
+      if (inserts.length === 0) {
+        toast.info("As competências deste período já estão criadas");
+        return 0;
+      }
+      const { data, error } = await operationalDb
+        .from<Row[]>("client_periods")
+        .insert(inserts)
+        .select("*");
+      if (error) {
+        toast.error("Erro ao gerar competências: " + error.message);
+        return 0;
+      }
+      const mapped = (data ?? []).map(mapClientPeriod);
+      setClientPeriods((prev) => [...mapped, ...prev]);
+      void fetchAll();
+      return mapped.length;
+    },
+    [accountType, clientPeriods, clients, fetchAll, tenantId, user?.id],
+  );
+
+  const updateClientPeriodStatus = useCallback(
+    async (id: string, status: ClientPeriodStatus, blockedReason?: string | null) => {
+      if (!tenantId) return false;
+      if (accountType === "client") {
+        toast.error("Seu perfil não pode alterar competências");
+        return false;
+      }
+      const patch: Record<string, unknown> = {
+        status,
+        blocked_reason: status === "blocked" ? blockedReason?.trim() || "Bloqueada por pendência crítica" : null,
+      };
+      const { data, error } = await operationalDb
+        .from<Row>("client_periods")
+        .update(patch)
+        .eq("id", id)
+        .eq("tenant_id", tenantId)
+        .select("*")
+        .maybeSingle();
+      if (error || !data) {
+        toast.error("Erro ao atualizar competência: " + (error?.message ?? "Acesso negado ou registro não encontrado"));
+        return false;
+      }
+      const mapped = mapClientPeriod(data);
+      setClientPeriods((prev) => prev.map((period) => period.id === id ? mapped : period));
+      return true;
+    },
+    [accountType, tenantId],
+  );
+
+  const updateClientPeriodStep = useCallback(
+    async (id: string, status: ClientPeriodStepStatus, blockedReason?: string | null) => {
+      if (!tenantId) return false;
+      if (accountType === "client") {
+        toast.error("Seu perfil não pode alterar etapas da competência");
+        return false;
+      }
+      const patch: Record<string, unknown> = {
+        status,
+        blocked_reason: status === "blocked" ? blockedReason?.trim() || "Etapa bloqueada por pendência operacional" : null,
+      };
+      const { data, error } = await operationalDb
+        .from<Row>("client_period_steps")
+        .update(patch)
+        .eq("id", id)
+        .eq("tenant_id", tenantId)
+        .select("*")
+        .maybeSingle();
+      if (error || !data) {
+        toast.error("Erro ao atualizar etapa: " + (error?.message ?? "Acesso negado ou registro não encontrado"));
+        return false;
+      }
+      const mapped = mapClientPeriodStep(data);
+      setClientPeriodSteps((prev) => prev.map((step) => step.id === id ? mapped : step));
+      void fetchAll();
+      return true;
+    },
+    [accountType, fetchAll, tenantId],
+  );
+
+  const updateClientPeriodChecklistItem = useCallback(
+    async (id: string, status: ClientPeriodChecklistStatus, blockedReason?: string | null) => {
+      if (!tenantId) return false;
+      if (accountType === "client") {
+        toast.error("Seu perfil não pode alterar itens do checklist");
+        return false;
+      }
+      const patch: Record<string, unknown> = {
+        status,
+        blocked_reason: status === "blocked" ? blockedReason?.trim() || "Item bloqueado por pendência operacional" : null,
+      };
+      const { data, error } = await operationalDb
+        .from<Row>("client_period_checklist_items")
+        .update(patch)
+        .eq("id", id)
+        .eq("tenant_id", tenantId)
+        .select("*")
+        .maybeSingle();
+      if (error || !data) {
+        toast.error("Erro ao atualizar checklist: " + (error?.message ?? "Acesso negado ou registro não encontrado"));
+        return false;
+      }
+      const mapped = mapClientPeriodChecklistItem(data);
+      setClientPeriodChecklistItems((prev) => prev.map((item) => item.id === id ? mapped : item));
+      void fetchAll();
+      return true;
+    },
+    [accountType, fetchAll, tenantId],
+  );
+
+  const linkClientPeriodChecklistEvidence = useCallback(
+    async (id: string, documentId: string | null) => {
+      if (!tenantId) return false;
+      if (accountType === "client") {
+        toast.error("Seu perfil não pode vincular evidências ao checklist");
+        return false;
+      }
+      const { data, error } = await operationalDb
+        .from<Row>("client_period_checklist_items")
+        .update({ document_id: documentId })
+        .eq("id", id)
+        .eq("tenant_id", tenantId)
+        .select("*")
+        .maybeSingle();
+      if (error || !data) {
+        toast.error("Erro ao vincular evidência: " + (error?.message ?? "Acesso negado ou registro não encontrado"));
+        return false;
+      }
+      const mapped = mapClientPeriodChecklistItem(data);
+      setClientPeriodChecklistItems((prev) => prev.map((item) => item.id === id ? mapped : item));
+      void fetchAll();
+      return true;
+    },
+    [accountType, fetchAll, tenantId],
+  );
+
+  const updateClientPeriodChecklistPlanning = useCallback(
+    async (
+      id: string,
+      updates: {
+        assignedToId?: string | null;
+        dueDate?: string | null;
+      },
+    ) => {
+      if (!tenantId) return false;
+      if (accountType === "client") {
+        toast.error("Seu perfil não pode alterar o planejamento do checklist");
+        return false;
+      }
+      const patch: Record<string, unknown> = {};
+      if (updates.assignedToId !== undefined) patch.assigned_to = updates.assignedToId;
+      if (updates.dueDate !== undefined) patch.due_date = updates.dueDate;
+      if (!Object.keys(patch).length) return true;
+
+      const { data, error } = await operationalDb
+        .from<Row>("client_period_checklist_items")
+        .update(patch)
+        .eq("id", id)
+        .eq("tenant_id", tenantId)
+        .select("*")
+        .maybeSingle();
+      if (error || !data) {
+        toast.error("Erro ao atualizar planejamento do checklist: " + (error?.message ?? "Acesso negado ou registro não encontrado"));
+        return false;
+      }
+      const mapped = mapClientPeriodChecklistItem(data);
+      setClientPeriodChecklistItems((prev) => prev.map((item) => item.id === id ? mapped : item));
+      void fetchAll();
+      return true;
+    },
+    [accountType, fetchAll, tenantId],
+  );
 
   // -------- Tasks --------
   const addTask = useCallback(
-    async (task: Omit<TaskData, "id" | "createdAt" | "completedAt">) => {
+    async (task: Omit<TaskData, "id" | "createdAt" | "completedAt" | "blockedReason"> & {
+      blockedReason?: string | null;
+    }) => {
       if (!tenantId) {
         toast.error("Tenant não encontrado");
-        return;
+        return false;
       }
       const { data, error } = await supabase
         .from("tasks")
@@ -490,6 +1145,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
           description: task.description || null,
           task_type: task.type,
           status: task.status,
+          blocked_reason: task.status === "blocked" ? task.blockedReason?.trim() || "Bloqueada por pendência operacional" : null,
           priority: task.priority,
           due_date: task.dueDate ? new Date(task.dueDate).toISOString() : null,
           category: task.category || null,
@@ -502,7 +1158,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         .maybeSingle();
       if (error) {
         toast.error("Erro ao criar tarefa: " + error.message);
-        return;
+        return false;
       }
       if (data) {
         const clientsById = new Map(clients.map((c) => [c.id, c]));
@@ -510,18 +1166,33 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         mapped.assignedToName = task.assignedToName;
         setTasks((prev) => sortTasks(computeTaskStatuses([mapped, ...prev])));
       }
+      return Boolean(data);
     },
     [tenantId, user, clients],
   );
 
   const updateTask = useCallback(
     async (id: string, updates: Partial<TaskData>) => {
-      const patch: Row = {};
+      if (!tenantId) {
+        toast.error("Tenant não encontrado");
+        return false;
+      }
+      const currentTask = tasks.find((task) => task.id === id);
+      const changesAssignee =
+        updates.assignedToId !== undefined ||
+        updates.assignedToName !== undefined;
+      if (changesAssignee && currentTask?.status === "completed") {
+        toast.error("Tarefas concluídas não podem receber nova atribuição. Reabra a tarefa antes de alterar o responsável.");
+        return false;
+      }
+      const patch: Database["public"]["Tables"]["tasks"]["Update"] = {};
       if (updates.title !== undefined) patch.title = updates.title;
       if (updates.description !== undefined)
         patch.description = updates.description;
       if (updates.type !== undefined) patch.task_type = updates.type;
       if (updates.status !== undefined) patch.status = updates.status;
+      if (updates.blockedReason !== undefined)
+        patch.blocked_reason = updates.blockedReason?.trim() || null;
       if (updates.priority !== undefined) patch.priority = updates.priority;
       if (updates.dueDate !== undefined)
         patch.due_date = new Date(updates.dueDate).toISOString();
@@ -535,48 +1206,208 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       if (updates.completedAt !== undefined)
         patch.completed_at = updates.completedAt;
 
-      setTasks((prev) =>
-        sortTasks(prev.map((t) => (t.id === id ? { ...t, ...updates } : t))),
-      );
       if (Object.keys(patch).length) {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from("tasks")
           .update(patch)
-          .eq("id", id);
-        if (error) toast.error("Erro ao atualizar tarefa: " + error.message);
+          .eq("id", id).eq("tenant_id", tenantId).select("id").maybeSingle();
+        if (error || !data) { toast.error("Erro ao atualizar tarefa: " + (error?.message ?? "Acesso negado ou registro não encontrado")); return false; }
+        setTasks((prev) => sortTasks(prev.map((t) => t.id === id ? { ...t, ...updates } : t)));
       }
+      return true;
     },
-    [],
+    [tenantId, tasks],
+  );
+
+  const requestTaskReview = useCallback(
+    async (taskId: string) => {
+      if (!tenantId) return null;
+      if (accountType === "client") {
+        toast.error("Seu perfil não pode solicitar revisão técnica");
+        return null;
+      }
+      const existing = taskReviews.find(
+        (review) => review.taskId === taskId && review.status === "pending_review",
+      );
+      if (existing) return existing;
+
+      const task = tasks.find((item) => item.id === taskId);
+      if (!task) {
+        toast.error("Tarefa não encontrada para revisão");
+        return null;
+      }
+
+      const { data, error } = await operationalDb
+        .from<Row>("task_reviews")
+        .insert({
+          tenant_id: tenantId,
+          task_id: taskId,
+          reviewer_id: null,
+          status: "pending_review",
+        })
+        .select("*")
+        .maybeSingle();
+      if (error || !data) {
+        toast.error("Erro ao solicitar revisão: " + (error?.message ?? "Acesso negado ou revisão já pendente"));
+        void fetchAll();
+        return null;
+      }
+      const mapped = mapTaskReview(data);
+      setTaskReviews((prev) => [mapped, ...prev]);
+      void fetchAll();
+      return mapped;
+    },
+    [accountType, fetchAll, taskReviews, tasks, tenantId],
+  );
+
+  const updateTaskReviewStatus = useCallback(
+    async (id: string, status: Extract<TaskReviewStatus, "approved" | "rejected">, comment?: string | null) => {
+      if (!tenantId) return false;
+      if (accountType === "client") {
+        toast.error("Seu perfil não pode revisar tarefas");
+        return false;
+      }
+      if (status === "rejected" && !comment?.trim()) {
+        toast.error("Informe o motivo da reprovação");
+        return false;
+      }
+      const { data, error } = await operationalDb
+        .from<Row>("task_reviews")
+        .update({
+          status,
+          reviewer_id: user?.id ?? null,
+          comment: comment?.trim() || null,
+        })
+        .eq("id", id)
+        .eq("tenant_id", tenantId)
+        .select("*")
+        .maybeSingle();
+      if (error || !data) {
+        toast.error("Erro ao registrar revisão: " + (error?.message ?? "Acesso negado ou registro não encontrado"));
+        return false;
+      }
+      const mapped = mapTaskReview(data);
+      setTaskReviews((prev) => prev.map((review) => review.id === id ? mapped : review));
+      await fetchAll();
+      return true;
+    },
+    [accountType, fetchAll, tenantId, user?.id],
+  );
+
+  const approveTaskReview = useCallback(
+    (id: string, comment?: string | null) => updateTaskReviewStatus(id, "approved", comment),
+    [updateTaskReviewStatus],
+  );
+
+  const rejectTaskReview = useCallback(
+    (id: string, comment: string) => updateTaskReviewStatus(id, "rejected", comment),
+    [updateTaskReviewStatus],
+  );
+
+  const createOperationalComment = useCallback(
+    async (
+      targetType: OperationalCommentTargetType,
+      targetId: string,
+      body: string,
+    ) => {
+      if (!tenantId || !user?.id) return null;
+      if (accountType === "client") {
+        toast.error("Comentários operacionais são internos do escritório.");
+        return null;
+      }
+      const text = body.trim();
+      if (!text) {
+        toast.error("Escreva um comentário antes de registrar.");
+        return null;
+      }
+      const { data, error } = await operationalDb
+        .from<Row>("operational_comments")
+        .insert({
+          tenant_id: tenantId,
+          target_type: targetType,
+          target_id: targetId,
+          author_id: user.id,
+          body: text,
+        })
+        .select("*")
+        .maybeSingle();
+      if (error || !data) {
+        toast.error("Erro ao registrar comentário: " + (error?.message ?? "Acesso negado ou alvo não encontrado"));
+        return null;
+      }
+      const mapped = mapOperationalComment(data);
+      setOperationalComments((prev) => [mapped, ...prev]);
+      return mapped;
+    },
+    [accountType, tenantId, user?.id],
   );
 
   const updateTaskStatus = useCallback(
-    async (id: string, status: TaskStatus) => {
+    async (id: string, status: TaskStatus, blockedReason?: string | null) => {
+      if (!tenantId) return false;
+      const normalizedBlockedReason = blockedReason?.trim() || null;
+      if (status === "blocked" && !normalizedBlockedReason) {
+        toast.error("Informe o motivo do bloqueio da tarefa");
+        return false;
+      }
+      const linkedReviewItem = clientPeriodChecklistItems.find(
+        (item) => item.taskId === id && item.requiresReview && item.status !== "completed" && item.status !== "waived",
+      );
+      const hasApprovedReview = taskReviews.some(
+        (review) => review.taskId === id && review.status === "approved",
+      );
+      if (status === "completed" && linkedReviewItem && !hasApprovedReview) {
+        const review = await requestTaskReview(id);
+        if (!review) return false;
+        await updateClientPeriodChecklistItem(linkedReviewItem.id, "in_review");
+        const { data, error } = await supabase
+          .from("tasks")
+          .update({ status: "in_progress", completed_at: null, blocked_reason: null })
+          .eq("id", id).eq("tenant_id", tenantId).select("id").maybeSingle();
+        if (error || !data) {
+          toast.error("Erro ao enviar tarefa para revisão: " + (error?.message ?? "Acesso negado ou registro não encontrado"));
+          return false;
+        }
+        setTasks((prev) => sortTasks(prev.map((t) => t.id === id ? { ...t, status: "in_progress", completedAt: null, blockedReason: null } : t)));
+        toast.info("Tarefa enviada para revisão técnica");
+        void fetchAll();
+        return true;
+      }
       const completedAt =
         status === "completed" ? new Date().toISOString() : null;
-      setTasks((prev) =>
-        sortTasks(
-          prev.map((t) => (t.id === id ? { ...t, status, completedAt } : t)),
-        ),
-      );
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("tasks")
-        .update({ status, completed_at: completedAt })
-        .eq("id", id);
-      if (error) toast.error("Erro ao atualizar status: " + error.message);
+        .update({
+          status,
+          completed_at: completedAt,
+          blocked_reason: status === "blocked" ? normalizedBlockedReason : null,
+        })
+        .eq("id", id).eq("tenant_id", tenantId).select("id").maybeSingle();
+      if (error || !data) { toast.error("Erro ao atualizar status: " + (error?.message ?? "Acesso negado ou registro não encontrado")); return false; }
+      setTasks((prev) => sortTasks(prev.map((t) => t.id === id ? {
+        ...t,
+        status,
+        completedAt,
+        blockedReason: status === "blocked" ? normalizedBlockedReason : null,
+      } : t)));
+      void fetchAll();
+      return true;
     },
-    [],
+    [clientPeriodChecklistItems, fetchAll, requestTaskReview, taskReviews, tenantId, updateClientPeriodChecklistItem],
   );
 
   const deleteTask = useCallback(async (id: string) => {
+    if (!tenantId) return false;
+    const { data, error } = await supabase.from("tasks").delete().eq("id", id).eq("tenant_id", tenantId).select("id").maybeSingle();
+    if (error || !data) { toast.error("Erro ao remover tarefa: " + (error?.message ?? "Acesso negado ou registro não encontrado")); return false; }
     setTasks((prev) => prev.filter((t) => t.id !== id));
-    const { error } = await supabase.from("tasks").delete().eq("id", id);
-    if (error) toast.error("Erro ao remover tarefa: " + error.message);
-  }, []);
+    return true;
+  }, [tenantId]);
 
   // -------- Documents --------
   const persistDocument = useCallback(
     async (doc: DocumentData) => {
-      if (!tenantId) return doc;
+      if (!tenantId) return null;
       const { data, error } = await supabase
         .from("documents")
         .insert({
@@ -602,13 +1433,13 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         .maybeSingle();
       if (error) {
         toast.error("Erro ao salvar documento: " + error.message);
-        return doc;
+        return null;
       }
       if (data) {
         const clientsById = new Map(clients.map((c) => [c.id, c]));
         return mapDocument(data, clientsById);
       }
-      return doc;
+      return null;
     },
     [tenantId, user, clients],
   );
@@ -616,14 +1447,20 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   const addDocument = useCallback(
     async (doc: DocumentData) => {
       const saved = await persistDocument(doc);
+      if (!saved) return false;
       setDocuments((prev) => [saved, ...prev]);
+      return true;
     },
     [persistDocument],
   );
 
   const updateDocument = useCallback(
     async (id: string, updates: Partial<DocumentData>) => {
-      const patch: Row = {};
+      if (!tenantId) {
+        toast.error("Tenant não encontrado");
+        return false;
+      }
+      const patch: Database["public"]["Tables"]["documents"]["Update"] = {};
       if (updates.name !== undefined) patch.name = updates.name;
       if (updates.documentType !== undefined)
         patch.document_type = updates.documentType;
@@ -633,25 +1470,101 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       if (updates.amount !== undefined) patch.amount = updates.amount;
       if (updates.readAt !== undefined) patch.read_at = updates.readAt;
 
-      setDocuments((prev) =>
-        prev.map((d) => (d.id === id ? { ...d, ...updates } : d)),
-      );
       if (Object.keys(patch).length) {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from("documents")
           .update(patch)
-          .eq("id", id);
-        if (error) toast.error("Erro ao atualizar documento: " + error.message);
+          .eq("id", id).eq("tenant_id", tenantId).select("id").maybeSingle();
+        if (error || !data) { toast.error("Erro ao atualizar documento: " + (error?.message ?? "Acesso negado ou registro não encontrado")); return false; }
+        setDocuments((prev) => prev.map((d) => d.id === id ? { ...d, ...updates } : d));
       }
+      return true;
     },
-    [],
+    [tenantId],
   );
 
   const deleteDocument = useCallback(async (id: string) => {
+    if (!tenantId) return false;
+    const { data, error } = await supabase.from("documents").delete().eq("id", id).eq("tenant_id", tenantId).select("file_path").maybeSingle();
+    if (error || !data) { toast.error("Erro ao remover documento: " + (error?.message ?? "Acesso negado ou registro não encontrado")); return false; }
     setDocuments((prev) => prev.filter((d) => d.id !== id));
-    const { error } = await supabase.from("documents").delete().eq("id", id);
-    if (error) toast.error("Erro ao remover documento: " + error.message);
-  }, []);
+    if (data.file_path) {
+      const { error: cleanupError } = await supabase.storage.from("documents").remove([data.file_path]);
+      if (cleanupError) toast.warning("Registro removido, mas o arquivo ainda precisa ser limpo: " + cleanupError.message);
+    }
+    return true;
+  }, [tenantId]);
+
+  const createDocumentRequest = useCallback(
+    async (
+      request: Omit<DocumentRequestData, "id" | "tenantId" | "requestedBy" | "status" | "documentId" | "rejectionReason" | "waivedReason" | "createdAt" | "updatedAt">,
+    ) => {
+      if (!tenantId) {
+        toast.error("Tenant não encontrado");
+        return null;
+      }
+      if (accountType === "client") {
+        toast.error("Seu perfil não pode solicitar documentos");
+        return null;
+      }
+      const { data, error } = await operationalDb
+        .from<Row>("document_requests")
+        .insert({
+          tenant_id: tenantId,
+          company_id: request.companyId,
+          client_period_id: request.clientPeriodId,
+          requested_by: user?.id ?? null,
+          assigned_to: request.assignedTo,
+          title: request.title,
+          description: request.description,
+          document_type: request.documentType,
+          due_date: request.dueDate,
+          status: "requested",
+        })
+        .select("*")
+        .maybeSingle();
+      if (error || !data) {
+        toast.error("Erro ao solicitar documento: " + (error?.message ?? "Acesso negado"));
+        return null;
+      }
+      const mapped = mapDocumentRequest(data);
+      setDocumentRequests((prev) => [mapped, ...prev]);
+      void fetchAll();
+      return mapped;
+    },
+    [accountType, fetchAll, tenantId, user?.id],
+  );
+
+  const updateDocumentRequest = useCallback(
+    async (
+      id: string,
+      updates: Partial<Pick<DocumentRequestData, "status" | "documentId" | "rejectionReason" | "waivedReason">>,
+    ) => {
+      if (!tenantId) return false;
+      const patch: Record<string, unknown> = {};
+      if (updates.status !== undefined) patch.status = updates.status;
+      if (updates.documentId !== undefined) patch.document_id = updates.documentId;
+      if (updates.rejectionReason !== undefined) patch.rejection_reason = updates.rejectionReason;
+      if (updates.waivedReason !== undefined) patch.waived_reason = updates.waivedReason;
+
+      const { data, error } = await operationalDb
+        .from<Row>("document_requests")
+        .update(patch)
+        .eq("id", id)
+        .eq("tenant_id", tenantId)
+        .select("*")
+        .maybeSingle();
+      if (error || !data) {
+        toast.error("Erro ao atualizar solicitação: " + (error?.message ?? "Acesso negado ou registro não encontrado"));
+        return false;
+      }
+      const mapped = mapDocumentRequest(data);
+      setDocumentRequests((prev) => prev.map((request) => request.id === id ? mapped : request));
+      void fetchAll();
+      return true;
+    },
+    [fetchAll, tenantId],
+  );
 
   // -------- Payments --------
   const addPayment = useCallback(
@@ -673,40 +1586,51 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         return null;
       }
       if (data) setPayments((prev) => [data as PaymentRow, ...prev]);
+      if (data?.invoice_id) await fetchAll();
       return (data as PaymentRow | null) ?? null;
     },
-    [tenantId],
+    [tenantId, fetchAll],
   );
 
   const updatePayment = useCallback(
     async (id: string, updates: Partial<PaymentRow>) => {
-      setPayments((prev) =>
-        prev.map((payment) =>
-          payment.id === id ? { ...payment, ...updates } : payment,
-        ),
-      );
-      const { error } = await supabase
+      if (!tenantId) return false;
+      const currentPayment = payments.find((payment) => payment.id === id);
+      if (
+        currentPayment?.reconciled_at &&
+        (updates.status !== undefined || updates.paid_at !== undefined)
+      ) {
+        toast.error("Pagamentos conciliados não podem ter status ou data de pagamento alterados manualmente.");
+        return false;
+      }
+      const { data, error } = await supabase
         .from("payments")
         .update(updates)
-        .eq("id", id);
-      if (error) {
-        toast.error("Erro ao atualizar pagamento: " + error.message);
-        void fetchAll();
+        .eq("id", id).eq("tenant_id", tenantId).select("*").maybeSingle();
+      if (error || !data) {
+        toast.error("Erro ao atualizar pagamento: " + (error?.message ?? "Acesso negado ou registro não encontrado"));
+        return false;
       }
+      setPayments((prev) => prev.map((payment) => payment.id === id ? data : payment));
+      await fetchAll();
+      return true;
     },
-    [fetchAll],
+    [fetchAll, tenantId, payments],
   );
 
   const deletePayment = useCallback(
     async (id: string) => {
-      setPayments((prev) => prev.filter((payment) => payment.id !== id));
-      const { error } = await supabase.from("payments").delete().eq("id", id);
-      if (error) {
-        toast.error("Erro ao remover pagamento: " + error.message);
-        void fetchAll();
+      if (!tenantId) return false;
+      const { data, error } = await supabase.from("payments").delete().eq("id", id).eq("tenant_id", tenantId).select("id").maybeSingle();
+      if (error || !data) {
+        toast.error("Erro ao remover pagamento: " + (error?.message ?? "Acesso negado ou registro não encontrado"));
+        return false;
       }
+      setPayments((prev) => prev.filter((payment) => payment.id !== id));
+      await fetchAll();
+      return true;
     },
-    [fetchAll],
+    [fetchAll, tenantId],
   );
 
   // -------- Invoices --------
@@ -714,6 +1638,10 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     async (invoice: InvoiceInsert) => {
       if (!tenantId) {
         toast.error("Tenant não encontrado");
+        return null;
+      }
+      if (invoice.status === "paid") {
+        toast.error("Crie a fatura como pendente e registre um pagamento para marcá-la como paga.");
         return null;
       }
       const { data, error } = await supabase
@@ -736,34 +1664,59 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
 
   const updateInvoice = useCallback(
     async (id: string, updates: Partial<InvoiceRow>) => {
-      setInvoices((prev) =>
-        prev.map((invoice) =>
-          invoice.id === id ? { ...invoice, ...updates } : invoice,
-        ),
-      );
-      const { error } = await supabase
+      if (!tenantId) return false;
+      const { data, error } = await supabase
         .from("invoices")
         .update(updates)
-        .eq("id", id);
-      if (error) {
-        toast.error("Erro ao atualizar fatura: " + error.message);
-        void fetchAll();
+        .eq("id", id).eq("tenant_id", tenantId).select("*").maybeSingle();
+      if (error || !data) {
+        toast.error("Erro ao atualizar fatura: " + (error?.message ?? "Acesso negado ou registro não encontrado"));
+        return false;
       }
+      setInvoices((prev) => prev.map((invoice) => invoice.id === id ? data : invoice));
+      return true;
     },
-    [fetchAll],
+    [tenantId],
   );
 
   const deleteInvoice = useCallback(
     async (id: string) => {
-      setInvoices((prev) => prev.filter((invoice) => invoice.id !== id));
-      const { error } = await supabase.from("invoices").delete().eq("id", id);
-      if (error) {
-        toast.error("Erro ao remover fatura: " + error.message);
-        void fetchAll();
+      if (!tenantId) return false;
+      const invoice = invoices.find((item) => item.id === id);
+      if (invoice?.status === "paid") {
+        toast.error("Faturas pagas não podem ser removidas. Cancele ou estorne o pagamento antes.");
+        return false;
       }
+      const { data, error } = await supabase.from("invoices").delete().eq("id", id).eq("tenant_id", tenantId).select("id").maybeSingle();
+      if (error || !data) {
+        toast.error("Erro ao remover fatura: " + (error?.message ?? "Acesso negado ou registro não encontrado"));
+        return false;
+      }
+      setInvoices((prev) => prev.filter((invoice) => invoice.id !== id));
+      await fetchAll();
+      return true;
     },
-    [fetchAll],
+    [fetchAll, tenantId, invoices],
   );
+
+  const generateMonthlyServiceFeeInvoices = useCallback(async () => {
+    if (!tenantId || accountType !== "admin") {
+      toast.error("Somente administradores podem gerar faturas de honorários");
+      return 0;
+    }
+    const targetPeriod = `${new Date().toISOString().slice(0, 7)}-01`;
+    const { data, error } = await supabase.rpc("generate_monthly_service_fee_invoices", {
+      target_period: targetPeriod,
+    });
+    if (error) {
+      toast.error("Erro ao gerar faturas de honorários: " + error.message);
+      return 0;
+    }
+    const created = (data ?? []) as InvoiceRow[];
+    if (created.length) setInvoices((current) => [...created, ...current]);
+    await fetchAll();
+    return created.length;
+  }, [accountType, fetchAll, tenantId]);
 
   // -------- Fiscal obligations --------
   const addFiscalObligation = useCallback(
@@ -801,6 +1754,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
 
   const updateFiscalObligation = useCallback(
     async (id: string, updates: Partial<FiscalObligationRow>) => {
+      if (!tenantId) return false;
       const patch = {
         ...updates,
         completed_at:
@@ -810,21 +1764,18 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
               ? null
               : updates.completed_at,
       };
-      setFiscalObligations((prev) =>
-        prev.map((obligation) =>
-          obligation.id === id ? { ...obligation, ...patch } : obligation,
-        ),
-      );
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("fiscal_obligations")
         .update(patch)
-        .eq("id", id);
-      if (error) {
-        toast.error("Erro ao atualizar obrigação fiscal: " + error.message);
-        void fetchAll();
+        .eq("id", id).eq("tenant_id", tenantId).select("*").maybeSingle();
+      if (error || !data) {
+        toast.error("Erro ao atualizar obrigação fiscal: " + (error?.message ?? "Acesso negado ou registro não encontrado"));
+        return false;
       }
+      setFiscalObligations((prev) => prev.map((obligation) => obligation.id === id ? data : obligation));
+      return true;
     },
-    [fetchAll],
+    [tenantId, invoices],
   );
 
   const generateMonthlyFiscalObligations = useCallback(async () => {
@@ -843,106 +1794,38 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     const activeClients = clients.filter(
       (client) => client.status === "active",
     );
-    const templates: Record<
-      ClientData["taxRegime"],
-      { name: string; day: number; recurrence: string; priority: string }[]
-    > = {
-      simples_nacional: [
-        {
-          name: "DAS - Simples Nacional",
-          day: 20,
-          recurrence: "monthly",
-          priority: "high",
-        },
-      ],
-      mei: [
-        { name: "DAS-MEI", day: 20, recurrence: "monthly", priority: "medium" },
-      ],
-      lucro_presumido: [
-        {
-          name: "DARF IRPJ/CSLL",
-          day: 25,
-          recurrence: "monthly",
-          priority: "high",
-        },
-        {
-          name: "EFD Contribuições",
-          day: 15,
-          recurrence: "monthly",
-          priority: "medium",
-        },
-      ],
-      lucro_real: [
-        {
-          name: "DARF IRPJ/CSLL",
-          day: 30,
-          recurrence: "monthly",
-          priority: "high",
-        },
-        {
-          name: "SPED Fiscal",
-          day: 25,
-          recurrence: "monthly",
-          priority: "high",
-        },
-      ],
-    };
+    let synced = 0;
 
-    const existingKeys = new Set(
-      fiscalObligations.map(
-        (item) =>
-          `${item.company_id}-${item.name}-${item.period_month}-${item.period_year}`,
-      ),
-    );
-    const dueDateForDay = (day: number) => {
-      const lastDay = new Date(periodYear, periodMonth, 0).getDate();
-      return `${periodYear}-${String(periodMonth).padStart(2, "0")}-${String(Math.min(day, lastDay)).padStart(2, "0")}`;
-    };
-    const inserts = activeClients.flatMap((client) =>
-      (templates[client.taxRegime] ?? []).flatMap((template) => {
-        const key = `${client.id}-${template.name}-${periodMonth}-${periodYear}`;
-        if (existingKeys.has(key)) return [];
-        return {
-          company_id: client.id,
-          name: template.name,
-          description: `Obrigação gerada para ${client.name} no período ${String(periodMonth).padStart(2, "0")}/${periodYear}.`,
-          due_date: dueDateForDay(template.day),
-          period_month: periodMonth,
-          period_year: periodYear,
-          priority: template.priority,
-          recurrence: template.recurrence,
-          status: "pending",
-          tax_regime: client.taxRegime,
-        };
-      }),
-    );
+    for (const client of activeClients) {
+      const existingPeriod = clientPeriods.find(
+        (period) =>
+          period.companyId === client.id &&
+          period.periodMonth === periodMonth &&
+          period.periodYear === periodYear,
+      );
+      const period =
+        existingPeriod ??
+        (await createClientPeriod(client.id, periodMonth, periodYear));
+      if (!period) continue;
 
-    if (inserts.length === 0) {
-      toast.info("As obrigações deste mês já estão geradas");
-      return;
+      const { data, error } = await rpcDb.rpc<number>(
+        "create_fiscal_obligations_for_client_period",
+        { target_period_id: period.id },
+      );
+      if (error) {
+        toast.error("Erro ao gerar obrigações: " + error.message);
+        return;
+      }
+      synced += Number(data ?? 0);
     }
 
-    const { data, error } = await supabase
-      .from("fiscal_obligations")
-      .insert(
-        inserts.map((item) => ({
-          ...item,
-          tenant_id: tenantId,
-          created_by: user?.id ?? null,
-        })),
-      )
-      .select("*");
-    if (error) {
-      toast.error("Erro ao gerar obrigações: " + error.message);
-      return;
-    }
-    setFiscalObligations((prev) =>
-      [...((data ?? []) as FiscalObligationRow[]), ...prev].sort((a, b) =>
-        String(a.due_date).localeCompare(String(b.due_date)),
-      ),
+    await fetchAll();
+    toast.success(
+      synced > 0
+        ? `${synced} obrigação(ões) fiscal(is) gerada(s)`
+        : "Obrigações fiscais do mês sincronizadas",
     );
-    toast.success(`${data?.length ?? 0} obrigações fiscais geradas`);
-  }, [accountType, clients, fiscalObligations, tenantId, user]);
+  }, [accountType, clientPeriods, clients, createClientPeriod, fetchAll, tenantId]);
 
   // -------- Workspace settings and integrations --------
   const updateWorkspaceSettings = useCallback(
@@ -951,18 +1834,10 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         toast.error("Tenant não encontrado");
         return null;
       }
-      if (accountType === "client") {
-        toast.error("Seu perfil não pode alterar configurações do workspace");
+      if (accountType !== "admin") {
+        toast.error("Somente o administrador pode alterar configurações do workspace");
         return null;
       }
-
-      const next = {
-        ...(workspaceSettings ?? createDefaultWorkspaceSettings(tenantId)),
-        ...updates,
-        tenant_id: tenantId,
-        updated_by: user?.id ?? null,
-      } as WorkspaceSettingsData;
-      setWorkspaceSettings(next);
 
       const { data, error } = await supabase
         .from("workspace_settings")
@@ -987,7 +1862,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       if (row) setWorkspaceSettings(row);
       return row;
     },
-    [accountType, fetchAll, tenantId, user, workspaceSettings],
+    [accountType, fetchAll, tenantId, user],
   );
 
   const upsertIntegrationConnection = useCallback(
@@ -1001,48 +1876,6 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         return null;
       }
 
-      const existing = integrationConnections.find(
-        (item) => item.integration_id === integrationId,
-      );
-      const optimistic = {
-        ...(existing ?? {
-          id: crypto.randomUUID(),
-          tenant_id: tenantId,
-          integration_id: integrationId,
-          provider: integrationId,
-          status: "disconnected",
-          account_label: null,
-          config: {},
-          credentials: [],
-          provider_account_id: null,
-          provider_account_name: null,
-          scopes: [],
-          expires_at: null,
-          last_error_at: null,
-          credential_reference: null,
-          metadata: {},
-          usage: { calls: 0, limit: 0, period: "" },
-          last_sync_at: null,
-          connected_at: null,
-          created_by: null,
-          updated_by: null,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        }),
-        ...updates,
-        tenant_id: tenantId,
-        integration_id: integrationId,
-        updated_by: user?.id ?? null,
-      } as IntegrationConnectionData;
-
-      setIntegrationConnections((prev) => {
-        const without = prev.filter(
-          (item) => item.integration_id !== integrationId,
-        );
-        return [...without, optimistic].sort((a, b) =>
-          a.integration_id.localeCompare(b.integration_id),
-        );
-      });
 
       let row: IntegrationConnectionData | null = null;
       try {
@@ -1072,19 +1905,46 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       }
       return row;
     },
-    [accountType, fetchAll, integrationConnections, tenantId, user],
+    [accountType, fetchAll, tenantId, user],
   );
 
   // -------- Pipeline (file upload) --------
   const processFileUpload = useCallback(
-    async (file: File) => {
+    async (file: File, documentRequestId?: string) => {
       if (!tenantId) {
         toast.error("Tenant não encontrado para salvar o arquivo");
         return;
       }
 
+      if (file.size > 25 * 1024 * 1024) { toast.error("O arquivo deve ter no máximo 25 MB."); return; }
+      const result = executeDocumentPipeline(file.name, clients, {
+        fileSize: file.size, mimeType: file.type || null,
+      });
+      const targetRequest = documentRequestId
+        ? documentRequests.find((request) => request.id === documentRequestId)
+        : null;
+      if (targetRequest) {
+        const requestClient = clients.find((client) => client.id === targetRequest.companyId);
+        result.document.clientId = targetRequest.companyId;
+        result.document.clientName = requestClient?.name ?? "Cliente";
+        if (targetRequest.documentType) {
+          result.document.documentType = targetRequest.documentType as DocumentData["documentType"];
+        }
+        result.document.status = "unread";
+      }
+      if (accountType === "client") {
+        if (!profileCompanyId) { toast.error("Seu perfil ainda não está vinculado a uma empresa"); return; }
+        if (targetRequest && targetRequest.companyId !== profileCompanyId) {
+          toast.error("Esta solicitação não pertence à sua empresa");
+          return;
+        }
+        result.document.clientId = targetRequest?.companyId ?? profileCompanyId;
+        result.document.clientName = clients.find((client) => client.id === result.document.clientId)?.name ?? "Minha empresa";
+      }
+
       const safeFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-      const filePath = `${tenantId}/${crypto.randomUUID()}-${safeFileName}`;
+      const filePath = `${tenantId}/${result.document.clientId ?? "unassigned"}/${user.id}/${crypto.randomUUID()}-${safeFileName}`;
+      result.document.filePath = filePath;
       const { error: uploadError } = await supabase.storage
         .from("documents")
         .upload(filePath, file, {
@@ -1098,31 +1958,21 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      const result = executeDocumentPipeline(file.name, clients, {
-        filePath,
-        fileSize: file.size,
-        mimeType: file.type || null,
-      });
-
-      if (
-        accountType === "client" &&
-        profileCompanyId &&
-        !result.document.clientId
-      ) {
-        const ownClient = clients.find(
-          (client) => client.id === profileCompanyId,
-        );
-        result.document.clientId = profileCompanyId;
-        result.document.clientName = ownClient?.name ?? "Minha empresa";
-      }
-
-      if (accountType === "client" && !result.document.clientId) {
-        toast.error("Seu perfil ainda não está vinculado a uma empresa");
+      const saved = await persistDocument(result.document);
+      if (!saved) {
+        const { error: cleanupError } = await supabase.storage.from("documents").remove([filePath]);
+        if (cleanupError) toast.warning("O arquivo não foi registrado e sua limpeza precisa ser repetida.");
         return;
       }
-
-      const saved = await persistDocument(result.document);
+      result.pipeline.documentId = saved.id;
+      result.notifications.forEach((notification) => { notification.relatedEntityId = saved.id; });
       setDocuments((prev) => [saved, ...prev]);
+      if (targetRequest) {
+        await updateDocumentRequest(targetRequest.id, {
+          status: "uploaded",
+          documentId: saved.id,
+        });
+      }
       setPipelineHistory((prev) => [result.pipeline, ...prev]);
       if (result.notifications.length)
         setNotifications((prev) => [...result.notifications, ...prev]);
@@ -1131,7 +1981,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         !saved.clientId ||
         saved.documentType === "outros" ||
         saved.classificationConfidence < 0.7;
-      if (needsReview) {
+      if (needsReview && accountType !== "client") {
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
         await addTask({
@@ -1167,9 +2017,12 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       accountType,
       addTask,
       clients,
+      documentRequests,
       persistDocument,
       profileCompanyId,
       tenantId,
+      updateDocumentRequest,
+      user,
     ],
   );
 
@@ -1188,15 +2041,34 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         addClient,
         updateClient,
         deleteClient,
+        clientPeriods,
+        clientPeriodSteps,
+        clientPeriodChecklistItems,
+        createClientPeriod,
+        generateClientPeriodsForMonth,
+        updateClientPeriodStatus,
+        updateClientPeriodStep,
+        updateClientPeriodChecklistItem,
+        linkClientPeriodChecklistEvidence,
+        updateClientPeriodChecklistPlanning,
         tasks,
+        taskReviews,
+        operationalComments,
         addTask,
         updateTask,
         updateTaskStatus,
         deleteTask,
+        requestTaskReview,
+        approveTaskReview,
+        rejectTaskReview,
+        createOperationalComment,
         documents,
+        documentRequests,
         addDocument,
         updateDocument,
         deleteDocument,
+        createDocumentRequest,
+        updateDocumentRequest,
         payments,
         invoices,
         fiscalObligations,
@@ -1208,6 +2080,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         addInvoice,
         updateInvoice,
         deleteInvoice,
+        generateMonthlyServiceFeeInvoices,
         addFiscalObligation,
         updateFiscalObligation,
         generateMonthlyFiscalObligations,

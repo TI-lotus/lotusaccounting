@@ -10,6 +10,7 @@ export const enqueueIntegrationJob = async (params: {
   priority?: number;
   scheduledFor?: string;
   maxAttempts?: number;
+  idempotencyKey?: string | null;
 }) => {
   const supabase = createServiceClient();
   const { data, error } = await supabase
@@ -22,6 +23,7 @@ export const enqueueIntegrationJob = async (params: {
       priority: params.priority ?? 100,
       scheduled_for: params.scheduledFor ?? new Date().toISOString(),
       max_attempts: params.maxAttempts ?? 3,
+      idempotency_key: params.idempotencyKey ?? null,
     })
     .select("*")
     .maybeSingle();
@@ -30,10 +32,11 @@ export const enqueueIntegrationJob = async (params: {
   return data;
 };
 
-export const claimNextIntegrationJob = async (workerId: string) => {
+export const claimNextIntegrationJob = async (workerId: string, tenantId: string) => {
   const supabase = createServiceClient();
-  const { data, error } = await supabase.rpc("claim_next_integration_job", {
+  const { data, error } = await supabase.rpc("claim_workspace_integration_job", {
     worker_id: workerId,
+    workspace_id: tenantId,
   });
 
   if (error) throw error;

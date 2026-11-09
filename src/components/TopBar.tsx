@@ -13,20 +13,20 @@ import {
   CalendarClock,
   Bot,
   CreditCard,
-  ChevronDown,
-  Building2,
-  User,
   Settings,
   Crown,
   LogOut,
+  Check,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
-import { LotusLogo } from "./LotusLogo";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Popover,
+  PopoverAnchor,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
@@ -38,23 +38,27 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
   DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { useViewMode } from "@/contexts/ViewModeContext";
 import { useUserProfile } from "@/contexts/UserProfileContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTheme } from "@/hooks/useTheme";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { SettingsContent } from "@/pages/Settings";
 import { useData } from "@/contexts/DataContext";
 import { integrationCatalog } from "@/lib/integrationCatalog";
+import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
+import { getTenantSubscription, type TenantSubscription } from "@/services/commercialMvp";
 
 interface SearchResult {
   category: string;
@@ -87,39 +91,122 @@ interface NotificationItem {
   icon: React.ElementType;
   createdAt: number; // unix ms
   read: boolean;
+  persistent?: boolean;
 }
+
+type UserNotificationRow = Database["public"]["Tables"]["user_notifications"]["Row"];
+
+type PersistentNotificationMeta = {
+  categoryLabel: string;
+  icon: React.ElementType;
+  href?: string;
+};
+
+const persistentNotificationMeta = (kind: string): PersistentNotificationMeta => {
+  const map: Record<
+    string,
+    PersistentNotificationMeta
+  > = {
+    message: { categoryLabel: "Mensagens", icon: MessageSquare, href: "/messages" },
+    document_request_overdue: { categoryLabel: "Documentos", icon: FileText, href: "/documents" },
+    document_request_uploaded: { categoryLabel: "Documentos", icon: FileText, href: "/documents" },
+    document_request_rejected: { categoryLabel: "Documentos", icon: FileText, href: "/documents" },
+    fiscal_obligation_due: { categoryLabel: "Vencimentos", icon: CalendarClock, href: "/reports" },
+    task_overdue: { categoryLabel: "Tarefas", icon: CheckSquare, href: "/work-queue" },
+    task_review_rejected: { categoryLabel: "Revisões", icon: CheckSquare, href: "/work-queue" },
+    client_period_blocked: { categoryLabel: "Ciclo mensal", icon: CalendarClock, href: "/periods" },
+    client_period_stale: { categoryLabel: "Ciclo mensal", icon: CalendarClock, href: "/periods" },
+    invoice_overdue: { categoryLabel: "Faturas", icon: CreditCard, href: "/invoices" },
+  };
+  return map[kind] ?? { categoryLabel: "Sistema", icon: Bell };
+};
 
 export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
   const [query, setQuery] = useState("");
   const [showResults, setShowResults] = useState(false);
+  const [activeSearchIndex, setActiveSearchIndex] = useState(0);
   const [notificationOpen, setNotificationOpen] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const [subscription, setSubscription] = useState<TenantSubscription | null>(null);
   const navigate = useNavigate();
-  const { viewMode, setViewMode, canSwitchViewMode, role } = useViewMode();
+  const { viewMode, role, isCollapsed, setIsCollapsed } = useViewMode();
+  const { theme } = useTheme();
   const profile = useUserProfile();
-  const { signOut } = useAuth();
+  const { signOut, user, profile: authProfile } = useAuth();
   const {
     clients,
     documents,
     tasks,
     invoices,
     payments,
-    fiscalObligations,
     notifications: dataNotifications,
+    workspaceSettings,
   } = useData();
   const wrapperRef = useRef<HTMLDivElement>(null);
-
+  const organizationName = useMemo(() => {
+    if (role === "client") {
+      return clients.find((client) => client.id === authProfile?.company_id)?.name ?? "Minha empresa";
+    }
+    return workspaceSettings?.office_name || profile.companyName || "Meu escritório";
+  }, [authProfile?.company_id, clients, profile.companyName, role, workspaceSettings?.office_name]);
   const [readNotificationIds, setReadNotificationIds] = useState<Set<string>>(
     () => new Set(),
   );
-  const [notifSort, setNotifSort] = useState<"newest" | "oldest">("newest");
-  const [notifCategory, setNotifCategory] = useState<string>("all");
-  const [notifRead, setNotifRead] = useState<"all" | "unread" | "read">("all");
+  const [persistentNotifications, setPersistentNotifications] = useState<UserNotificationRow[]>([]);
 
   const handleSignOut = async () => {
+    setProfileMenuOpen(false);
     await signOut();
-    navigate("/auth", { replace: true });
+    navigate("/auth?logged_out=1", { replace: true });
+  };
+
+  useEffect(() => {
+    if (!user) {
+      setPersistentNotifications([]);
+      return;
+    }
+
+    const loadPersistentNotifications = async () => {
+      const { data } = await supabase
+        .from("user_notifications")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(20);
+      setPersistentNotifications((data ?? []) as UserNotificationRow[]);
+    };
+    void loadPersistentNotifications();
+
+    const channel = supabase
+      .channel(`inbox:${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "user_notifications", filter: `user_id=eq.${user.id}` },
+        (payload) => {
+          if (payload.eventType === "DELETE") {
+            setPersistentNotifications((current) => current.filter((item) => item.id !== payload.old.id));
+            return;
+          }
+          setPersistentNotifications((current) => [payload.new as UserNotificationRow, ...current.filter((item) => item.id !== payload.new.id)]
+            .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+            .slice(0, 20));
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [user]);
+
+  const markNotificationRead = (notification: NotificationItem) => {
+    setReadNotificationIds((current) => new Set(current).add(notification.id));
+    if (notification.persistent) {
+      setPersistentNotifications((current) => current.map((item) => item.id === notification.id ? { ...item, read_at: new Date().toISOString() } : item));
+      void supabase.from("user_notifications").update({ read_at: new Date().toISOString() }).eq("id", notification.id);
+    }
   };
 
   const searchData = useMemo<SearchResult[]>(() => {
@@ -185,9 +272,21 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
       const time = new Date(value).getTime();
       return time >= now && time <= now + 1000 * 60 * 60 * 24 * 7;
     };
-    const overdue = (value?: string | null) =>
-      !!value && new Date(value).getTime() < now;
     const items: NotificationItem[] = [
+      ...persistentNotifications.map((notification) => {
+        const meta = persistentNotificationMeta(notification.kind);
+        return {
+          id: notification.id,
+          label: notification.title,
+          href: notification.href || meta.href || "/",
+          category: notification.kind,
+          categoryLabel: meta.categoryLabel,
+          icon: meta.icon,
+          createdAt: new Date(notification.created_at).getTime(),
+          read: !!notification.read_at,
+          persistent: true,
+        };
+      }),
       ...dataNotifications.map((notification) => ({
         id: `ctx-${notification.id}`,
         label: notification.title,
@@ -205,23 +304,10 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
           notification.read ||
           readNotificationIds.has(`ctx-${notification.id}`),
       })),
-      ...tasks
-        .filter((task) => task.status === "overdue")
-        .slice(0, 4)
-        .map((task) => ({
-          id: `task-${task.id}`,
-          label: `Tarefa atrasada: ${task.title}`,
-          href: "/tasks",
-          category: "due",
-          categoryLabel: "Vencimentos",
-          icon: CheckSquare,
-          createdAt: new Date(task.dueDate).getTime(),
-          read: readNotificationIds.has(`task-${task.id}`),
-        })),
       ...invoices
         .filter(
           (invoice) =>
-            invoice.status === "overdue" || dueSoon(invoice.due_date),
+            invoice.status !== "overdue" && dueSoon(invoice.due_date),
         )
         .slice(0, 4)
         .map((invoice) => ({
@@ -269,22 +355,6 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
           createdAt: new Date(document.createdAt).getTime(),
           read: readNotificationIds.has(`document-${document.id}`),
         })),
-      ...fiscalObligations
-        .filter(
-          (obligation) =>
-            obligation.status !== "completed" && overdue(obligation.due_date),
-        )
-        .slice(0, 4)
-        .map((obligation) => ({
-          id: `obligation-${obligation.id}`,
-          label: `Obrigação fiscal vencida: ${obligation.name}`,
-          href: "/reports",
-          category: "due",
-          categoryLabel: "Vencimentos",
-          icon: CalendarClock,
-          createdAt: new Date(`${obligation.due_date}T00:00:00`).getTime(),
-          read: readNotificationIds.has(`obligation-${obligation.id}`),
-        })),
     ];
     return items
       .filter((item) => Number.isFinite(item.createdAt))
@@ -293,26 +363,12 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
   }, [
     dataNotifications,
     documents,
-    fiscalObligations,
     invoices,
     payments,
+    persistentNotifications,
     readNotificationIds,
-    tasks,
   ]);
 
-  const categories = Array.from(
-    new Map(notifications.map((n) => [n.category, n.categoryLabel])).entries(),
-  );
-  const filteredNotifications = notifications
-    .filter((n) => notifCategory === "all" || n.category === notifCategory)
-    .filter(
-      (n) => notifRead === "all" || (notifRead === "unread" ? !n.read : n.read),
-    )
-    .sort((a, b) =>
-      notifSort === "newest"
-        ? b.createdAt - a.createdAt
-        : a.createdAt - b.createdAt,
-    );
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   const formatRelative = (ts: number) => {
@@ -325,24 +381,28 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
   };
 
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 24);
-    handleScroll();
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (
-        wrapperRef.current &&
-        !wrapperRef.current.contains(e.target as Node)
-      ) {
-        setShowResults(false);
+    const handleSearchShortcut = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        const input = wrapperRef.current?.querySelector("input");
+        input?.focus();
+        setShowResults(true);
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+    window.addEventListener("keydown", handleSearchShortcut);
+    return () => window.removeEventListener("keydown", handleSearchShortcut);
+  }, [query]);
+
+  useEffect(() => {
+    if (settingsOpen || upgradeOpen) setProfileMenuOpen(false);
+  }, [settingsOpen, upgradeOpen]);
+
+  useEffect(() => {
+    if (!upgradeOpen) return;
+    void getTenantSubscription()
+      .then(setSubscription)
+      .catch(() => setSubscription(null));
+  }, [upgradeOpen]);
 
   const isAIQuery =
     query.trim().startsWith("/") ||
@@ -358,10 +418,13 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
         }))
         .filter((group) => group.items.length > 0)
     : [];
+  const searchEntries = filteredResults.flatMap((group) => group.items);
+  const searchEntryCount = searchEntries.length + (isAIQuery ? 1 : 0);
 
   const handleSelect = (href: string) => {
     navigate(href);
     setQuery("");
+    setActiveSearchIndex(0);
     setShowResults(false);
   };
 
@@ -370,134 +433,190 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
       ? query.trim().slice(1).trim()
       : query.trim();
     setQuery("");
+    setActiveSearchIndex(0);
     setShowResults(false);
     onOpenAI?.(message || undefined);
   };
 
-  const isDropdownVisible = showResults && query.trim().length > 0;
-  const dense =
-    scrolled || isDropdownVisible || notificationOpen || settingsOpen;
-
+  const isDropdownVisible = showResults;
   return (
     <>
-      {(isDropdownVisible || notificationOpen) && (
-        <div
-          className="search-backdrop"
-          onClick={() => {
-            setShowResults(false);
-            setNotificationOpen(false);
-          }}
-        />
-      )}
       <header
+        data-theme={theme}
         className={cn(
-          "h-16 text-white transition-all duration-500",
-          "flex items-center justify-between px-3 md:px-6 gap-2 md:gap-4 sticky top-0",
-          dense
-            ? "border-b border-white/10 bg-black/55 shadow-[0_18px_50px_rgba(0,0,0,0.18)] backdrop-blur-[22px] backdrop-saturate-150"
-            : "border-b border-white/5 bg-black/20 backdrop-blur-md backdrop-saturate-150",
+          "topbar-shell h-14 transition-all duration-500 lg:h-[4.25rem]",
+          "flex items-center justify-between px-3 md:px-8 gap-2 md:gap-6 sticky top-0 lg:transition-[margin] lg:duration-300",
+          isCollapsed ? "lg:ml-[4.5rem]" : "lg:ml-64",
+          "isolate border-b backdrop-blur-[28px] backdrop-saturate-150",
           isDropdownVisible ? "z-50" : "z-40",
           className,
         )}
       >
-        <div className="flex items-center shrink-0">
-          <LotusLogo size="lg" />
+        <div className="flex min-w-0 shrink-0 items-center gap-2">
+          <button
+            type="button"
+            aria-label={isCollapsed ? "Expandir menu lateral" : "Recolher menu lateral"}
+            title={isCollapsed ? "Expandir menu" : "Recolher menu"}
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className={cn(
+              "rounded-xl p-2 transition-colors",
+              theme === "dark" ? "text-white/60 hover:bg-white/10 hover:text-white" : "text-muted-foreground hover:bg-black/5 hover:text-foreground",
+            )}
+          >
+            {isCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+          </button>
         </div>
         <div
-          className="flex items-center gap-2 md:gap-4 flex-1 max-w-md relative"
+          className="topbar-search relative mx-auto flex w-full max-w-[440px] flex-1 items-center gap-2 md:gap-4"
           ref={wrapperRef}
         >
-          <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/60" />
-            <Input
-              placeholder="Digite / para começar uma conversa com a Lia"
-              className="pl-10 h-10 rounded-2xl border-white/15 bg-white/10 text-white placeholder:text-white/50 backdrop-blur-md focus-visible:ring-1 focus-visible:ring-gilver"
-              value={query}
-              onChange={(e) => {
-                setQuery(e.target.value);
-                setShowResults(true);
-              }}
-              onFocus={() => query.trim() && setShowResults(true)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && query.trim().startsWith("/")) {
-                  e.preventDefault();
-                  handleAIOpen();
-                }
-              }}
-            />
-            {query && (
-              <button
-                onClick={() => {
-                  setQuery("");
-                  setShowResults(false);
-                }}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            )}
-
-            {isDropdownVisible && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-popover border border-border rounded-xl shadow-lg overflow-hidden z-[99999] max-h-[400px] overflow-y-auto custom-scroll">
-                {/* AI suggestion */}
-                {isAIQuery && (
+          <Popover open={showResults} onOpenChange={setShowResults}>
+            <PopoverAnchor asChild>
+              <div className={cn("topbar-search-field", showResults && "is-open")}>
+                <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <Input
+                  placeholder="Busque clientes, tarefas ou use / para conversar…"
+                  className={cn(
+                    "topbar-search-input h-auto min-w-0 flex-1 rounded-none border-0 bg-transparent p-0 text-xs shadow-none focus-visible:border-transparent focus-visible:ring-0 md:text-xs",
+                    theme === "dark"
+                      ? "text-white placeholder:text-white/50"
+                      : "text-foreground placeholder:text-muted-foreground",
+                  )}
+                  value={query}
+                  onChange={(e) => {
+                    setQuery(e.target.value);
+                    setActiveSearchIndex(0);
+                    setShowResults(true);
+                  }}
+                  onFocus={() => setShowResults(true)}
+                  onKeyDown={(e) => {
+                    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+                      e.preventDefault();
+                      if (!searchEntryCount) return;
+                      setShowResults(true);
+                      setActiveSearchIndex((current) =>
+                        (current + (e.key === "ArrowDown" ? 1 : -1) + searchEntryCount) % searchEntryCount,
+                      );
+                      return;
+                    }
+                    if (e.key === "Enter" && (query.trim().startsWith("/") || isAIQuery && activeSearchIndex === 0)) {
+                      e.preventDefault();
+                      handleAIOpen();
+                      return;
+                    }
+                    if (e.key === "Enter" && searchEntryCount > 0) {
+                      e.preventDefault();
+                      const resultIndex = activeSearchIndex - (isAIQuery ? 1 : 0);
+                      const result = searchEntries[resultIndex];
+                      if (result) handleSelect(result.href);
+                    }
+                  }}
+                />
+                {!query && (
+                  <span className={cn(
+                    "pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 rounded-md border px-1.5 py-0.5 text-[10px] sm:block",
+                    theme === "dark" ? "border-white/15 text-white/45" : "border-black/10 text-muted-foreground",
+                  )}>
+                    Ctrl K
+                  </span>
+                )}
+                {query && (
                   <button
-                    className="w-full text-left px-4 py-3 text-sm hover:bg-accent transition-colors flex items-center gap-3 border-b border-border"
-                    onClick={handleAIOpen}
+                    type="button"
+                    onClick={() => {
+                      setQuery("");
+                      setShowResults(false);
+                    }}
+                    className="topbar-search-clear text-muted-foreground hover:text-foreground"
                   >
-                    <div className="p-1.5 rounded-lg bg-gilver/15 text-gilver">
-                      <Sparkles className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <p className="font-medium">Conversar com a Lia</p>
-                      <p className="text-xs text-muted-foreground">"{query}"</p>
-                    </div>
+                    <X className="h-4 w-4" />
                   </button>
                 )}
-
-                {filteredResults.length > 0 &&
-                  filteredResults.map((group) => {
-                    const Icon = group.icon;
-                    return (
-                      <div key={group.category}>
-                        <div className="px-3 py-2 text-xs font-semibold text-muted-foreground bg-muted/50 flex items-center gap-2">
-                          <Icon className="h-3.5 w-3.5" />
-                          {group.category}
-                        </div>
-                        {group.items.map((item) => (
-                          <button
-                            key={item.label}
-                            className="w-full text-left px-4 py-2.5 text-sm hover:bg-accent transition-colors"
-                            onClick={() => handleSelect(item.href)}
-                          >
-                            {item.label}
-                          </button>
-                        ))}
-                      </div>
-                    );
-                  })}
-
-                {filteredResults.length === 0 && !isAIQuery && (
-                  <div className="p-6 text-center text-sm text-muted-foreground">
-                    <p>Nenhum resultado encontrado para "{query}"</p>
+              </div>
+            </PopoverAnchor>
+            {isDropdownVisible && (
+              <PopoverContent
+                align="center"
+                side="bottom"
+                sideOffset={10}
+                collisionPadding={16}
+                className="global-search-dropdown judex-floating z-[99999] w-auto max-h-[420px] overflow-hidden p-0"
+                onOpenAutoFocus={(event) => event.preventDefault()}
+                onCloseAutoFocus={(event) => event.preventDefault()}
+              >
+                <div className="search-dropdown-label">
+                  {isAIQuery ? "NOVA CONVERSA" : "RESULTADOS DA BUSCA"}
+                </div>
+                <div className="command-results custom-scroll">
+                  {isAIQuery && (
                     <button
-                      className="mt-2 text-xs text-gilver hover:underline flex items-center gap-1 mx-auto"
+                      type="button"
+                      aria-selected={activeSearchIndex === 0}
+                      className={cn("search-chat-option", activeSearchIndex === 0 && "is-selected")}
                       onClick={handleAIOpen}
                     >
-                      <Sparkles className="h-3 w-3" />
-                      Conversar com a Lia
+                      <div className="p-1.5 rounded-lg bg-gilver/15 text-gilver">
+                        <Sparkles className="h-4 w-4" />
+                      </div>
+                      <span>
+                        <strong className="font-medium">Conversar com a Lia</strong>
+                        <small>"{query}"</small>
+                      </span>
+                      <span className="ml-auto text-muted-foreground">↵</span>
                     </button>
-                  </div>
-                )}
-              </div>
+                  )}
+
+                  {filteredResults.length > 0 &&
+                    filteredResults.map((group) => {
+                      const Icon = group.icon;
+                      return (
+                        <div key={group.category}>
+                          <div className="search-category-label flex items-center gap-2">
+                            <Icon className="h-3.5 w-3.5" />
+                            {group.category}
+                          </div>
+                          {group.items.map((item, itemIndex) => {
+                            const resultIndex = (isAIQuery ? 1 : 0) + filteredResults.slice(0, filteredResults.indexOf(group)).reduce((total, current) => total + current.items.length, 0) + itemIndex;
+                            return (
+                              <button
+                                type="button"
+                                key={item.label}
+                                aria-selected={activeSearchIndex === resultIndex}
+                                className={cn("search-record-option", activeSearchIndex === resultIndex && "is-selected")}
+                                onMouseEnter={() => setActiveSearchIndex(resultIndex)}
+                                onClick={() => handleSelect(item.href)}
+                              >
+                                <span>
+                                  {item.label}
+                                  <small>{group.category}</small>
+                                </span>
+                                <span className="ml-auto text-muted-foreground">↵</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      );
+                    })}
+
+                  {filteredResults.length === 0 && !isAIQuery && (
+                    <div className="empty-search">
+                      <p>{query.trim() ? `Nenhum resultado encontrado para "${query}". Tente outro termo.` : "Digite para encontrar documentos, clientes, casos, processos, contratos, referências jurídicas e agentes."}</p>
+                    </div>
+                  )}
+                </div>
+                <div className="search-dropdown-footer">
+                  <span><kbd>↑</kbd><kbd>↓</kbd> selecionar <kbd>↵</kbd> prévia</span>
+                  <span><kbd>/</kbd> conversar</span>
+                </div>
+              </PopoverContent>
             )}
-          </div>
+          </Popover>
         </div>
         <div className="flex items-center gap-1 md:gap-2 shrink-0">
           <Button
             variant="ghost"
             size="icon"
-            className="h-9 w-9 rounded-xl text-white hover:bg-white/15 hover:text-white"
+            className={cn("h-9 w-9 rounded-xl", theme === "dark" ? "text-white hover:bg-white/15 hover:text-white" : "text-foreground hover:bg-black/5")}
             onClick={() => navigate("/messages")}
           >
             <MessageSquare className="h-4 w-4" />
@@ -507,7 +626,7 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
               <Button
                 variant="ghost"
                 size="icon"
-                className="relative h-9 w-9 rounded-xl text-white hover:bg-white/15 hover:text-white"
+                className={cn("relative h-9 w-9 rounded-xl", theme === "dark" ? "text-white hover:bg-white/15 hover:text-white" : "text-foreground hover:bg-black/5")}
               >
                 <Bell className="h-4 w-4" />
                 {unreadCount > 0 && (
@@ -517,85 +636,35 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
             </PopoverTrigger>
             <PopoverContent
               align="end"
-              className="w-[400px] rounded-2xl p-0 overflow-hidden z-[99999]"
+              className="legal-notifications judex-floating z-[99999] w-[400px] overflow-hidden p-0"
             >
-              <div className="p-4 border-b border-border flex items-center justify-between">
+              <header>
                 <div>
-                  <h3 className="font-semibold text-sm">Notificações</h3>
-                  <p className="text-xs text-muted-foreground">
-                    {unreadCount} não lidas
-                  </p>
+                  <h2>Notificações</h2>
+                  <span>
+                    {unreadCount} pendentes
+                  </span>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-xs rounded-lg"
-                  onClick={() =>
-                    setReadNotificationIds(
-                      new Set(notifications.map((n) => n.id)),
-                    )
-                  }
-                >
-                  Marcar todas
-                </Button>
-              </div>
-              <div className="p-3 border-b border-border flex flex-wrap gap-2">
-                <select
-                  value={notifSort}
-                  onChange={(e) =>
-                    setNotifSort(e.target.value as "newest" | "oldest")
-                  }
-                  className="text-xs rounded-lg border border-border bg-background px-2 py-1"
-                >
-                  <option value="newest">Mais recentes</option>
-                  <option value="oldest">Mais antigas</option>
-                </select>
-                <select
-                  value={notifCategory}
-                  onChange={(e) => setNotifCategory(e.target.value)}
-                  className="text-xs rounded-lg border border-border bg-background px-2 py-1"
-                >
-                  <option value="all">Todas categorias</option>
-                  {categories.map(([cat, label]) => (
-                    <option key={cat} value={cat}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  value={notifRead}
-                  onChange={(e) =>
-                    setNotifRead(e.target.value as "all" | "unread" | "read")
-                  }
-                  className="text-xs rounded-lg border border-border bg-background px-2 py-1"
-                >
-                  <option value="all">Todas</option>
-                  <option value="unread">Não lidas</option>
-                  <option value="read">Lidas</option>
-                </select>
-              </div>
-              <div className="max-h-[420px] overflow-y-auto custom-scroll divide-y divide-border">
-                {filteredNotifications.length === 0 && (
-                  <p className="text-center text-sm text-muted-foreground py-8">
-                    Nenhuma notificação
-                  </p>
+              </header>
+              <div className="legal-notifications-body custom-scroll">
+                {notifications.length === 0 && (
+                  <div className="notifications-empty">
+                    <Bell />
+                    <strong>Tudo em dia.</strong>
+                    <p>Novos lembretes aparecerão conforme as datas e preferências cadastradas.</p>
+                  </div>
                 )}
-                {filteredNotifications.map((n) => {
+                {notifications.map((n) => {
                   const Icon = n.icon;
                   return (
                     <button
                       key={n.id}
                       onClick={() => {
-                        setReadNotificationIds((prev) =>
-                          new Set(prev).add(n.id),
-                        );
+                        markNotificationRead(n);
                         navigate(n.href);
                         setNotificationOpen(false);
                       }}
-                      className={cn(
-                        "w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-accent transition-colors",
-                        !n.read && "bg-primary/5",
-                      )}
+                       className={cn("legal-notification-item", !n.read && "is-unread")}
                     >
                       <div className="rounded-xl bg-muted p-2 text-muted-foreground shrink-0">
                         <Icon className="h-4 w-4" />
@@ -628,71 +697,57 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
                   );
                 })}
               </div>
+              <footer>
+                <button type="button" onClick={() => { setNotificationOpen(false); navigate("/notifications"); }}>
+                  Abrir central de notificações <span aria-hidden="true">↗</span>
+                </button>
+                <span>Lembretes na plataforma · atualização a cada 30 segundos</span>
+              </footer>
             </PopoverContent>
           </Popover>
-          <ThemeToggle className="text-white hover:bg-white/15 hover:text-white" />
+          <ThemeToggle className={theme === "dark" ? "text-white hover:bg-white/15 hover:text-white" : "text-foreground hover:bg-black/5"} />
 
-          <DropdownMenu>
+          <DropdownMenu open={profileMenuOpen} onOpenChange={setProfileMenuOpen}>
             <DropdownMenuTrigger asChild>
-              <button className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-xl text-white transition-colors hover:bg-white/15">
+              <button
+                aria-label="Menu do usuário"
+                title={profile.fullName || profile.email || "Usuário"}
+                className={cn("rounded-full p-0.5 transition-colors", theme === "dark" ? "hover:bg-white/15" : "hover:bg-black/5")}
+              >
                 <Avatar className="h-8 w-8">
                   <AvatarImage src={profile.avatarUrl} />
                   <AvatarFallback className="bg-gilver text-white font-medium text-xs">
                     {profile.initials}
                   </AvatarFallback>
                 </Avatar>
-                <div className="hidden md:block text-left leading-tight">
-                  <p className="text-xs font-medium truncate max-w-[140px] text-white">
-                    {profile.fullName || profile.email || "Usuário"}
-                  </p>
-                  <p className="text-[10px] text-white/60 truncate max-w-[140px]">
-                    {profile.email}
-                  </p>
-                </div>
-                <ChevronDown className="h-4 w-4 text-white/70" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 z-[99999]">
-              <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
-                {canSwitchViewMode ? "Alternar Visualização" : "Perfil"}
+            <DropdownMenuContent align="end" sideOffset={12} className="account-dropdown z-[99999]">
+              <DropdownMenuLabel className="account-identity">
+                <strong>{profile.fullName || profile.email || "Usuário"}</strong>
+                <span>{organizationName}</span>
+                <small>
+                  {role === "client" ? "Portal do cliente" : role === "collaborator" ? "Colaborador" : "Administrador"}
+                </small>
               </DropdownMenuLabel>
-              {canSwitchViewMode ? (
-                <DropdownMenuRadioGroup
-                  value={viewMode}
-                  onValueChange={(v) => setViewMode(v as "office" | "client")}
-                >
-                  <DropdownMenuRadioItem
-                    value="office"
-                    className="cursor-pointer"
-                  >
-                    <Building2 className="h-4 w-4 mr-2" />
-                    Escritório
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem
-                    value="client"
-                    className="cursor-pointer"
-                  >
-                    <User className="h-4 w-4 mr-2" />
-                    Cliente
-                  </DropdownMenuRadioItem>
-                </DropdownMenuRadioGroup>
-              ) : (
-                <DropdownMenuItem disabled>
-                  <User className="h-4 w-4 mr-2" />
-                  {role === "client" ? "Cliente" : "Carregando perfil"}
-                </DropdownMenuItem>
-              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onSelect={(e) => {
                   e.preventDefault();
+                  setProfileMenuOpen(false);
                   setSettingsOpen(true);
                 }}
               >
                 <Settings className="h-4 w-4 mr-2" />
                 Configurações
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate("/upgrade")}>
+              <DropdownMenuItem
+                onSelect={(e) => {
+                  e.preventDefault();
+                  setProfileMenuOpen(false);
+                  setUpgradeOpen(true);
+                }}
+              >
                 <Crown className="h-4 w-4 mr-2" />
                 Upgrade
               </DropdownMenuItem>
@@ -710,11 +765,64 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
       </header>
 
       <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto custom-scroll rounded-2xl">
-          <DialogHeader>
+        <DialogContent className="dialog-window account-settings-dialog">
+          <DialogHeader className="dialog-header">
             <DialogTitle>Configurações</DialogTitle>
+            <DialogDescription>Seu espaço, do seu jeito.</DialogDescription>
           </DialogHeader>
-          <SettingsContent showHeader={false} />
+          <div className="dialog-body account-settings-body custom-scroll">
+            <SettingsContent showHeader={false} />
+          </div>
+          <DialogFooter className="dialog-footer">
+            <span className="settings-saved">Preferências salvas automaticamente</span>
+            <Button onClick={() => setSettingsOpen(false)}>Concluir</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={upgradeOpen} onOpenChange={setUpgradeOpen}>
+        <DialogContent className="dialog-window account-upgrade-dialog">
+          <DialogHeader className="dialog-header">
+              <DialogTitle>Escolha o próximo nível da Lotus</DialogTitle>
+              <DialogDescription>Planos pensados para acompanhar o crescimento do seu escritório.</DialogDescription>
+          </DialogHeader>
+          <div className="dialog-body custom-scroll">
+            <div className="judex-plans">
+            {[
+              { id: "starter", name: "Starter", description: "Para organizar a rotina essencial.", features: ["Clientes e equipe", "Tarefas e documentos", "Relatórios básicos"] },
+              { id: "business", name: "Business", description: "Para operar com mais automação.", features: ["Tudo do Starter", "Integrações externas", "Mais limites e controles"], featured: true },
+              { id: "enterprise", name: "Enterprise", description: "Para escritórios com operação ampliada.", features: ["Tudo do Business", "Suporte dedicado", "Condições personalizadas"] },
+            ].map((plan) => (
+              (() => {
+                const current = subscription?.plan_id === plan.id;
+                return <article key={plan.name} className={cn("judex-plan", plan.featured && "featured", current && "current")}>
+                <span className="plan-eyebrow">{current ? "LOTUS · PLANO ATUAL" : plan.featured ? "LOTUS · MAIS POSSIBILIDADES" : "LOTUS"}</span>
+                <h3>{plan.name}</h3>
+                <p>{plan.description}</p>
+                <strong className="plan-price">Valor a definir</strong>
+                <small>Limites em definição</small>
+                <div className="plan-features-label">Recursos previstos</div>
+                <ul>
+                  {plan.features.map((feature) => (
+                    <li key={feature}><Check className="h-3.5 w-3.5" />{feature}</li>
+                  ))}
+                </ul>
+                <Button
+                  variant={current || plan.featured ? "default" : "outline"}
+                  disabled={current}
+                  className={cn("w-full", (current || plan.featured) && "bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-100")}
+                  onClick={() => {
+                    setUpgradeOpen(false);
+                    navigate("/upgrade");
+                  }}
+                >
+                  {current ? "Plano atual" : "Ver detalhes"}
+                </Button>
+              </article>;
+              })()
+            ))}
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </>

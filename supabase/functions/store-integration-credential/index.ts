@@ -25,6 +25,7 @@ const hasSecret = (value: Record<string, unknown> | undefined) =>
 Deno.serve(async (request) => {
   const corsResponse = handleCors(request);
   if (corsResponse) return corsResponse;
+  if (request.method !== "POST") return errorResponse("method_not_allowed", 405);
 
   try {
     const context = await requireAuthContext(request);
@@ -38,6 +39,12 @@ Deno.serve(async (request) => {
     }
 
     const supabase = createServiceClient();
+    if (body.connectionId) {
+      const { data: existing, error } = await supabase.from("integration_connections")
+        .select("id").eq("id", body.connectionId).eq("tenant_id", context.tenantId).maybeSingle();
+      if (error) throw error;
+      if (!existing) return errorResponse("connection_not_found", 404);
+    }
     const { data: connection, error: connectionError } = await supabase
       .from("integration_connections")
       .upsert(
