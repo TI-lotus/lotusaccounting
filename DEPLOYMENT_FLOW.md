@@ -82,6 +82,10 @@ Os secrets das Edge Functions são configurados diretamente em cada projeto Supa
 - `LOTUS_CREDENTIAL_ENCRYPTION_KEY`
 - `LOTUS_SCHEDULER_KEY`
 
+O workflow também valida automaticamente a presença dos secrets de runtime antes de aplicar migrations e publicar funções. A validação confere apenas os nomes; os valores nunca são exibidos nos logs.
+
+Para o staging, `ASAAS_API_KEY` deve ser a chave sandbox e `ASAAS_BASE_URL` deve apontar para a API sandbox. O remetente do Resend precisa pertencer a um domínio verificado ou ser um remetente de teste autorizado para a validação inicial.
+
 O staging deve usar credenciais/testes próprios de Asaas e Resend. As credenciais de produção não devem ser copiadas para staging.
 
 ## Rollback

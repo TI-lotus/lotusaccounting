@@ -99,11 +99,26 @@ Deno.serve(async (request) => {
         .eq("user_id", userId)
         .maybeSingle();
       if (profileError) throw profileError;
-      if (existingProfile?.tenant_id && existingProfile.company_id !== company.id) {
+      if (
+        existingProfile?.tenant_id &&
+        (
+          existingProfile.tenant_id !== company.tenant_id ||
+          existingProfile.company_id !== company.id ||
+          existingProfile.account_type !== "client"
+        )
+      ) {
         return errorResponse(
-          "Este e-mail já possui acesso vinculado. Entre com a senha existente ou fale com o escritório.",
+          "Este e-mail já possui outro tipo de acesso vinculado. Entre com a senha existente ou fale com o escritório.",
           409,
           "auth_user_already_linked",
+        );
+      }
+
+      if (existingProfile?.account_type === "client" && existingProfile.company_id === company.id) {
+        return errorResponse(
+          "Este e-mail já possui acesso de cliente. Entre com a senha existente ou use a recuperação de senha.",
+          409,
+          "client_access_already_exists",
         );
       }
 

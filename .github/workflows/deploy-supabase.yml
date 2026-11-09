@@ -69,6 +69,24 @@ jobs:
             exit 1
           fi
 
+      - name: Validate Edge Function runtime secrets
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ inputs.project_ref }}
+        run: |
+          required_secrets=(
+            APP_ORIGIN
+            ASAAS_BASE_URL
+            ASAAS_API_KEY
+            ASAAS_WEBHOOK_TOKEN
+            LOTUS_CREDENTIAL_ENCRYPTION_KEY
+            LOTUS_SCHEDULER_KEY
+            RESEND_API_KEY
+            RESEND_FROM_EMAIL
+          )
+          supabase secrets list --project-ref "$SUPABASE_PROJECT_REF" 2>/dev/null \
+            | node scripts/validate-supabase-secrets.mjs "${required_secrets[@]}"
+
       - name: Link Supabase database using the environment connection
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
