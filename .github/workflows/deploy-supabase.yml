@@ -84,7 +84,7 @@ jobs:
             RESEND_API_KEY
             RESEND_FROM_EMAIL
           )
-          supabase secrets list --project-ref "$SUPABASE_PROJECT_REF" 2>/dev/null \
+          supabase secrets list --project-ref "$SUPABASE_PROJECT_REF" --output-format json 2>/dev/null \
             | node scripts/validate-supabase-secrets.mjs "${required_secrets[@]}"
 
       - name: Link Supabase database using the environment connection
