@@ -1,11 +1,17 @@
 project_id = "peguwukoyprqzgfqxhju"
 
 [auth]
-site_url = "https://lotusaccounting-lotus-5cd8.vercel.app"
+site_url = "https://lotusaccounting-lotus-5cd8.vercel.app/"
 additional_redirect_urls = [
+  "https://lotusaccounting.vercel.app",
+  "https://lotusaccounting.vercel.app/auth",
+  "https://lotusaccounting.vercel.app/**",
   "https://lotusaccounting-lotus-5cd8.vercel.app",
   "https://lotusaccounting-lotus-5cd8.vercel.app/auth",
   "https://lotusaccounting-lotus-5cd8.vercel.app/**",
+  "https://lotusaccounting-lotus-5cd8.vercel.app/",
+  "https://lotusaccounting-*-lotus-5cd8.vercel.app",
+  "https://lotusaccounting-*-lotus-5cd8.vercel.app/**",
   "http://localhost:3000",
   "http://localhost:5173",
 ]
