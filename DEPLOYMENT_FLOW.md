@@ -50,12 +50,19 @@ npm run dev
 
 ## Configuração necessária no GitHub
 
-Criar o secret de repositório `SUPABASE_ACCESS_TOKEN` com um token pessoal do Supabase que tenha acesso à organização e aos dois projetos. O valor nunca deve ser colocado no código, no `.env` commitado ou em logs.
+Criar o secret de repositório `SUPABASE_ACCESS_TOKEN` com um Personal Access Token do Supabase que tenha acesso aos dois projetos. O valor nunca deve ser colocado no código, no `.env` commitado ou em logs.
 
 Criar também os ambientes do GitHub:
 
 - `staging`: sem aprovação manual obrigatória enquanto a equipe estiver validando o fluxo.
 - `production`: recomenda-se exigir aprovação de pelo menos um revisor antes do job de deploy.
+
+Dentro de cada ambiente GitHub, criar o secret `SUPABASE_DB_PASSWORD` com a senha de banco correspondente:
+
+- Ambiente `staging`: senha do banco do projeto `Lotus Staging`.
+- Ambiente `production`: senha do banco do projeto de produção.
+
+O nome é igual nos dois ambientes, mas os valores são diferentes. O workflow seleciona automaticamente o valor do ambiente que está sendo publicado.
 
 O workflow reutilizável recebe o projeto correto pela branch:
 
