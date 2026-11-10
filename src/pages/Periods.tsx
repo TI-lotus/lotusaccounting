@@ -41,6 +41,7 @@ import {
   TaskReviewData,
 } from "@/types";
 import { cn } from "@/lib/utils";
+import { FilterPopover } from "@/components/FilterPopover";
 
 const monthNames = [
   "Janeiro",
@@ -598,43 +599,50 @@ const Periods = () => {
 
         <Card>
           <CardHeader className="gap-4">
-            <div className="filter-toolbar flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <CardTitle className="mr-auto text-base">Competências por cliente</CardTitle>
-              <Select value={String(periodMonth)} onValueChange={(value) => setPeriodMonth(Number(value))}>
-                <SelectTrigger className="w-[150px] rounded-xl"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {monthNames.map((label, index) => <SelectItem key={label} value={String(index + 1)}>{label}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              <Select value={String(periodYear)} onValueChange={(value) => setPeriodYear(Number(value))}>
-                <SelectTrigger className="w-[120px] rounded-xl"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {Array.from({ length: 5 }, (_, index) => initial.year - 2 + index).map((year) => <SelectItem key={year} value={String(year)}>{year}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              <Select value={statusFilter} onValueChange={(value: ClientPeriodStatus | "all") => setStatusFilter(value)}>
-                <SelectTrigger className="w-[190px] rounded-xl"><SelectValue placeholder="Status" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos os status</SelectItem>
-                  {(["not_started", ...statusOptions] as ClientPeriodStatus[]).map((status) => (
-                    <SelectItem key={status} value={status}>{periodStatusLabels[status]}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={responsibleFilter} onValueChange={setResponsibleFilter}>
-                <SelectTrigger className="w-[190px] rounded-xl"><SelectValue placeholder="Responsável" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos responsáveis</SelectItem>
-                  {responsibles.map((name) => <SelectItem key={name} value={name}>{name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              <Select value={clientFilter} onValueChange={setClientFilter}>
-                <SelectTrigger className="w-[220px] rounded-xl"><SelectValue placeholder="Cliente" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos clientes</SelectItem>
-                  {activeClients.map((client) => <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <FilterPopover
+                activeCount={[periodMonth !== initial.month, periodYear !== initial.year, statusFilter !== "all", responsibleFilter !== "all", clientFilter !== "all"].filter(Boolean).length}
+                description="Escolha o período e refine por status, responsável ou cliente."
+              >
+                <div className="grid grid-cols-2 gap-3">
+                  <Select value={String(periodMonth)} onValueChange={(value) => setPeriodMonth(Number(value))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {monthNames.map((label, index) => <SelectItem key={label} value={String(index + 1)}>{label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <Select value={String(periodYear)} onValueChange={(value) => setPeriodYear(Number(value))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 5 }, (_, index) => initial.year - 2 + index).map((year) => <SelectItem key={year} value={String(year)}>{year}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Select value={statusFilter} onValueChange={(value: ClientPeriodStatus | "all") => setStatusFilter(value)}>
+                  <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os status</SelectItem>
+                    {["not_started", ...statusOptions].map((status) => (
+                      <SelectItem key={status} value={status}>{periodStatusLabels[status as ClientPeriodStatus]}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={responsibleFilter} onValueChange={setResponsibleFilter}>
+                  <SelectTrigger><SelectValue placeholder="Responsável" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos responsáveis</SelectItem>
+                    {responsibles.map((name) => <SelectItem key={name} value={name}>{name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <Select value={clientFilter} onValueChange={setClientFilter}>
+                  <SelectTrigger><SelectValue placeholder="Cliente" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos clientes</SelectItem>
+                    {activeClients.map((client) => <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </FilterPopover>
             </div>
           </CardHeader>
           <CardContent>

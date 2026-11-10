@@ -510,45 +510,43 @@ const Staff = () => {
                   return (
                     <div
                       key={member.id}
-                      className={cn("rounded-2xl border border-border/70 bg-card/70 p-4 gap-3 cursor-pointer transition-[background-color,border-color,box-shadow] duration-200 hover:border-foreground/20 hover:bg-accent/30", peopleViewMode === "grid" ? "flex flex-col" : "grid items-center md:grid-cols-[minmax(230px,1.2fr)_minmax(170px,0.8fr)_minmax(110px,0.5fr)_minmax(260px,1fr)]")}
-                      onClick={() => setDetailMember(member)}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter" || event.key === " ") {
-                          event.preventDefault();
-                          setDetailMember(member);
-                        }
-                      }}
+                      className="flex flex-col gap-3 rounded-2xl border border-border/70 bg-card/70 p-4 transition-[background-color,border-color,box-shadow] duration-200 hover:border-foreground/20 hover:bg-accent/30"
                     >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <Avatar className="h-11 w-11 ring-2 ring-gilver/30">
-                            <AvatarImage src={member.avatar_url ?? undefined} />
-                            <AvatarFallback className="bg-gilver/15 text-gilver font-medium">{initials(name)}</AvatarFallback>
-                          </Avatar>
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              <p className="font-medium truncate">{name}</p>
-                              {member.account_type === "admin" && <Shield className="h-3.5 w-3.5 text-gilver shrink-0" />}
+                      <button
+                        type="button"
+                        className={cn("w-full min-w-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2", peopleViewMode === "grid" ? "flex flex-col gap-3" : "grid items-center gap-3 md:grid-cols-[minmax(230px,1.2fr)_minmax(170px,0.8fr)_minmax(110px,0.5fr)]")}
+                        onClick={() => setDetailMember(member)}
+                        aria-label={`Abrir detalhes de ${name}`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex min-w-0 items-center gap-3">
+                            <Avatar className="h-11 w-11 ring-2 ring-gilver/30">
+                              <AvatarImage src={member.avatar_url ?? undefined} />
+                              <AvatarFallback className="bg-gilver/15 font-medium text-gilver">{initials(name)}</AvatarFallback>
+                            </Avatar>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <p className="truncate font-medium">{name}</p>
+                                {member.account_type === "admin" && <Shield className="h-3.5 w-3.5 shrink-0 text-gilver" />}
+                              </div>
+                              <p className="truncate text-xs text-muted-foreground">{roleLabel(member.account_type)}</p>
                             </div>
-                            <p className="text-xs text-muted-foreground truncate">{roleLabel(member.account_type)}</p>
                           </div>
+                          <Badge className={cn("shrink-0 py-0.5 text-[10px]", member.status === "active" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400" : "bg-muted text-muted-foreground")}>
+                            {member.status === "active" ? "Ativo" : "Inativo"}
+                          </Badge>
                         </div>
-                        <Badge className={cn("text-[10px] py-0.5", member.status === "active" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400" : "bg-muted text-muted-foreground")}>
-                          {member.status === "active" ? "Ativo" : "Inativo"}
-                        </Badge>
-                      </div>
 
-                      <div className="min-w-0 space-y-1 text-xs text-muted-foreground">
-                        <p className="truncate"><span className="font-medium text-foreground">Cargo:</span> {member.job_title || "—"}</p>
-                        <p className="truncate"><span className="font-medium text-foreground">Telefone:</span> {member.phone || "—"}</p>
-                      </div>
+                        <div className="min-w-0 space-y-1 text-xs text-muted-foreground">
+                          <p className="truncate"><span className="font-medium text-foreground">Cargo:</span> {member.job_title || "—"}</p>
+                          <p className="truncate"><span className="font-medium text-foreground">Telefone:</span> {member.phone || "—"}</p>
+                        </div>
 
-                      <div className="rounded-lg bg-muted/40 p-2 flex items-center justify-between text-xs">
-                        <span className="text-muted-foreground">Tarefas</span>
-                        <span className="font-medium">{completed}/{memberTasks.length}</span>
-                      </div>
+                        <div className="flex items-center justify-between rounded-lg bg-muted/40 p-2 text-xs">
+                          <span className="text-muted-foreground">Tarefas</span>
+                          <span className="font-medium">{completed}/{memberTasks.length}</span>
+                        </div>
+                      </button>
 
                       <div className={cn("flex flex-wrap gap-2", peopleViewMode === "list" && "md:justify-end")}>
                         <Button variant="outline" size="sm" className="flex-1 rounded-xl gap-1.5" onClick={(event) => { event.stopPropagation(); setSelectedMember(member); setAssignDialogOpen(true); }}>

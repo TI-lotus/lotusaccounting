@@ -45,6 +45,7 @@ import { filterTasks } from "@/lib/taskUtils";
 import { useViewMode } from "@/contexts/ViewModeContext";
 import { CalendarEventView } from "@/components/CalendarEventView";
 import { useWorkspacePermission } from "@/hooks/useWorkspacePermission";
+import { FilterPopover } from "@/components/FilterPopover";
 
 const currentMonthRange = () => {
   const now = new Date();
@@ -551,31 +552,40 @@ const Tasks = () => {
         </div>
 
         {/* Filters */}
-        <div className="filter-toolbar flex flex-wrap gap-2 animate-fade-in">
-          <div className="flex gap-2">
-            {(
-              [
-                ["all", "Todas"],
-                ["overdue", "Atrasadas"],
-                ["blocked", "Bloqueadas"],
-                ["pending", "Pendentes"],
-                ["in_progress", "Em Andamento"],
-                ["completed", "Concluídas"],
-              ] as const
-            ).map(([value, label]) => (
-              <Button
-                key={value}
-                variant={statusFilter === value ? "default" : "outline"}
-                size="sm"
-                onClick={() => setStatusFilter(value)}
-              >
-                {label}
-              </Button>
-            ))}
-          </div>
-          <div className="ml-auto flex gap-2">
+        <div className="filter-toolbar flex items-center justify-between gap-3 animate-fade-in">
+          <div className="flex min-w-0 items-center gap-2">
+            <FilterPopover
+              activeCount={[statusFilter !== "all", typeFilter !== "all", clientFilter !== "all", assigneeFilter !== "all"].filter(Boolean).length}
+              description="Combine status, tipo, cliente e responsável."
+            >
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-muted-foreground">Status</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(
+                      [
+                        ["all", "Todas"],
+                        ["overdue", "Atrasadas"],
+                        ["blocked", "Bloqueadas"],
+                        ["pending", "Pendentes"],
+                        ["in_progress", "Em andamento"],
+                        ["completed", "Concluídas"],
+                      ] as const
+                    ).map(([value, label]) => (
+                      <Button
+                        key={value}
+                        type="button"
+                        variant={statusFilter === value ? "default" : "outline"}
+                        size="sm"
+                        className="justify-start"
+                        onClick={() => setStatusFilter(value)}
+                      >
+                        {label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
             <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-[120px] h-9 text-sm">
+              <SelectTrigger className="w-full text-sm">
                 <SelectValue placeholder="Tipo" />
               </SelectTrigger>
               <SelectContent>
@@ -587,7 +597,7 @@ const Tasks = () => {
             </Select>
             {viewMode !== "client" && (
               <Select value={clientFilter} onValueChange={setClientFilter}>
-                <SelectTrigger className="w-[160px] h-9 text-sm">
+                <SelectTrigger className="w-full text-sm">
                   <SelectValue placeholder="Cliente" />
                 </SelectTrigger>
                 <SelectContent>
@@ -602,7 +612,7 @@ const Tasks = () => {
             )}
             {viewMode !== "client" && (
               <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
-                <SelectTrigger className="w-[160px] h-9 text-sm">
+                <SelectTrigger className="w-full text-sm">
                   <SelectValue placeholder="Responsável" />
                 </SelectTrigger>
                 <SelectContent>
@@ -615,6 +625,7 @@ const Tasks = () => {
                 </SelectContent>
               </Select>
             )}
+            </FilterPopover>
           </div>
         </div>
 

@@ -362,48 +362,46 @@ const Clients = () => {
                 return (
               <div
                 key={client.id}
-                className={cn("rounded-2xl border border-border/70 bg-card/70 p-4 hover:border-foreground/20 hover:bg-accent/30 transition-[background-color,border-color,box-shadow] duration-200 flex cursor-pointer", viewMode === "grid" ? "flex-col" : "items-center gap-4")}
+                className={cn("rounded-2xl border border-border/70 bg-card/70 p-4 hover:border-foreground/20 hover:bg-accent/30 transition-[background-color,border-color,box-shadow] duration-200 flex gap-4", viewMode === "grid" ? "flex-col" : "items-center")}
                 style={{ animationDelay: `${index * 50}ms` }}
-                onClick={() => setSelectedClient(client)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault();
-                    setSelectedClient(client);
-                  }
-                }}
               >
-                <div className="flex items-start justify-between gap-2">
-                  <p className="font-semibold truncate text-sm">{client.name}</p>
-                  <Badge variant={client.status === 'active' ? 'default' : client.status === 'pending' ? 'secondary' : 'outline'} className={cn("text-[10px] shrink-0", client.status === 'active' && "bg-emerald-100 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950 dark:text-emerald-400")}>{client.status === 'active' ? 'Ativo' : client.status === 'pending' ? 'Pendente' : 'Inativo'}</Badge>
-                </div>
-                <div className="mt-2 flex-1 min-w-0">
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground truncate">
-                    <Mail className="h-3 w-3 shrink-0" />
-                    <span className="truncate">{client.email}</span>
+                <button
+                  type="button"
+                  className={cn("min-w-0 flex-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2", viewMode === "grid" ? "flex flex-col" : "")}
+                  onClick={() => setSelectedClient(client)}
+                  aria-label={`Abrir detalhes de ${client.name}`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="truncate text-sm font-semibold">{client.name}</p>
+                    <Badge variant={client.status === 'active' ? 'default' : client.status === 'pending' ? 'secondary' : 'outline'} className={cn("shrink-0 text-[10px]", client.status === 'active' && "bg-emerald-100 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950 dark:text-emerald-400")}>{client.status === 'active' ? 'Ativo' : client.status === 'pending' ? 'Pendente' : 'Inativo'}</Badge>
                   </div>
-                  <div className="flex flex-wrap items-center gap-1 mt-2">
-                    <Badge variant="outline" className="text-[10px]">{taxRegimeLabels[client.taxRegime]}</Badge>
-                    <Badge variant="outline" className="text-[10px]">{client.serviceAreas.length} serviço(s)</Badge>
-                    <Badge variant="outline" className="text-[10px]">{getClientSize(client)}</Badge>
-                    <Badge className={cn("text-[10px]", periodStatusStyles[periodStatus])}>{periodStatusLabels[periodStatus]}</Badge>
-                  </div>
-                  <div className="mt-2 flex min-w-0 items-center gap-1.5 text-[11px] text-muted-foreground">
-                    <Avatar className="h-5 w-5 shrink-0">
-                      <AvatarImage src={byUserId.get(client.responsibleUserId)?.avatarUrl ?? undefined} />
-                      <AvatarFallback className="text-[9px]">{client.responsibleUserName?.charAt(0) || "?"}</AvatarFallback>
-                    </Avatar>
-                    <span className="truncate">Resp.: {client.responsibleUserName || "Sem responsável"}</span>
-                  </div>
-                  <div className="mt-3 space-y-1">
-                    <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-                      <span>Competência atual</span>
-                      <span>{periodProgress}%</span>
+                  <div className="mt-2 min-w-0 flex-1">
+                    <div className="flex items-center gap-1 truncate text-xs text-muted-foreground">
+                      <Mail className="h-3 w-3 shrink-0" />
+                      <span className="truncate">{client.email}</span>
                     </div>
-                    <Progress value={periodProgress} className="h-1.5" />
+                    <div className="mt-2 flex flex-wrap items-center gap-1">
+                      <Badge variant="outline" className="text-[10px]">{taxRegimeLabels[client.taxRegime]}</Badge>
+                      <Badge variant="outline" className="text-[10px]">{client.serviceAreas.length} serviço(s)</Badge>
+                      <Badge variant="outline" className="text-[10px]">{getClientSize(client)}</Badge>
+                      <Badge className={cn("text-[10px]", periodStatusStyles[periodStatus])}>{periodStatusLabels[periodStatus]}</Badge>
+                    </div>
+                    <div className="mt-2 flex min-w-0 items-center gap-1.5 text-[11px] text-muted-foreground">
+                      <Avatar className="h-5 w-5 shrink-0">
+                        <AvatarImage src={byUserId.get(client.responsibleUserId)?.avatarUrl ?? undefined} />
+                        <AvatarFallback className="text-[9px]">{client.responsibleUserName?.charAt(0) || "?"}</AvatarFallback>
+                      </Avatar>
+                      <span className="truncate">Resp.: {client.responsibleUserName || "Sem responsável"}</span>
+                    </div>
+                    <div className="mt-3 space-y-1">
+                      <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                        <span>Competência atual</span>
+                        <span>{periodProgress}%</span>
+                      </div>
+                      <Progress value={periodProgress} className="h-1.5" />
+                    </div>
                   </div>
-                </div>
+                </button>
                 <div className="flex items-center justify-between pt-3 mt-2 border-t border-border">
                   <div><p className="font-semibold text-sm">R$ {client.serviceFee.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p><p className="text-[10px] text-muted-foreground">{client.city}/{client.state}</p></div>
                 <DropdownMenu>

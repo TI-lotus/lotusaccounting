@@ -741,6 +741,10 @@
   }
 
   .dialog-window > :not(.dialog-header):not(.dialog-body):not(.dialog-footer):not(.dialog-close) {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    scrollbar-gutter: stable;
     padding-right: 28px;
     padding-left: 28px;
   }

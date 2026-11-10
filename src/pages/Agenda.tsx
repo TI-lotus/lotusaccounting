@@ -29,6 +29,7 @@ import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspacePermission } from "@/hooks/useWorkspacePermission";
+import { FilterPopover } from "@/components/FilterPopover";
 
 type AgendaKind = "task" | "payment" | "document" | "obligation";
 
@@ -226,19 +227,27 @@ const Agenda = () => {
           </p>
         </div>
 
-        <div className="filter-toolbar flex flex-wrap items-center gap-2 animate-fade-in">
-          <Filter className="h-4 w-4 text-muted-foreground" />
-          {filterOptions.map((opt) => (
-            <Button
-              key={opt.key}
-              variant={activeFilter === opt.key ? "default" : "outline"}
-              size="sm"
-              className="rounded-xl"
-              onClick={() => setActiveFilter(opt.key)}
-            >
-              {opt.label}
-            </Button>
-          ))}
+        <div className="filter-toolbar flex items-center justify-between gap-3 animate-fade-in">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Filter className="h-4 w-4" aria-hidden="true" />
+            <span>Eventos e obrigações</span>
+          </div>
+          <FilterPopover activeCount={activeFilter === "all" ? 0 : 1}>
+            <div className="grid grid-cols-2 gap-2">
+              {filterOptions.map((opt) => (
+                <Button
+                  key={opt.key}
+                  type="button"
+                  variant={activeFilter === opt.key ? "default" : "outline"}
+                  size="sm"
+                  className="justify-start"
+                  onClick={() => setActiveFilter(opt.key)}
+                >
+                  {opt.label}
+                </Button>
+              ))}
+            </div>
+          </FilterPopover>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-6">
