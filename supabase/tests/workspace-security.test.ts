@@ -100,6 +100,7 @@ beforeAll(async () => {
   await db.exec(migration("20260923134000_operational_comments.sql"));
   await db.exec(migration("20260923135000_task_blocked_reason.sql"));
   await db.exec(migration("20260924100000_client_email_claim_access.sql"));
+  await db.exec(migration("20261109150000_task_delete_permission_fix.sql"));
   // Seed auth identities before enabling the onboarding trigger. The initial
   // workspace fixture below owns their public profile/user records directly.
   await db.exec(`INSERT INTO auth.users(id, email) VALUES ('${admin}', 'admin@example.com'), ('${client}', 'client-owner@example.com'), ('${collaborator}', 'collaborator@example.com')`);
@@ -331,6 +332,23 @@ describe("workspace security regression", () => {
     await db.query(`UPDATE workspace_member_permissions SET permissions = jsonb_set(permissions, '{financial,create}', 'true'::jsonb) WHERE tenant_id = '${tenant}' AND user_id = '${collaborator}'`);
     await asUser(collaborator);
     expect((await db.query("SELECT public.has_workspace_permission('financial', 'create') AS allowed")).rows).toEqual([{ allowed: true }]);
+  });
+  it("allows collaborator task deletion only when the task permission is enabled", async () => {
+    const taskId = id(60);
+    await asUser(admin);
+    await db.query(
+      `INSERT INTO tasks(id, tenant_id, company_id, assigned_to, title, status)
+       VALUES ('${taskId}', '${tenant}', '${company}', '${collaborator}', 'Tarefa removível', 'pending')`,
+    );
+
+    await asUser(collaborator);
+    expect((await db.query(`DELETE FROM tasks WHERE id = '${taskId}' RETURNING id`)).rows).toHaveLength(0);
+
+    await asUser(admin);
+    await db.query(`UPDATE workspace_member_permissions SET permissions = jsonb_set(permissions, '{tasks,delete}', 'true'::jsonb) WHERE tenant_id = '${tenant}' AND user_id = '${collaborator}'`);
+
+    await asUser(collaborator);
+    expect((await db.query(`DELETE FROM tasks WHERE id = '${taskId}' RETURNING id`)).rows).toEqual([{ id: taskId }]);
   });
   it("scopes monthly client periods to the workspace and client company", async () => {
     await asUser(admin);

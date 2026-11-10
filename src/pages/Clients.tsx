@@ -223,14 +223,14 @@ const Clients = () => {
                 Adicionar Cliente
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
+            <DialogContent className="dialog-window client-dialog sm:max-w-[425px]">
+              <DialogHeader className="dialog-header">
                 <DialogTitle>Novo Cliente</DialogTitle>
                 <DialogDescription>
                   Adicione as informações do novo cliente abaixo.
                 </DialogDescription>
               </DialogHeader>
-              <div className="grid gap-4 py-4">
+              <div className="dialog-body custom-scroll grid gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="name">Nome da Empresa</Label>
                   <Input id="name" value={newClient.name} onChange={(e) => setNewClient({ ...newClient, name: e.target.value })} placeholder="Empresa Ltda" className="rounded-xl" />
@@ -297,7 +297,7 @@ const Clients = () => {
                   </div>
                 </div>
               </div>
-              <DialogFooter>
+              <DialogFooter className="dialog-footer">
                 <Button variant="outline" onClick={() => setDialogOpen(false)} className="rounded-xl">Cancelar</Button>
                 <Button onClick={handleAddClient} className="rounded-xl">Adicionar</Button>
               </DialogFooter>
@@ -455,16 +455,16 @@ const Clients = () => {
         </div>
 
         <Dialog open={Boolean(selectedClient)} onOpenChange={(open) => !open && setSelectedClient(null)}>
-          <DialogContent className="sm:max-w-[540px]">
+          <DialogContent className="dialog-window client-dialog sm:max-w-[540px]">
             {selectedClient && (
               <>
-                <DialogHeader>
+                <DialogHeader className="dialog-header">
                   <DialogTitle>{selectedClient.name}</DialogTitle>
                   <DialogDescription>
                     {taxRegimeLabels[selectedClient.taxRegime]} · {getClientSize(selectedClient)}
                   </DialogDescription>
                 </DialogHeader>
-                <div className="grid gap-4 py-2">
+                <div className="dialog-body custom-scroll grid gap-4">
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge variant={selectedClient.status === "active" ? "default" : selectedClient.status === "pending" ? "secondary" : "outline"} className={cn(selectedClient.status === "active" && "bg-emerald-100 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950 dark:text-emerald-400")}>
                       {selectedClient.status === "active" ? "Ativo" : selectedClient.status === "pending" ? "Pendente" : "Inativo"}
@@ -482,7 +482,7 @@ const Clients = () => {
                     <div className="sm:col-span-2"><p className="text-xs text-muted-foreground">Responsável</p><p className="font-medium">{selectedClient.responsibleUserName || "Sem responsável"}</p></div>
                   </div>
                 </div>
-                <DialogFooter className="flex-col gap-2 sm:flex-row sm:justify-between">
+                <DialogFooter className="dialog-footer flex-col gap-2 sm:flex-row sm:justify-between">
                   <Button variant="destructive" className="rounded-xl" onClick={() => { void handleDeleteClient(selectedClient.id); setSelectedClient(null); }}>
                     <Trash2 className="mr-2 h-4 w-4" />Remover
                   </Button>

@@ -44,6 +44,7 @@ import { TaskData, TaskStatus, TaskPriority, TaskType } from "@/types";
 import { filterTasks } from "@/lib/taskUtils";
 import { useViewMode } from "@/contexts/ViewModeContext";
 import { CalendarEventView } from "@/components/CalendarEventView";
+import { useWorkspacePermission } from "@/hooks/useWorkspacePermission";
 
 const currentMonthRange = () => {
   const now = new Date();
@@ -59,6 +60,13 @@ const Tasks = () => {
   const { tasks, addTask, updateTaskStatus, deleteTask, clients, tenantId } = useData();
   const { viewMode } = useViewMode();
   const { user, profile } = useAuth();
+  const canDeleteTasks = useWorkspacePermission({
+    tenantId,
+    userId: user?.id,
+    accountType: profile?.account_type,
+    resource: "tasks",
+    action: "delete",
+  });
   const [statusFilter, setStatusFilter] = useState<TaskStatus | "all">("all");
   const [clientFilter, setClientFilter] = useState<string>("all");
   const [assigneeFilter, setAssigneeFilter] = useState<string>("all");
@@ -832,8 +840,12 @@ const Tasks = () => {
                   </div>
                 </div>
                 <DialogFooter className="flex-col gap-2 sm:flex-row sm:justify-between">
-                  {viewMode !== "client" && (
-                    <Button variant="destructive" className="rounded-xl" onClick={() => { void deleteTask(selectedTask.id); setSelectedTask(null); }}>
+                  {viewMode !== "client" && canDeleteTasks && (
+                    <Button variant="destructive" className="rounded-xl" onClick={() => {
+                      void deleteTask(selectedTask.id).then((removed) => {
+                        if (removed) setSelectedTask(null);
+                      });
+                    }}>
                       <Trash2 className="mr-2 h-4 w-4" />Remover
                     </Button>
                   )}

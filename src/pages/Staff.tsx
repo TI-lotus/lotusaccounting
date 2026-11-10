@@ -413,12 +413,12 @@ const Staff = () => {
             <DialogTrigger asChild>
               <Button className="rounded-xl gap-2"><Plus className="h-4 w-4" />Novo convite</Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[460px]">
-              <DialogHeader>
+            <DialogContent className="dialog-window staff-dialog sm:max-w-[460px]">
+              <DialogHeader className="dialog-header">
                 <DialogTitle>Criar convite</DialogTitle>
                 <DialogDescription>O link criado pode ser enviado ao colaborador ou cliente.</DialogDescription>
               </DialogHeader>
-              <div className="grid gap-4 py-4">
+              <div className="dialog-body custom-scroll grid gap-4">
                 <div className="grid gap-2">
                   <Label>Nome</Label>
                   <Input value={inviteForm.fullName} onChange={(event) => setInviteForm({ ...inviteForm, fullName: event.target.value })} placeholder="Nome completo" className="rounded-xl" />
@@ -449,7 +449,7 @@ const Staff = () => {
                   </div>
                 )}
               </div>
-              <DialogFooter>
+              <DialogFooter className="dialog-footer">
                 <Button variant="outline" onClick={() => setDialogOpen(false)} className="rounded-xl">Cancelar</Button>
                 <Button onClick={handleInvite} className="rounded-xl">Criar convite</Button>
               </DialogFooter>
@@ -666,13 +666,13 @@ const Staff = () => {
         </Tabs>
 
         <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
-          <DialogContent className="sm:max-w-[480px]">
-            <DialogHeader>
+          <DialogContent className="dialog-window staff-dialog sm:max-w-[480px]">
+            <DialogHeader className="dialog-header">
               <DialogTitle>Atribuir tarefas</DialogTitle>
               <DialogDescription>{selectedMember?.full_name || "Usuário selecionado"}</DialogDescription>
             </DialogHeader>
             {selectedMember && (
-              <div className="max-h-[420px] overflow-y-auto custom-scroll space-y-2 py-2">
+              <div className="dialog-body custom-scroll max-h-[420px] space-y-2">
                 {tasks.length === 0 && <p className="text-sm text-muted-foreground text-center py-6">Nenhuma tarefa cadastrada.</p>}
                 {tasks.map((task) => {
                   const checked = task.assignedToId === selectedMember.user_id;
@@ -689,21 +689,21 @@ const Staff = () => {
                 })}
               </div>
             )}
-            <DialogFooter>
+            <DialogFooter className="dialog-footer">
               <Button onClick={() => setAssignDialogOpen(false)} className="rounded-xl">Concluir</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
         <Dialog open={Boolean(detailMember)} onOpenChange={(open) => !open && setDetailMember(null)}>
-          <DialogContent className="sm:max-w-[540px]">
+          <DialogContent className="dialog-window staff-dialog sm:max-w-[540px]">
             {detailMember && (
               <>
-                <DialogHeader>
+                <DialogHeader className="dialog-header">
                   <DialogTitle>{detailMember.full_name || "Sem nome"}</DialogTitle>
                   <DialogDescription>{roleLabel(detailMember.account_type)}</DialogDescription>
                 </DialogHeader>
-                <div className="grid gap-4 py-2">
+                <div className="dialog-body custom-scroll grid gap-4">
                   <div className="flex items-center gap-3">
                     <Avatar className="h-12 w-12 ring-2 ring-gilver/30">
                       <AvatarImage src={detailMember.avatar_url ?? undefined} />
@@ -722,7 +722,7 @@ const Staff = () => {
                     <div><p className="text-xs text-muted-foreground">Clientes responsáveis</p><p className="font-medium">{clients.filter((client) => client.responsibleUserId === detailMember.user_id).length}</p></div>
                   </div>
                 </div>
-                <DialogFooter className="flex-col gap-2 sm:flex-row sm:justify-between">
+                <DialogFooter className="dialog-footer flex-col gap-2 sm:flex-row sm:justify-between">
                   {detailMember.user_id !== profile?.user_id && (
                     <Button variant={detailMember.status === "active" ? "destructive" : "default"} className="rounded-xl" onClick={() => { void toggleStatus(detailMember); setDetailMember(null); }}>
                       <ShieldAlert className="mr-2 h-4 w-4" />{detailMember.status === "active" ? "Desativar" : "Ativar"}
@@ -753,13 +753,13 @@ const Staff = () => {
         </Dialog>
 
         <Dialog open={clientAssignmentOpen} onOpenChange={setClientAssignmentOpen}>
-          <DialogContent className="sm:max-w-[520px]">
-            <DialogHeader>
+          <DialogContent className="dialog-window staff-dialog sm:max-w-[520px]">
+            <DialogHeader className="dialog-header">
               <DialogTitle>Atribuir clientes</DialogTitle>
               <DialogDescription>{selectedMember?.full_name || "Colaborador selecionado"}. Cada cliente possui um responsável por vez.</DialogDescription>
             </DialogHeader>
             {selectedMember && (
-              <div className="max-h-[420px] space-y-2 overflow-y-auto custom-scroll py-2">
+              <div className="dialog-body custom-scroll max-h-[420px] space-y-2">
                 {clients.filter((client) => client.status === "active").length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">Nenhum cliente ativo cadastrado.</p>}
                 {clients.filter((client) => client.status === "active").map((client) => {
                   const checked = client.responsibleUserId === selectedMember.user_id;
@@ -775,32 +775,32 @@ const Staff = () => {
                 })}
               </div>
             )}
-            <DialogFooter><Button onClick={() => setClientAssignmentOpen(false)} className="rounded-xl">Concluir</Button></DialogFooter>
+            <DialogFooter className="dialog-footer"><Button onClick={() => setClientAssignmentOpen(false)} className="rounded-xl">Concluir</Button></DialogFooter>
           </DialogContent>
         </Dialog>
 
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-          <DialogContent className="sm:max-w-[440px]">
-            <DialogHeader>
+          <DialogContent className="dialog-window staff-dialog sm:max-w-[440px]">
+            <DialogHeader className="dialog-header">
               <DialogTitle>Editar colaborador</DialogTitle>
               <DialogDescription>Atualize os dados profissionais do membro da equipe.</DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-3">
+            <div className="dialog-body custom-scroll grid gap-4">
               <div className="grid gap-2"><Label>Nome completo</Label><Input value={editForm.fullName} onChange={(event) => setEditForm({ ...editForm, fullName: event.target.value })} className="rounded-xl" /></div>
               <div className="grid gap-2"><Label>Cargo</Label><Input value={editForm.jobTitle} onChange={(event) => setEditForm({ ...editForm, jobTitle: event.target.value })} className="rounded-xl" /></div>
               <div className="grid gap-2"><Label>Telefone</Label><Input value={editForm.phone} onChange={(event) => setEditForm({ ...editForm, phone: event.target.value })} className="rounded-xl" /></div>
             </div>
-            <DialogFooter><Button variant="outline" className="rounded-xl" onClick={() => setEditDialogOpen(false)}>Cancelar</Button><Button className="rounded-xl" onClick={() => void saveMemberDetails()}>Salvar dados</Button></DialogFooter>
+            <DialogFooter className="dialog-footer"><Button variant="outline" className="rounded-xl" onClick={() => setEditDialogOpen(false)}>Cancelar</Button><Button className="rounded-xl" onClick={() => void saveMemberDetails()}>Salvar dados</Button></DialogFooter>
           </DialogContent>
         </Dialog>
 
         <Dialog open={accessDialogOpen} onOpenChange={setAccessDialogOpen}>
-          <DialogContent className="sm:max-w-[440px]">
-            <DialogHeader>
+          <DialogContent className="dialog-window staff-dialog sm:max-w-[440px]">
+            <DialogHeader className="dialog-header">
               <DialogTitle>Editar acesso</DialogTitle>
               <DialogDescription>{accessMember?.full_name || "Usuário selecionado"}</DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-3">
+            <div className="dialog-body custom-scroll grid gap-4">
               <div className="grid gap-2">
                 <Label>Papel</Label>
                 <Select value={accessRole} onValueChange={(value: "admin" | "collaborator") => setAccessRole(value)}>
@@ -812,7 +812,7 @@ const Staff = () => {
                 </Select>
               </div>
             </div>
-            <DialogFooter>
+            <DialogFooter className="dialog-footer">
               <Button variant="outline" className="rounded-xl" onClick={() => setAccessDialogOpen(false)}>Cancelar</Button>
               <Button className="rounded-xl" onClick={saveAccess}>Salvar acesso</Button>
             </DialogFooter>
