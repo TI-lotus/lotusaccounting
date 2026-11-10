@@ -404,7 +404,7 @@ const Staff = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between animate-fade-in">
+        <div className="page-header flex items-center justify-between gap-4 animate-fade-in">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">Equipe e acessos</h1>
             <p className="text-muted-foreground">Convide usuários, acompanhe papéis e controle vínculos por cliente</p>
@@ -413,12 +413,12 @@ const Staff = () => {
             <DialogTrigger asChild>
               <Button className="rounded-xl gap-2"><Plus className="h-4 w-4" />Novo convite</Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[460px]">
-              <DialogHeader>
+            <DialogContent className="dialog-window staff-dialog sm:max-w-[460px]">
+              <DialogHeader className="dialog-header">
                 <DialogTitle>Criar convite</DialogTitle>
                 <DialogDescription>O link criado pode ser enviado ao colaborador ou cliente.</DialogDescription>
               </DialogHeader>
-              <div className="grid gap-4 py-4">
+              <div className="dialog-body custom-scroll grid gap-4">
                 <div className="grid gap-2">
                   <Label>Nome</Label>
                   <Input value={inviteForm.fullName} onChange={(event) => setInviteForm({ ...inviteForm, fullName: event.target.value })} placeholder="Nome completo" className="rounded-xl" />
@@ -449,7 +449,7 @@ const Staff = () => {
                   </div>
                 )}
               </div>
-              <DialogFooter>
+              <DialogFooter className="dialog-footer">
                 <Button variant="outline" onClick={() => setDialogOpen(false)} className="rounded-xl">Cancelar</Button>
                 <Button onClick={handleInvite} className="rounded-xl">Criar convite</Button>
               </DialogFooter>
@@ -458,19 +458,19 @@ const Staff = () => {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-fade-in">
-          <div className="glass rounded-2xl p-4 flex items-center gap-4">
+          <div className="kpi-card flex items-center gap-4">
             <div className="p-3 rounded-xl bg-gilver/10"><UserCog className="h-5 w-5 text-gilver" /></div>
             <div><p className="text-2xl font-semibold">{members.length}</p><p className="text-sm text-muted-foreground">Equipe</p></div>
           </div>
-          <div className="glass rounded-2xl p-4 flex items-center gap-4">
+          <div className="kpi-card flex items-center gap-4">
             <div className="p-3 rounded-xl bg-emerald-500/10"><ShieldCheck className="h-5 w-5 text-emerald-500" /></div>
             <div><p className="text-2xl font-semibold">{activeMembers.length}</p><p className="text-sm text-muted-foreground">Ativos</p></div>
           </div>
-          <div className="glass rounded-2xl p-4 flex items-center gap-4">
+          <div className="kpi-card flex items-center gap-4">
             <div className="p-3 rounded-xl bg-amber-500/10"><UserPlus className="h-5 w-5 text-amber-500" /></div>
             <div><p className="text-2xl font-semibold">{pendingInvites.length}</p><p className="text-sm text-muted-foreground">Convites</p></div>
           </div>
-          <div className="glass rounded-2xl p-4 flex items-center gap-4">
+          <div className="kpi-card flex items-center gap-4">
             <div className="p-3 rounded-xl bg-blue-500/10"><CheckSquare className="h-5 w-5 text-blue-500" /></div>
             <div><p className="text-2xl font-semibold">{clientsProfiles.length}</p><p className="text-sm text-muted-foreground">Acessos cliente</p></div>
           </div>
@@ -485,8 +485,8 @@ const Staff = () => {
           </TabsList>
 
           <TabsContent value="people" className="mt-4">
-            <div className="glass rounded-2xl p-6">
-              <div className="mb-6 flex flex-wrap items-center gap-4">
+            <div className="glass page-section">
+              <div className="filter-toolbar mb-6 flex flex-wrap items-center gap-3">
                 <div className="relative flex-1 max-w-sm">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input placeholder="Buscar por nome, cargo ou papel..." value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} className="pl-10 rounded-xl" />
@@ -510,45 +510,43 @@ const Staff = () => {
                   return (
                     <div
                       key={member.id}
-                      className={cn("rounded-2xl border border-border bg-card p-4 gap-3 cursor-pointer transition-colors hover:bg-accent/35", peopleViewMode === "grid" ? "flex flex-col" : "grid items-center md:grid-cols-[minmax(230px,1.2fr)_minmax(170px,0.8fr)_minmax(110px,0.5fr)_minmax(260px,1fr)]")}
-                      onClick={() => setDetailMember(member)}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter" || event.key === " ") {
-                          event.preventDefault();
-                          setDetailMember(member);
-                        }
-                      }}
+                      className="flex flex-col gap-3 rounded-2xl border border-border/70 bg-card/70 p-4 transition-[background-color,border-color,box-shadow] duration-200 hover:border-foreground/20 hover:bg-accent/30"
                     >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <Avatar className="h-11 w-11 ring-2 ring-gilver/30">
-                            <AvatarImage src={member.avatar_url ?? undefined} />
-                            <AvatarFallback className="bg-gilver/15 text-gilver font-medium">{initials(name)}</AvatarFallback>
-                          </Avatar>
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              <p className="font-medium truncate">{name}</p>
-                              {member.account_type === "admin" && <Shield className="h-3.5 w-3.5 text-gilver shrink-0" />}
+                      <button
+                        type="button"
+                        className={cn("w-full min-w-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2", peopleViewMode === "grid" ? "flex flex-col gap-3" : "grid items-center gap-3 md:grid-cols-[minmax(230px,1.2fr)_minmax(170px,0.8fr)_minmax(110px,0.5fr)]")}
+                        onClick={() => setDetailMember(member)}
+                        aria-label={`Abrir detalhes de ${name}`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex min-w-0 items-center gap-3">
+                            <Avatar className="h-11 w-11 ring-2 ring-gilver/30">
+                              <AvatarImage src={member.avatar_url ?? undefined} />
+                              <AvatarFallback className="bg-gilver/15 font-medium text-gilver">{initials(name)}</AvatarFallback>
+                            </Avatar>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <p className="truncate font-medium">{name}</p>
+                                {member.account_type === "admin" && <Shield className="h-3.5 w-3.5 shrink-0 text-gilver" />}
+                              </div>
+                              <p className="truncate text-xs text-muted-foreground">{roleLabel(member.account_type)}</p>
                             </div>
-                            <p className="text-xs text-muted-foreground truncate">{roleLabel(member.account_type)}</p>
                           </div>
+                          <Badge className={cn("shrink-0 py-0.5 text-[10px]", member.status === "active" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400" : "bg-muted text-muted-foreground")}>
+                            {member.status === "active" ? "Ativo" : "Inativo"}
+                          </Badge>
                         </div>
-                        <Badge className={cn("text-[10px] py-0.5", member.status === "active" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400" : "bg-muted text-muted-foreground")}>
-                          {member.status === "active" ? "Ativo" : "Inativo"}
-                        </Badge>
-                      </div>
 
-                      <div className="min-w-0 space-y-1 text-xs text-muted-foreground">
-                        <p className="truncate"><span className="font-medium text-foreground">Cargo:</span> {member.job_title || "—"}</p>
-                        <p className="truncate"><span className="font-medium text-foreground">Telefone:</span> {member.phone || "—"}</p>
-                      </div>
+                        <div className="min-w-0 space-y-1 text-xs text-muted-foreground">
+                          <p className="truncate"><span className="font-medium text-foreground">Cargo:</span> {member.job_title || "—"}</p>
+                          <p className="truncate"><span className="font-medium text-foreground">Telefone:</span> {member.phone || "—"}</p>
+                        </div>
 
-                      <div className="rounded-lg bg-muted/40 p-2 flex items-center justify-between text-xs">
-                        <span className="text-muted-foreground">Tarefas</span>
-                        <span className="font-medium">{completed}/{memberTasks.length}</span>
-                      </div>
+                        <div className="flex items-center justify-between rounded-lg bg-muted/40 p-2 text-xs">
+                          <span className="text-muted-foreground">Tarefas</span>
+                          <span className="font-medium">{completed}/{memberTasks.length}</span>
+                        </div>
+                      </button>
 
                       <div className={cn("flex flex-wrap gap-2", peopleViewMode === "list" && "md:justify-end")}>
                         <Button variant="outline" size="sm" className="flex-1 rounded-xl gap-1.5" onClick={(event) => { event.stopPropagation(); setSelectedMember(member); setAssignDialogOpen(true); }}>
@@ -666,13 +664,13 @@ const Staff = () => {
         </Tabs>
 
         <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
-          <DialogContent className="sm:max-w-[480px]">
-            <DialogHeader>
+          <DialogContent className="dialog-window staff-dialog sm:max-w-[480px]">
+            <DialogHeader className="dialog-header">
               <DialogTitle>Atribuir tarefas</DialogTitle>
               <DialogDescription>{selectedMember?.full_name || "Usuário selecionado"}</DialogDescription>
             </DialogHeader>
             {selectedMember && (
-              <div className="max-h-[420px] overflow-y-auto custom-scroll space-y-2 py-2">
+              <div className="dialog-body custom-scroll max-h-[420px] space-y-2">
                 {tasks.length === 0 && <p className="text-sm text-muted-foreground text-center py-6">Nenhuma tarefa cadastrada.</p>}
                 {tasks.map((task) => {
                   const checked = task.assignedToId === selectedMember.user_id;
@@ -689,21 +687,21 @@ const Staff = () => {
                 })}
               </div>
             )}
-            <DialogFooter>
+            <DialogFooter className="dialog-footer">
               <Button onClick={() => setAssignDialogOpen(false)} className="rounded-xl">Concluir</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
         <Dialog open={Boolean(detailMember)} onOpenChange={(open) => !open && setDetailMember(null)}>
-          <DialogContent className="sm:max-w-[540px]">
+          <DialogContent className="dialog-window staff-dialog sm:max-w-[540px]">
             {detailMember && (
               <>
-                <DialogHeader>
+                <DialogHeader className="dialog-header">
                   <DialogTitle>{detailMember.full_name || "Sem nome"}</DialogTitle>
                   <DialogDescription>{roleLabel(detailMember.account_type)}</DialogDescription>
                 </DialogHeader>
-                <div className="grid gap-4 py-2">
+                <div className="dialog-body custom-scroll grid gap-4">
                   <div className="flex items-center gap-3">
                     <Avatar className="h-12 w-12 ring-2 ring-gilver/30">
                       <AvatarImage src={detailMember.avatar_url ?? undefined} />
@@ -722,7 +720,7 @@ const Staff = () => {
                     <div><p className="text-xs text-muted-foreground">Clientes responsáveis</p><p className="font-medium">{clients.filter((client) => client.responsibleUserId === detailMember.user_id).length}</p></div>
                   </div>
                 </div>
-                <DialogFooter className="flex-col gap-2 sm:flex-row sm:justify-between">
+                <DialogFooter className="dialog-footer flex-col gap-2 sm:flex-row sm:justify-between">
                   {detailMember.user_id !== profile?.user_id && (
                     <Button variant={detailMember.status === "active" ? "destructive" : "default"} className="rounded-xl" onClick={() => { void toggleStatus(detailMember); setDetailMember(null); }}>
                       <ShieldAlert className="mr-2 h-4 w-4" />{detailMember.status === "active" ? "Desativar" : "Ativar"}
@@ -753,13 +751,13 @@ const Staff = () => {
         </Dialog>
 
         <Dialog open={clientAssignmentOpen} onOpenChange={setClientAssignmentOpen}>
-          <DialogContent className="sm:max-w-[520px]">
-            <DialogHeader>
+          <DialogContent className="dialog-window staff-dialog sm:max-w-[520px]">
+            <DialogHeader className="dialog-header">
               <DialogTitle>Atribuir clientes</DialogTitle>
               <DialogDescription>{selectedMember?.full_name || "Colaborador selecionado"}. Cada cliente possui um responsável por vez.</DialogDescription>
             </DialogHeader>
             {selectedMember && (
-              <div className="max-h-[420px] space-y-2 overflow-y-auto custom-scroll py-2">
+              <div className="dialog-body custom-scroll max-h-[420px] space-y-2">
                 {clients.filter((client) => client.status === "active").length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">Nenhum cliente ativo cadastrado.</p>}
                 {clients.filter((client) => client.status === "active").map((client) => {
                   const checked = client.responsibleUserId === selectedMember.user_id;
@@ -775,32 +773,32 @@ const Staff = () => {
                 })}
               </div>
             )}
-            <DialogFooter><Button onClick={() => setClientAssignmentOpen(false)} className="rounded-xl">Concluir</Button></DialogFooter>
+            <DialogFooter className="dialog-footer"><Button onClick={() => setClientAssignmentOpen(false)} className="rounded-xl">Concluir</Button></DialogFooter>
           </DialogContent>
         </Dialog>
 
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-          <DialogContent className="sm:max-w-[440px]">
-            <DialogHeader>
+          <DialogContent className="dialog-window staff-dialog sm:max-w-[440px]">
+            <DialogHeader className="dialog-header">
               <DialogTitle>Editar colaborador</DialogTitle>
               <DialogDescription>Atualize os dados profissionais do membro da equipe.</DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-3">
+            <div className="dialog-body custom-scroll grid gap-4">
               <div className="grid gap-2"><Label>Nome completo</Label><Input value={editForm.fullName} onChange={(event) => setEditForm({ ...editForm, fullName: event.target.value })} className="rounded-xl" /></div>
               <div className="grid gap-2"><Label>Cargo</Label><Input value={editForm.jobTitle} onChange={(event) => setEditForm({ ...editForm, jobTitle: event.target.value })} className="rounded-xl" /></div>
               <div className="grid gap-2"><Label>Telefone</Label><Input value={editForm.phone} onChange={(event) => setEditForm({ ...editForm, phone: event.target.value })} className="rounded-xl" /></div>
             </div>
-            <DialogFooter><Button variant="outline" className="rounded-xl" onClick={() => setEditDialogOpen(false)}>Cancelar</Button><Button className="rounded-xl" onClick={() => void saveMemberDetails()}>Salvar dados</Button></DialogFooter>
+            <DialogFooter className="dialog-footer"><Button variant="outline" className="rounded-xl" onClick={() => setEditDialogOpen(false)}>Cancelar</Button><Button className="rounded-xl" onClick={() => void saveMemberDetails()}>Salvar dados</Button></DialogFooter>
           </DialogContent>
         </Dialog>
 
         <Dialog open={accessDialogOpen} onOpenChange={setAccessDialogOpen}>
-          <DialogContent className="sm:max-w-[440px]">
-            <DialogHeader>
+          <DialogContent className="dialog-window staff-dialog sm:max-w-[440px]">
+            <DialogHeader className="dialog-header">
               <DialogTitle>Editar acesso</DialogTitle>
               <DialogDescription>{accessMember?.full_name || "Usuário selecionado"}</DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-3">
+            <div className="dialog-body custom-scroll grid gap-4">
               <div className="grid gap-2">
                 <Label>Papel</Label>
                 <Select value={accessRole} onValueChange={(value: "admin" | "collaborator") => setAccessRole(value)}>
@@ -812,7 +810,7 @@ const Staff = () => {
                 </Select>
               </div>
             </div>
-            <DialogFooter>
+            <DialogFooter className="dialog-footer">
               <Button variant="outline" className="rounded-xl" onClick={() => setAccessDialogOpen(false)}>Cancelar</Button>
               <Button className="rounded-xl" onClick={saveAccess}>Salvar acesso</Button>
             </DialogFooter>

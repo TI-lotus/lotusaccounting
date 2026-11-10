@@ -40,6 +40,7 @@ import { CalendarEventView } from "@/components/CalendarEventView";
 import { TimelineView } from "@/components/TimelineView";
 import { useViewMode } from "@/contexts/ViewModeContext";
 import { useData } from "@/contexts/DataContext";
+import { FilterPopover } from "@/components/FilterPopover";
 
 interface Payment {
   id: string;
@@ -353,7 +354,7 @@ const Payments = () => {
           )}
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 animate-fade-in">
+        <div className="filter-toolbar flex flex-wrap items-center gap-3 animate-fade-in">
           <div className="flex rounded-2xl border border-border bg-card p-1">
             {[
               { value: "list", label: "Lista", icon: List },
@@ -375,8 +376,9 @@ const Payments = () => {
               );
             })}
           </div>
-          <div className="flex rounded-2xl border border-border bg-card p-1">
+          <FilterPopover activeCount={typeFilter === "all" ? 0 : 1}>
             <Button
+              type="button"
               variant={typeFilter === "all" ? "default" : "ghost"}
               size="sm"
               className="rounded-xl"
@@ -385,6 +387,7 @@ const Payments = () => {
               Todos
             </Button>
             <Button
+              type="button"
               variant={typeFilter === "income" ? "default" : "ghost"}
               size="sm"
               className="rounded-xl"
@@ -394,6 +397,7 @@ const Payments = () => {
               Entradas
             </Button>
             <Button
+              type="button"
               variant={typeFilter === "expense" ? "default" : "ghost"}
               size="sm"
               className="rounded-xl"
@@ -402,7 +406,7 @@ const Payments = () => {
               <ArrowUpCircle className="h-4 w-4" />
               Saídas
             </Button>
-          </div>
+          </FilterPopover>
         </div>
 
         {viewMode === "client" && (

@@ -211,7 +211,7 @@ const Clients = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between animate-fade-in">
+        <div className="page-header flex items-center justify-between gap-4 animate-fade-in">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">Clientes</h1>
             <p className="text-muted-foreground">Gerencie seus relacionamentos com clientes</p>
@@ -223,14 +223,14 @@ const Clients = () => {
                 Adicionar Cliente
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
+            <DialogContent className="dialog-window client-dialog sm:max-w-[425px]">
+              <DialogHeader className="dialog-header">
                 <DialogTitle>Novo Cliente</DialogTitle>
                 <DialogDescription>
                   Adicione as informações do novo cliente abaixo.
                 </DialogDescription>
               </DialogHeader>
-              <div className="grid gap-4 py-4">
+              <div className="dialog-body custom-scroll grid gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="name">Nome da Empresa</Label>
                   <Input id="name" value={newClient.name} onChange={(e) => setNewClient({ ...newClient, name: e.target.value })} placeholder="Empresa Ltda" className="rounded-xl" />
@@ -297,7 +297,7 @@ const Clients = () => {
                   </div>
                 </div>
               </div>
-              <DialogFooter>
+              <DialogFooter className="dialog-footer">
                 <Button variant="outline" onClick={() => setDialogOpen(false)} className="rounded-xl">Cancelar</Button>
                 <Button onClick={handleAddClient} className="rounded-xl">Adicionar</Button>
               </DialogFooter>
@@ -305,13 +305,13 @@ const Clients = () => {
           </Dialog>
         </div>
 
-        <div className="glass rounded-2xl p-6 animate-fade-in">
-          <div className="flex flex-wrap items-center gap-4 mb-6">
+        <div className="glass page-section animate-fade-in">
+          <div className="filter-toolbar mb-6 flex flex-wrap items-center gap-3">
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Buscar por nome, email ou CNPJ..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10 rounded-xl" />
             </div>
-            <div className="flex items-center gap-2 rounded-xl border border-input bg-background px-2 py-1">
+            <div className="filter-control flex items-center gap-2 rounded-xl border border-input/80 bg-card/70 px-2 py-1">
               <span className="text-xs text-muted-foreground">Honorários</span>
               <Input inputMode="numeric" pattern="[0-9]*" value={feeRange.min} onChange={(e) => setFeeRange({ ...feeRange, min: e.target.value.replace(/\D/g, "") })} placeholder="Mín." className="h-8 w-20 rounded-lg" />
               <Input inputMode="numeric" pattern="[0-9]*" value={feeRange.max} onChange={(e) => setFeeRange({ ...feeRange, max: e.target.value.replace(/\D/g, "") })} placeholder="Máx." className="h-8 w-20 rounded-lg" />
@@ -362,53 +362,51 @@ const Clients = () => {
                 return (
               <div
                 key={client.id}
-                className={cn("rounded-xl border border-border p-4 hover:bg-accent/40 transition-colors flex cursor-pointer", viewMode === "grid" ? "flex-col" : "items-center gap-4")}
+                className={cn("rounded-2xl border border-border/70 bg-card/70 p-4 hover:border-foreground/20 hover:bg-accent/30 transition-[background-color,border-color,box-shadow] duration-200 flex gap-4", viewMode === "grid" ? "flex-col" : "items-center")}
                 style={{ animationDelay: `${index * 50}ms` }}
-                onClick={() => setSelectedClient(client)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault();
-                    setSelectedClient(client);
-                  }
-                }}
               >
-                <div className="flex items-start justify-between gap-2">
-                  <p className="font-semibold truncate text-sm">{client.name}</p>
-                  <Badge variant={client.status === 'active' ? 'default' : client.status === 'pending' ? 'secondary' : 'outline'} className={cn("text-[10px] shrink-0", client.status === 'active' && "bg-emerald-100 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950 dark:text-emerald-400")}>{client.status === 'active' ? 'Ativo' : client.status === 'pending' ? 'Pendente' : 'Inativo'}</Badge>
-                </div>
-                <div className="mt-2 flex-1 min-w-0">
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground truncate">
-                    <Mail className="h-3 w-3 shrink-0" />
-                    <span className="truncate">{client.email}</span>
+                <button
+                  type="button"
+                  className={cn("min-w-0 flex-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2", viewMode === "grid" ? "flex flex-col" : "")}
+                  onClick={() => setSelectedClient(client)}
+                  aria-label={`Abrir detalhes de ${client.name}`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="truncate text-sm font-semibold">{client.name}</p>
+                    <Badge variant={client.status === 'active' ? 'default' : client.status === 'pending' ? 'secondary' : 'outline'} className={cn("shrink-0 text-[10px]", client.status === 'active' && "bg-emerald-100 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950 dark:text-emerald-400")}>{client.status === 'active' ? 'Ativo' : client.status === 'pending' ? 'Pendente' : 'Inativo'}</Badge>
                   </div>
-                  <div className="flex flex-wrap items-center gap-1 mt-2">
-                    <Badge variant="outline" className="text-[10px]">{taxRegimeLabels[client.taxRegime]}</Badge>
-                    <Badge variant="outline" className="text-[10px]">{client.serviceAreas.length} serviço(s)</Badge>
-                    <Badge variant="outline" className="text-[10px]">{getClientSize(client)}</Badge>
-                    <Badge className={cn("text-[10px]", periodStatusStyles[periodStatus])}>{periodStatusLabels[periodStatus]}</Badge>
-                  </div>
-                  <div className="mt-2 flex min-w-0 items-center gap-1.5 text-[11px] text-muted-foreground">
-                    <Avatar className="h-5 w-5 shrink-0">
-                      <AvatarImage src={byUserId.get(client.responsibleUserId)?.avatarUrl ?? undefined} />
-                      <AvatarFallback className="text-[9px]">{client.responsibleUserName?.charAt(0) || "?"}</AvatarFallback>
-                    </Avatar>
-                    <span className="truncate">Resp.: {client.responsibleUserName || "Sem responsável"}</span>
-                  </div>
-                  <div className="mt-3 space-y-1">
-                    <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-                      <span>Competência atual</span>
-                      <span>{periodProgress}%</span>
+                  <div className="mt-2 min-w-0 flex-1">
+                    <div className="flex items-center gap-1 truncate text-xs text-muted-foreground">
+                      <Mail className="h-3 w-3 shrink-0" />
+                      <span className="truncate">{client.email}</span>
                     </div>
-                    <Progress value={periodProgress} className="h-1.5" />
+                    <div className="mt-2 flex flex-wrap items-center gap-1">
+                      <Badge variant="outline" className="text-[10px]">{taxRegimeLabels[client.taxRegime]}</Badge>
+                      <Badge variant="outline" className="text-[10px]">{client.serviceAreas.length} serviço(s)</Badge>
+                      <Badge variant="outline" className="text-[10px]">{getClientSize(client)}</Badge>
+                      <Badge className={cn("text-[10px]", periodStatusStyles[periodStatus])}>{periodStatusLabels[periodStatus]}</Badge>
+                    </div>
+                    <div className="mt-2 flex min-w-0 items-center gap-1.5 text-[11px] text-muted-foreground">
+                      <Avatar className="h-5 w-5 shrink-0">
+                        <AvatarImage src={byUserId.get(client.responsibleUserId)?.avatarUrl ?? undefined} />
+                        <AvatarFallback className="text-[9px]">{client.responsibleUserName?.charAt(0) || "?"}</AvatarFallback>
+                      </Avatar>
+                      <span className="truncate">Resp.: {client.responsibleUserName || "Sem responsável"}</span>
+                    </div>
+                    <div className="mt-3 space-y-1">
+                      <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                        <span>Competência atual</span>
+                        <span>{periodProgress}%</span>
+                      </div>
+                      <Progress value={periodProgress} className="h-1.5" />
+                    </div>
                   </div>
-                </div>
+                </button>
                 <div className="flex items-center justify-between pt-3 mt-2 border-t border-border">
                   <div><p className="font-semibold text-sm">R$ {client.serviceFee.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p><p className="text-[10px] text-muted-foreground">{client.city}/{client.state}</p></div>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="rounded-lg" onClick={(event) => event.stopPropagation()}>
+                    <Button aria-label={`Ações de ${client.name}`} variant="ghost" size="icon" className="rounded-lg" onClick={(event) => event.stopPropagation()}>
                       <MoreHorizontal className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
@@ -455,16 +453,16 @@ const Clients = () => {
         </div>
 
         <Dialog open={Boolean(selectedClient)} onOpenChange={(open) => !open && setSelectedClient(null)}>
-          <DialogContent className="sm:max-w-[540px]">
+          <DialogContent className="dialog-window client-dialog sm:max-w-[540px]">
             {selectedClient && (
               <>
-                <DialogHeader>
+                <DialogHeader className="dialog-header">
                   <DialogTitle>{selectedClient.name}</DialogTitle>
                   <DialogDescription>
                     {taxRegimeLabels[selectedClient.taxRegime]} · {getClientSize(selectedClient)}
                   </DialogDescription>
                 </DialogHeader>
-                <div className="grid gap-4 py-2">
+                <div className="dialog-body custom-scroll grid gap-4">
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge variant={selectedClient.status === "active" ? "default" : selectedClient.status === "pending" ? "secondary" : "outline"} className={cn(selectedClient.status === "active" && "bg-emerald-100 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950 dark:text-emerald-400")}>
                       {selectedClient.status === "active" ? "Ativo" : selectedClient.status === "pending" ? "Pendente" : "Inativo"}
@@ -482,7 +480,7 @@ const Clients = () => {
                     <div className="sm:col-span-2"><p className="text-xs text-muted-foreground">Responsável</p><p className="font-medium">{selectedClient.responsibleUserName || "Sem responsável"}</p></div>
                   </div>
                 </div>
-                <DialogFooter className="flex-col gap-2 sm:flex-row sm:justify-between">
+                <DialogFooter className="dialog-footer flex-col gap-2 sm:flex-row sm:justify-between">
                   <Button variant="destructive" className="rounded-xl" onClick={() => { void handleDeleteClient(selectedClient.id); setSelectedClient(null); }}>
                     <Trash2 className="mr-2 h-4 w-4" />Remover
                   </Button>

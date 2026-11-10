@@ -47,18 +47,25 @@ const sendInviteEmail = async (params: {
 
   const recipientName = escapeHtml(params.fullName?.trim() || params.email);
   const role = params.accountType === "client" ? "cliente" : "colaborador";
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      from,
-      to: [params.email],
-      subject: "Seu convite para a Lotus Accounting",
-      html: `<p>Olá, ${recipientName}.</p><p>Você recebeu um convite como <strong>${role}</strong> para acessar a Lotus Accounting.</p><p><a href="${params.inviteUrl}">Criar meu acesso</a></p><p>Este convite expira em 14 dias.</p>`,
-    }),
-  });
-  if (response.ok) return { status: "sent" as const, error: null };
-  return { status: "failed" as const, error: await response.text() };
+  try {
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        from,
+        to: [params.email],
+        subject: "Seu convite para a Lotus Accounting",
+        html: `<p>Olá, ${recipientName}.</p><p>Você recebeu um convite como <strong>${role}</strong> para acessar a Lotus Accounting.</p><p><a href="${params.inviteUrl}">Criar meu acesso</a></p><p>Este convite expira em 14 dias.</p>`,
+      }),
+    });
+    if (response.ok) return { status: "sent" as const, error: null };
+    return { status: "failed" as const, error: (await response.text()).slice(0, 1000) };
+  } catch (error) {
+    return {
+      status: "failed" as const,
+      error: (error instanceof Error ? error.message : "resend_request_failed").slice(0, 1000),
+    };
+  }
 };
 
 Deno.serve(async (request) => {

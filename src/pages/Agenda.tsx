@@ -27,6 +27,9 @@ import { cn } from "@/lib/utils";
 import { format, isSameDay, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { useWorkspacePermission } from "@/hooks/useWorkspacePermission";
+import { FilterPopover } from "@/components/FilterPopover";
 
 type AgendaKind = "task" | "payment" | "document" | "obligation";
 
@@ -84,6 +87,14 @@ const Agenda = () => {
   const navigate = useNavigate();
   const { tasks, documents, payments, invoices, clients, fiscalObligations, updateTaskStatus, deleteTask } =
     useData();
+  const { user, profile } = useAuth();
+  const canDeleteTasks = useWorkspacePermission({
+    tenantId: profile?.tenant_id ?? null,
+    userId: user?.id,
+    accountType: profile?.account_type,
+    resource: "tasks",
+    action: "delete",
+  });
   const [selectedDate, setSelectedDate] = useState<Date>(
     startOfDay(new Date()),
   );
@@ -216,19 +227,27 @@ const Agenda = () => {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 animate-fade-in">
-          <Filter className="h-4 w-4 text-muted-foreground" />
-          {filterOptions.map((opt) => (
-            <Button
-              key={opt.key}
-              variant={activeFilter === opt.key ? "default" : "outline"}
-              size="sm"
-              className="rounded-xl"
-              onClick={() => setActiveFilter(opt.key)}
-            >
-              {opt.label}
-            </Button>
-          ))}
+        <div className="filter-toolbar flex items-center justify-between gap-3 animate-fade-in">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Filter className="h-4 w-4" aria-hidden="true" />
+            <span>Eventos e obrigações</span>
+          </div>
+          <FilterPopover activeCount={activeFilter === "all" ? 0 : 1}>
+            <div className="grid grid-cols-2 gap-2">
+              {filterOptions.map((opt) => (
+                <Button
+                  key={opt.key}
+                  type="button"
+                  variant={activeFilter === opt.key ? "default" : "outline"}
+                  size="sm"
+                  className="justify-start"
+                  onClick={() => setActiveFilter(opt.key)}
+                >
+                  {opt.label}
+                </Button>
+              ))}
+            </div>
+          </FilterPopover>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-6">
@@ -368,8 +387,12 @@ const Agenda = () => {
                     <div><p className="text-xs text-muted-foreground">Detalhe</p><p className="font-medium">{selectedItem.meta || "—"}</p></div>
                   </div>
                   <DialogFooter className="flex-col gap-2 sm:flex-row sm:justify-between">
-                    {selectedItem.kind === "task" && (
-                      <Button variant="destructive" className="rounded-xl" onClick={() => { void deleteTask(selectedItem.sourceId); setSelectedItem(null); }}>
+                    {selectedItem.kind === "task" && canDeleteTasks && (
+                      <Button variant="destructive" className="rounded-xl" onClick={() => {
+                        void deleteTask(selectedItem.sourceId).then((removed) => {
+                          if (removed) setSelectedItem(null);
+                        });
+                      }}>
                         <Trash2 className="mr-2 h-4 w-4" />Remover
                       </Button>
                     )}

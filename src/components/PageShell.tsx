@@ -58,12 +58,12 @@ export const PageShell = ({
   return (
     <DashboardLayout>
       <div className="mx-auto w-full max-w-[1280px] space-y-8">
-        <div className="flex flex-wrap items-center justify-between gap-5">
+        <div className="page-header flex flex-wrap items-center justify-between gap-5">
           <div>
             <h1 className="text-[28px] font-normal leading-tight tracking-[-0.035em] text-foreground sm:text-[30px]">{title}</h1>
             {description && <p className="mt-2 max-w-2xl text-[13px] leading-6 text-muted-foreground">{description}</p>}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="page-header-actions flex items-center gap-2">
             {secondaryActions}
             {primaryAction}
           </div>
@@ -72,7 +72,7 @@ export const PageShell = ({
         {kpis && kpis.length > 0 && (
           <div className="grid gap-3 grid-cols-2 lg:grid-cols-3">
             {kpis.map((k, i) => (
-              <Card key={i}>
+              <Card key={i} className="kpi-card">
                 <CardContent className="pt-4 pb-3">
                   <div className="flex items-end justify-between gap-3">
                     <div className="min-w-0">
@@ -90,7 +90,7 @@ export const PageShell = ({
 
         {tabs && tabs.length > 0 && (
           <Tabs value={activeTab} onValueChange={onTabChange}>
-            <TabsList className="rounded-2xl border border-border/70 bg-card p-1">
+            <TabsList className="segmented-tabs">
               {tabs.map((t) => (
                 <TabsTrigger key={t.value} value={t.value}>{t.label}</TabsTrigger>
               ))}
@@ -99,7 +99,7 @@ export const PageShell = ({
         )}
 
         {(filters || onSearchChange) && (
-          <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-border/60 bg-card p-2">
+          <div className="filter-toolbar flex flex-wrap items-center gap-2">
             {onSearchChange && (
               <div className="relative flex-1 min-w-[220px] max-w-md">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

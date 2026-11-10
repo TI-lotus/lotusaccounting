@@ -231,14 +231,5 @@ export const integrationCategoryOrder: IntegrationCategory[] = [
   "Bancos",
 ];
 
-export const defaultConnectedIntegrationIds = new Set([
-  "receita-federal",
-  "serpro",
-  "cnpj-api",
-  "sped",
-  "simples-nacional",
-  "inter",
-]);
-
 export const getIntegrationCatalogItem = (id: string | undefined) =>
   integrationCatalog.find((item) => item.id === id);
