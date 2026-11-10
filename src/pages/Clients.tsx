@@ -211,7 +211,7 @@ const Clients = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between animate-fade-in">
+        <div className="page-header flex items-center justify-between gap-4 animate-fade-in">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">Clientes</h1>
             <p className="text-muted-foreground">Gerencie seus relacionamentos com clientes</p>
@@ -305,13 +305,13 @@ const Clients = () => {
           </Dialog>
         </div>
 
-        <div className="glass rounded-2xl p-6 animate-fade-in">
-          <div className="flex flex-wrap items-center gap-4 mb-6">
+        <div className="glass page-section animate-fade-in">
+          <div className="filter-toolbar mb-6 flex flex-wrap items-center gap-3">
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Buscar por nome, email ou CNPJ..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10 rounded-xl" />
             </div>
-            <div className="flex items-center gap-2 rounded-xl border border-input bg-background px-2 py-1">
+            <div className="filter-control flex items-center gap-2 rounded-xl border border-input/80 bg-card/70 px-2 py-1">
               <span className="text-xs text-muted-foreground">Honorários</span>
               <Input inputMode="numeric" pattern="[0-9]*" value={feeRange.min} onChange={(e) => setFeeRange({ ...feeRange, min: e.target.value.replace(/\D/g, "") })} placeholder="Mín." className="h-8 w-20 rounded-lg" />
               <Input inputMode="numeric" pattern="[0-9]*" value={feeRange.max} onChange={(e) => setFeeRange({ ...feeRange, max: e.target.value.replace(/\D/g, "") })} placeholder="Máx." className="h-8 w-20 rounded-lg" />
@@ -362,7 +362,7 @@ const Clients = () => {
                 return (
               <div
                 key={client.id}
-                className={cn("rounded-xl border border-border p-4 hover:bg-accent/40 transition-colors flex cursor-pointer", viewMode === "grid" ? "flex-col" : "items-center gap-4")}
+                className={cn("rounded-2xl border border-border/70 bg-card/70 p-4 hover:border-foreground/20 hover:bg-accent/30 transition-[background-color,border-color,box-shadow] duration-200 flex cursor-pointer", viewMode === "grid" ? "flex-col" : "items-center gap-4")}
                 style={{ animationDelay: `${index * 50}ms` }}
                 onClick={() => setSelectedClient(client)}
                 role="button"
@@ -408,7 +408,7 @@ const Clients = () => {
                   <div><p className="font-semibold text-sm">R$ {client.serviceFee.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p><p className="text-[10px] text-muted-foreground">{client.city}/{client.state}</p></div>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="rounded-lg" onClick={(event) => event.stopPropagation()}>
+                    <Button aria-label={`Ações de ${client.name}`} variant="ghost" size="icon" className="rounded-lg" onClick={(event) => event.stopPropagation()}>
                       <MoreHorizontal className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>

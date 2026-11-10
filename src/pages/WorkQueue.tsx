@@ -865,7 +865,7 @@ const WorkQueue = () => {
               Execução diária por colaborador, cliente e competência.
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="filter-toolbar flex flex-wrap items-center gap-2">
             <div className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm text-muted-foreground">
               <Filter className="h-4 w-4" />
               <span>{selectedMemberLabel}</span>

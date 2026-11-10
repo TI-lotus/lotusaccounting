@@ -16,6 +16,7 @@ import {
   Calendar,
   LayoutDashboard,
   List,
+  SlidersHorizontal,
 } from "lucide-react";
 import { DocumentViewer, ViewableDocument } from "@/components/DocumentViewer";
 import { Button } from "@/components/ui/button";
@@ -56,6 +57,7 @@ import { CalendarEventView } from "@/components/CalendarEventView";
 import { supabase } from "@/integrations/supabase/client";
 import { useViewMode } from "@/contexts/ViewModeContext";
 import { KPITrend } from "@/components/dashboard/KPICard";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 const statusColors: Record<string, string> = {
   paid: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400",
@@ -359,7 +361,7 @@ const Documents = () => {
             viewerDoc ? "flex-1 min-w-0" : "w-full",
           )}
         >
-          <div className="flex items-center justify-between animate-fade-in">
+          <div className="page-header flex items-center justify-between gap-4 animate-fade-in">
             <div>
               <h1 className="text-2xl font-semibold tracking-tight">
                 Documentos
@@ -662,68 +664,80 @@ const Documents = () => {
                 className="space-y-4 mt-4"
               >
                 {/* Filters */}
-                <div className="flex flex-wrap gap-2 items-center animate-fade-in">
-                  <div className="flex gap-2">
-                    {["all", "pending", "paid", "overdue", "unread"].map(
-                      (s) => (
-                        <Button
-                          key={s}
-                          variant={filterStatus === s ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setFilterStatus(s)}
-                        >
-                          {s === "all" ? "Todos" : statusLabels[s] || s}
-                        </Button>
-                      ),
-                    )}
+                <div className="filter-toolbar flex flex-wrap items-center justify-between gap-2 animate-fade-in">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <Badge variant="secondary" className="shrink-0">
+                      {filteredDocuments.length} documento(s)
+                    </Badge>
+                    <span className="hidden text-xs text-muted-foreground sm:inline">
+                      {statusLabels[filterStatus] ?? "Todos os status"}
+                    </span>
                   </div>
-                  <div className="ml-auto flex gap-2">
-                    {viewMode !== "client" && (
-                      <Select
-                        value={filterClient}
-                        onValueChange={setFilterClient}
-                      >
-                        <SelectTrigger className="w-[160px] h-9 text-sm">
-                          <SelectValue placeholder="Todos clientes" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">Todos clientes</SelectItem>
-                          {clients.filter((client) => client.status === "active").map((c) => (
-                            <SelectItem key={c.id} value={c.id}>
-                              {c.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                    <Select value={filterMonth} onValueChange={setFilterMonth}>
-                      <SelectTrigger className="w-[140px] h-9 text-sm">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {months.map((m) => (
-                          <SelectItem key={m.value} value={m.value}>
-                            {m.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Select value={filterYear} onValueChange={setFilterYear}>
-                      <SelectTrigger className="w-[100px] h-9 text-sm">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {years.map((y) => (
-                          <SelectItem key={y} value={y}>
-                            {y}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm" className="gap-2">
+                        <SlidersHorizontal className="h-4 w-4" />
+                        Filtros
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent align="end" className="w-[min(360px,calc(100vw-2rem))] p-4">
+                      <div className="space-y-4">
+                        <div>
+                          <p className="text-sm font-medium">Filtrar documentos</p>
+                          <p className="mt-1 text-xs text-muted-foreground">Ajuste o status, competência e cliente.</p>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Status</Label>
+                          <div className="grid grid-cols-2 gap-2">
+                            {["all", "pending", "paid", "overdue", "unread"].map((s) => (
+                              <Button
+                                key={s}
+                                variant={filterStatus === s ? "default" : "outline"}
+                                size="sm"
+                                className="justify-start"
+                                onClick={() => setFilterStatus(s)}
+                              >
+                                {s === "all" ? "Todos" : statusLabels[s] || s}
+                              </Button>
+                            ))}
+                          </div>
+                        </div>
+                        {viewMode !== "client" && (
+                          <div className="space-y-2">
+                            <Label>Cliente</Label>
+                            <Select value={filterClient} onValueChange={setFilterClient}>
+                              <SelectTrigger><SelectValue placeholder="Todos clientes" /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="all">Todos clientes</SelectItem>
+                                {clients.filter((client) => client.status === "active").map((c) => (
+                                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="space-y-2">
+                            <Label>Competência</Label>
+                            <Select value={filterMonth} onValueChange={setFilterMonth}>
+                              <SelectTrigger><SelectValue /></SelectTrigger>
+                              <SelectContent>{months.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}</SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Ano</Label>
+                            <Select value={filterYear} onValueChange={setFilterYear}>
+                              <SelectTrigger><SelectValue /></SelectTrigger>
+                              <SelectContent>{years.map((y) => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                 </div>
 
-                <div className="glass rounded-2xl overflow-hidden animate-fade-in">
+                <div className="table-surface animate-fade-in">
                   <div className="overflow-x-auto">
                     <table className="w-full">
                       <thead>

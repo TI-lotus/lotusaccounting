@@ -47,10 +47,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useData } from "@/contexts/DataContext";
-import {
-  defaultConnectedIntegrationIds,
-  getIntegrationCatalogItem,
-} from "@/lib/integrationCatalog";
+import { getIntegrationCatalogItem } from "@/lib/integrationCatalog";
 import type { Json } from "@/integrations/supabase/types";
 import { getConnectionHealthLabel, readCredentialMetadata } from "@/services/integrations/integrationConnections";
 import { revokeIntegrationCredentials, storeIntegrationCredential } from "@/services/integrations/integrationCredentials";
@@ -83,9 +80,7 @@ const IntegrationSettings = () => {
     { id: "request", label: "Consulta API", x: 56, y: 42 },
     { id: "output", label: "Retorno", x: 80, y: 62 },
   ]);
-  const isConnected = connection
-    ? connection.status === "connected"
-    : defaultConnectedIntegrationIds.has(id || "");
+  const isConnected = connection?.status === "connected";
   const usage = useMemo(() => {
     const value = connection?.usage;
     if (value && typeof value === "object" && !Array.isArray(value)) {
@@ -97,7 +92,7 @@ const IntegrationSettings = () => {
       };
     }
     return {
-      calls: isConnected ? 1 : 0,
+      calls: 0,
       limit: integration?.usageLimit ?? 0,
       period: "Ciclo atual",
     };
@@ -351,7 +346,7 @@ const IntegrationSettings = () => {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center gap-4 animate-fade-in">
+        <div className="page-header flex items-center gap-4 animate-fade-in">
           <Button
             variant="ghost"
             size="icon"
@@ -404,7 +399,7 @@ const IntegrationSettings = () => {
         </div>
 
         <Tabs defaultValue="workflow" className="animate-fade-in">
-          <TabsList className="grid w-full max-w-2xl grid-cols-4">
+          <TabsList className="grid w-full max-w-2xl grid-cols-4 segmented-tabs">
             <TabsTrigger value="workflow" className="gap-2">
               <Play className="h-4 w-4" />
               Workflow
@@ -447,7 +442,7 @@ const IntegrationSettings = () => {
               </Button>
             </div>
             <div
-              className="relative h-[460px] rounded-2xl border border-border bg-card overflow-hidden"
+              className="relative h-[460px] overflow-hidden rounded-2xl border border-border/70 bg-card/90"
               onDragOver={(event) => event.preventDefault()}
               onDrop={handleNodeDrop}
               style={{
@@ -483,7 +478,7 @@ const IntegrationSettings = () => {
                   onDragStart={(event) =>
                     event.dataTransfer.setData("node-id", node.id)
                   }
-                  className="absolute w-36 -translate-x-1/2 -translate-y-1/2 cursor-grab rounded-xl border border-border bg-background p-4 text-left shadow-soft hover:ring-2 hover:ring-primary active:cursor-grabbing"
+                  className="absolute w-36 -translate-x-1/2 -translate-y-1/2 cursor-grab rounded-2xl border border-border/80 bg-card p-4 text-left shadow-soft transition-[border-color,box-shadow,transform] hover:border-foreground/30 hover:ring-2 hover:ring-primary/30 active:cursor-grabbing"
                   style={{ left: `${node.x}%`, top: `${node.y}%` }}
                 >
                   <button

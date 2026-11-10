@@ -353,7 +353,7 @@ const Payments = () => {
           )}
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 animate-fade-in">
+        <div className="filter-toolbar flex flex-wrap items-center gap-3 animate-fade-in">
           <div className="flex rounded-2xl border border-border bg-card p-1">
             {[
               { value: "list", label: "Lista", icon: List },

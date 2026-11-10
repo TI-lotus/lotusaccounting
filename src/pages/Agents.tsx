@@ -832,7 +832,7 @@ export default function Agents() {
             </div>
 
             {/* Filters */}
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="filter-toolbar flex items-center gap-2 flex-wrap">
               <Filter className="h-4 w-4 text-muted-foreground" />
               <Select value={execFilter} onValueChange={setExecFilter}>
                 <SelectTrigger className="w-[140px] h-8 text-sm">

@@ -226,7 +226,7 @@ const Agenda = () => {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 animate-fade-in">
+        <div className="filter-toolbar flex flex-wrap items-center gap-2 animate-fade-in">
           <Filter className="h-4 w-4 text-muted-foreground" />
           {filterOptions.map((opt) => (
             <Button

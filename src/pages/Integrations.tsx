@@ -18,7 +18,6 @@ import { EmptyState, ErrorState, LoadingState } from "@/components/PageStates";
 import { cn } from "@/lib/utils";
 import { useData } from "@/contexts/DataContext";
 import {
-  defaultConnectedIntegrationIds,
   integrationCatalog,
   integrationCategoryOrder,
 } from "@/lib/integrationCatalog";
@@ -99,7 +98,7 @@ const Integrations = () => {
   return (
     <DashboardLayout>
       <div className="space-y-8">
-        <div className="animate-fade-in">
+        <div className="page-header animate-fade-in">
           <h1 className="text-2xl font-semibold tracking-tight">Integrações</h1>
           <p className="text-muted-foreground">
             Conecte serviços para otimizar seu fluxo contábil
@@ -113,7 +112,7 @@ const Integrations = () => {
             ["Erros abertos", totals.unresolvedErrors],
             ["Automações ativas", totals.activeRules],
           ].map(([label, value]) => (
-            <Card key={label}>
+            <Card key={label} className="kpi-card">
               <CardContent className="pt-6">
                 <p className="text-xs text-muted-foreground">{label}</p>
                 <p className="mt-1 text-2xl font-semibold">{value}</p>
@@ -123,7 +122,7 @@ const Integrations = () => {
         </div>
 
         <Tabs defaultValue="catalog" className="space-y-6">
-          <TabsList>
+          <TabsList className="segmented-tabs">
             <TabsTrigger value="catalog">Catálogo</TabsTrigger>
             <TabsTrigger value="ops">Operação</TabsTrigger>
             <TabsTrigger value="audit">Auditoria</TabsTrigger>
@@ -136,23 +135,25 @@ const Integrations = () => {
           );
           if (!items.length) return null;
           return (
-            <section key={category} className="space-y-3 animate-fade-in">
-              <h2 className="text-lg font-medium">{category}</h2>
+            <section key={category} className="page-section space-y-4 animate-fade-in">
+              <div className="flex items-end justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-medium">{category}</h2>
+                  <p className="mt-1 text-xs text-muted-foreground">Serviços disponíveis para o workspace.</p>
+                </div>
+                <Badge variant="secondary">{items.length}</Badge>
+              </div>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {items.map((integration) => {
                   const Icon = integration.icon;
                   const connection = connectionById.get(integration.id);
-                  const status = connection
-                    ? connection.status
-                    : defaultConnectedIntegrationIds.has(integration.id)
-                      ? "connected"
-                      : "disconnected";
+                  const status = connection?.status ?? "disconnected";
                   const connected = status === "connected";
                   return (
                     <div
                       key={integration.id}
                       className={cn(
-                        "rounded-2xl border border-border bg-card p-4 flex flex-col gap-3 hover:shadow-soft-lg transition-all",
+                        "rounded-2xl border border-border/70 bg-card p-5 flex flex-col gap-4 transition-[background-color,border-color,box-shadow] duration-200 hover:border-foreground/20 hover:bg-accent/20",
                         connected && "bg-gilver/5",
                       )}
                     >

@@ -551,7 +551,7 @@ const Tasks = () => {
         </div>
 
         {/* Filters */}
-        <div className="flex flex-wrap gap-2 animate-fade-in">
+        <div className="filter-toolbar flex flex-wrap gap-2 animate-fade-in">
           <div className="flex gap-2">
             {(
               [

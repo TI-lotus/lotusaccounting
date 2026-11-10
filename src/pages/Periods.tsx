@@ -598,7 +598,7 @@ const Periods = () => {
 
         <Card>
           <CardHeader className="gap-4">
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="filter-toolbar flex flex-wrap items-center gap-3">
               <CardTitle className="mr-auto text-base">Competências por cliente</CardTitle>
               <Select value={String(periodMonth)} onValueChange={(value) => setPeriodMonth(Number(value))}>
                 <SelectTrigger className="w-[150px] rounded-xl"><SelectValue /></SelectTrigger>

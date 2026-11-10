@@ -404,7 +404,7 @@ const Staff = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between animate-fade-in">
+        <div className="page-header flex items-center justify-between gap-4 animate-fade-in">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">Equipe e acessos</h1>
             <p className="text-muted-foreground">Convide usuários, acompanhe papéis e controle vínculos por cliente</p>
@@ -458,19 +458,19 @@ const Staff = () => {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-fade-in">
-          <div className="glass rounded-2xl p-4 flex items-center gap-4">
+          <div className="kpi-card flex items-center gap-4">
             <div className="p-3 rounded-xl bg-gilver/10"><UserCog className="h-5 w-5 text-gilver" /></div>
             <div><p className="text-2xl font-semibold">{members.length}</p><p className="text-sm text-muted-foreground">Equipe</p></div>
           </div>
-          <div className="glass rounded-2xl p-4 flex items-center gap-4">
+          <div className="kpi-card flex items-center gap-4">
             <div className="p-3 rounded-xl bg-emerald-500/10"><ShieldCheck className="h-5 w-5 text-emerald-500" /></div>
             <div><p className="text-2xl font-semibold">{activeMembers.length}</p><p className="text-sm text-muted-foreground">Ativos</p></div>
           </div>
-          <div className="glass rounded-2xl p-4 flex items-center gap-4">
+          <div className="kpi-card flex items-center gap-4">
             <div className="p-3 rounded-xl bg-amber-500/10"><UserPlus className="h-5 w-5 text-amber-500" /></div>
             <div><p className="text-2xl font-semibold">{pendingInvites.length}</p><p className="text-sm text-muted-foreground">Convites</p></div>
           </div>
-          <div className="glass rounded-2xl p-4 flex items-center gap-4">
+          <div className="kpi-card flex items-center gap-4">
             <div className="p-3 rounded-xl bg-blue-500/10"><CheckSquare className="h-5 w-5 text-blue-500" /></div>
             <div><p className="text-2xl font-semibold">{clientsProfiles.length}</p><p className="text-sm text-muted-foreground">Acessos cliente</p></div>
           </div>
@@ -485,8 +485,8 @@ const Staff = () => {
           </TabsList>
 
           <TabsContent value="people" className="mt-4">
-            <div className="glass rounded-2xl p-6">
-              <div className="mb-6 flex flex-wrap items-center gap-4">
+            <div className="glass page-section">
+              <div className="filter-toolbar mb-6 flex flex-wrap items-center gap-3">
                 <div className="relative flex-1 max-w-sm">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input placeholder="Buscar por nome, cargo ou papel..." value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} className="pl-10 rounded-xl" />
@@ -510,7 +510,7 @@ const Staff = () => {
                   return (
                     <div
                       key={member.id}
-                      className={cn("rounded-2xl border border-border bg-card p-4 gap-3 cursor-pointer transition-colors hover:bg-accent/35", peopleViewMode === "grid" ? "flex flex-col" : "grid items-center md:grid-cols-[minmax(230px,1.2fr)_minmax(170px,0.8fr)_minmax(110px,0.5fr)_minmax(260px,1fr)]")}
+                      className={cn("rounded-2xl border border-border/70 bg-card/70 p-4 gap-3 cursor-pointer transition-[background-color,border-color,box-shadow] duration-200 hover:border-foreground/20 hover:bg-accent/30", peopleViewMode === "grid" ? "flex flex-col" : "grid items-center md:grid-cols-[minmax(230px,1.2fr)_minmax(170px,0.8fr)_minmax(110px,0.5fr)_minmax(260px,1fr)]")}
                       onClick={() => setDetailMember(member)}
                       role="button"
                       tabIndex={0}
