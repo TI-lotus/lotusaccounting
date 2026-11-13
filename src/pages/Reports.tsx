@@ -151,7 +151,9 @@ const Reports = () => {
   const delinquencyRate = invoices.length
     ? Math.round((overdueInvoices.length / invoices.length) * 1000) / 10
     : 0;
-  const activeClients = clients.filter((client) => client.status === "active");
+  const activeClients = clients.filter((client) =>
+    client.status === "active" && (clientFilter === "all" || client.id === clientFilter),
+  );
   const completedTasks = tasks.filter((task) => task.status === "completed");
   const overdueTasks = tasks.filter((task) => task.status === "overdue");
   const overdueObligations = fiscalObligations.filter(
@@ -267,7 +269,7 @@ const Reports = () => {
     {
       label: "Clientes Ativos",
       value: String(activeClients.length),
-      change: `${clients.length} cadastrados`,
+      change: `${activeClients.length} ativos no escopo`,
       icon: Users,
       positive: true,
     },
