@@ -5,13 +5,10 @@ import {
   Plus,
   Download,
   Eye,
-  MoreHorizontal,
   Trash2,
   Send,
   Check,
   Upload,
-  FileCode,
-  File,
   ScanText,
   Calendar,
   Clock,
@@ -35,13 +32,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -60,6 +50,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useViewMode } from "@/contexts/ViewModeContext";
 import { BentoStatStrip } from "@/components/dashboard/BentoStatStrip";
 import { IconTooltipButton } from "@/components/IconTooltipButton";
+import { BentoDataTable } from "@/components/BentoDataTable";
+import { RowActions } from "@/components/RowActions";
 
 const statusColors: Record<string, string> = {
   paid: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400",
@@ -163,14 +155,6 @@ const isRequestOverdue = (request: { dueDate: string | null; status: string }) =
       request.dueDate < todayIso &&
       !["approved", "waived"].includes(request.status),
   );
-
-const fileTypeIcons: Record<string, React.ReactNode> = {
-  pdf: <FileText className="h-4 w-4 text-red-500" />,
-  xml: <FileCode className="h-4 w-4 text-emerald-500" />,
-  xlsx: <File className="h-4 w-4 text-green-600" />,
-  docx: <FileText className="h-4 w-4 text-blue-500" />,
-  csv: <File className="h-4 w-4 text-amber-500" />,
-};
 
 const Documents = () => {
   const { viewMode } = useViewMode();
@@ -796,90 +780,20 @@ const Documents = () => {
                                 : "—"}
                             </td>
                             <td className="p-4">
-                              <div className="flex items-center justify-end gap-1">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  aria-label={`Visualizar ${doc.name}`}
-                                  title={`Visualizar ${doc.name}`}
-                                  onClick={() => void openDocumentInViewer(doc)}
-                                >
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  aria-label={`Baixar ${doc.name}`}
-                                  title={`Baixar ${doc.name}`}
-                                  onClick={() =>
-                                    void handleDownloadDocument(doc)
-                                  }
-                                >
-                                  <Download className="h-4 w-4" />
-                                </Button>
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-8 w-8"
-                                      aria-label={`Mais ações para ${doc.name}`}
-                                      title={`Mais ações para ${doc.name}`}
-                                    >
-                                      <MoreHorizontal className="h-4 w-4" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                    {doc.status === "unread" && (
-                                      <DropdownMenuItem
-                                        className="gap-2"
-                                        onClick={() => handleMarkAsRead(doc.id)}
-                                      >
-                                        <Eye className="h-4 w-4" />
-                                        Marcar como Lido
-                                      </DropdownMenuItem>
-                                    )}
-                                    {viewMode !== "client" &&
-                                      (doc.status === "pending" ||
-                                        doc.status === "overdue") && (
-                                        <>
-                                          <DropdownMenuItem
-                                            className="gap-2"
-                                            onClick={() =>
-                                              handleMarkAsPaid(doc.id)
-                                            }
-                                          >
-                                            <Check className="h-4 w-4" />
-                                            Marcar como Pago
-                                          </DropdownMenuItem>
-                                          <DropdownMenuItem
-                                            className="gap-2"
-                                            onClick={() =>
-                                              handleSendReminder(doc)
-                                            }
-                                          >
-                                            <Send className="h-4 w-4" />
-                                            Enviar Lembrete
-                                          </DropdownMenuItem>
-                                          <DropdownMenuSeparator />
-                                        </>
-                                      )}
-                                    {viewMode !== "client" && (
-                                      <DropdownMenuItem
-                                        className="gap-2 text-destructive focus:text-destructive"
-                                        onClick={() =>
-                                          handleDeleteDocument(doc.id)
-                                        }
-                                      >
-                                        <Trash2 className="h-4 w-4" />
-                                        Excluir
-                                      </DropdownMenuItem>
-                                    )}
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              </div>
+                              <RowActions
+                                primaryLabel={`Visualizar ${doc.name}`}
+                                primaryIcon={Eye}
+                                onPrimary={() => void openDocumentInViewer(doc)}
+                                menuItems={[
+                                  { label: "Baixar arquivo", icon: Download, onSelect: () => void handleDownloadDocument(doc) },
+                                  ...(doc.status === "unread" ? [{ label: "Marcar como lido", icon: Eye, onSelect: () => void handleMarkAsRead(doc.id) }] : []),
+                                  ...(viewMode !== "client" && (doc.status === "pending" || doc.status === "overdue") ? [
+                                    { label: "Marcar como pago", icon: Check, onSelect: () => void handleMarkAsPaid(doc.id) },
+                                    { label: "Enviar lembrete", icon: Send, onSelect: () => handleSendReminder(doc) },
+                                  ] : []),
+                                  ...(viewMode !== "client" ? [{ label: "Excluir documento", icon: Trash2, destructive: true, separatorBefore: true, onSelect: () => void handleDeleteDocument(doc.id) }] : []),
+                                ]}
+                              />
                             </td>
                           </tr>
                         ))}
@@ -901,66 +815,51 @@ const Documents = () => {
               <TabsContent value="arquivos" className="space-y-4 mt-4">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in">
                   {/* File list */}
-                  <div className="lg:col-span-1 space-y-2">
-                    <h3 className="text-sm font-medium text-muted-foreground mb-3">
-                      Arquivos Recentes
-                    </h3>
-                    {documents.filter((doc) => doc.filePath).length === 0 && (
-                      <div className="rounded-2xl border border-dashed border-border p-6 text-center text-muted-foreground">
-                        <FileText className="h-10 w-10 mx-auto mb-3 opacity-40" />
-                        <p className="text-sm font-medium">
-                          Nenhum documento encontrado
-                        </p>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="mt-4 rounded-2xl"
-                          disabled
-                        >
-                          <ScanText className="h-4 w-4" />
-                          Extrair texto
-                        </Button>
-                      </div>
-                    )}
-                    {documents
-                      .filter((doc) => doc.filePath)
-                      .map((file) => (
-                        <button
-                          key={file.id}
-                          onClick={() => {
-                            setSelectedFileId(file.id);
-                            void openDocumentInViewer(file);
-                          }}
-                          className={`w-full text-left p-3 rounded-2xl border transition-all ${
-                            selectedFileId === file.id
-                              ? "border-primary bg-accent/50"
-                              : "border-border hover:bg-accent/30"
-                          }`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-xl bg-accent shrink-0">
-                              {fileTypeIcons[
-                                getFileExtension(file.originalFileName)
-                              ] ?? fileTypeIcons.pdf}
-                            </div>
-                            <div className="min-w-0">
-                              <p className="font-medium text-sm truncate">
-                                {file.name}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                {file.clientName ?? "Sem cliente"} ·{" "}
-                                {formatFileSize(file.fileSize)}
-                              </p>
-                            </div>
-                            <Badge
-                              variant="outline"
-                              className="text-xs shrink-0 ml-auto uppercase"
-                            >
-                              {getFileExtension(file.originalFileName)}
-                            </Badge>
-                          </div>
-                        </button>
-                      ))}
+                  <div className="lg:col-span-1 space-y-3">
+                    <div>
+                      <h3 className="text-sm font-medium">Arquivos recentes</h3>
+                      <p className="mt-1 text-xs text-muted-foreground">Selecione uma linha para abrir a prévia.</p>
+                    </div>
+                    <BentoDataTable
+                      rows={documents.filter((doc) => Boolean(doc.filePath))}
+                      getRowKey={(file) => file.id}
+                      empty="Nenhum documento com arquivo armazenado."
+                      className="lg:[&_table]:min-w-[620px]"
+                      columns={[
+                        {
+                          key: "reference",
+                          label: "Referência",
+                          render: (file) => <div className="min-w-0"><p className="max-w-[180px] truncate font-medium">{file.name}</p><p className="max-w-[180px] truncate text-xs text-muted-foreground">{file.clientName ?? "Sem cliente"}</p></div>,
+                        },
+                        {
+                          key: "date",
+                          label: "Data",
+                          render: (file) => <span className="whitespace-nowrap text-xs text-muted-foreground">{file.date}</span>,
+                        },
+                        {
+                          key: "type",
+                          label: "Tipo",
+                          render: (file) => <Badge variant="outline" className="uppercase">{getFileExtension(file.originalFileName)}</Badge>,
+                        },
+                        {
+                          key: "size",
+                          label: "Tamanho",
+                          render: (file) => <span className="whitespace-nowrap text-xs text-muted-foreground">{formatFileSize(file.fileSize)}</span>,
+                        },
+                      ]}
+                      actions={(file) => (
+                        <RowActions
+                          primaryLabel="Abrir prévia"
+                          primaryIcon={Eye}
+                          onPrimary={() => { setSelectedFileId(file.id); void openDocumentInViewer(file); }}
+                          menuItems={[
+                            { label: "Abrir prévia", icon: Eye, onSelect: () => { setSelectedFileId(file.id); void openDocumentInViewer(file); } },
+                            { label: "Baixar arquivo", icon: Download, onSelect: () => void handleDownloadDocument(file) },
+                            { label: "Excluir arquivo", icon: Trash2, destructive: true, separatorBefore: true, onSelect: () => void handleDeleteDocument(file.id) },
+                          ]}
+                        />
+                      )}
+                    />
                   </div>
 
                   {/* File preview */}

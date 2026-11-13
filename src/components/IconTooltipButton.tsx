@@ -27,12 +27,12 @@ export const IconTooltipButton = ({
         size="icon"
         aria-label={label}
         title={label}
-        className={cn("rounded-full", className)}
+        className={cn("rounded-full border-0", className)}
       >
         <Icon className="h-4 w-4" aria-hidden="true" />
       </Button>
     </TooltipTrigger>
-    <TooltipContent side="bottom" sideOffset={8} className="judex-floating sidebar-tooltip">
+    <TooltipContent side="top" sideOffset={8} className="judex-floating sidebar-tooltip">
       {label}
     </TooltipContent>
   </Tooltip>

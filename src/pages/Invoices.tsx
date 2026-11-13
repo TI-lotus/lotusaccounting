@@ -3,7 +3,6 @@ import { PageShell } from "@/components/PageShell";
 import { MultiSelectFilter } from "@/components/MultiSelectFilter";
 import { EmptyState, LoadingState } from "@/components/PageStates";
 import { DetailSheet } from "@/components/DetailSheet";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -23,13 +22,15 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Plus, Receipt, FileText } from "lucide-react";
+import { Plus, Receipt, Eye, ExternalLink, CheckCircle2, Trash2 } from "lucide-react";
 import { useData } from "@/contexts/DataContext";
 import { useViewMode } from "@/contexts/ViewModeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import type { Database } from "@/integrations/supabase/types";
 import { toast } from "sonner";
 import { toastWithUndo } from "@/lib/toastUndo";
+import { BentoDataTable } from "@/components/BentoDataTable";
+import { RowActions } from "@/components/RowActions";
 
 type Invoice = Pick<
   Database["public"]["Tables"]["invoices"]["Row"],
@@ -322,56 +323,66 @@ const Invoices = () => {
         onSearchChange={setSearch}
         searchPlaceholder="Buscar por número ou cliente…"
       >
-        <Card>
-          <CardContent className="pt-6">
-            {loading ? (
-              <LoadingState />
-            ) : filtered.length === 0 ? (
-              <EmptyState
-                icon={<Receipt className="h-8 w-8" />}
-                title="Nenhuma fatura encontrada"
-                description="Ajuste os filtros ou crie uma nova fatura."
-              />
-            ) : (
-              <div className="space-y-2">
-                {filtered.map((inv) => {
-                  const meta = statusMeta[inv.status] ?? {
-                    label: inv.status,
-                    className: "",
-                  };
-                  return (
-                    <button
-                      key={inv.id}
-                      onClick={() => setSelected(inv)}
-                      className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-accent/50 transition-colors text-left"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-xl bg-primary/10">
-                          <FileText className="h-4 w-4 text-primary" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium">
-                            {inv.number || `Fatura ${inv.id.slice(0, 8)}`}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {clientName(inv.company_id)} • Venc.{" "}
-                            {fmt(inv.due_date)}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <Badge className={meta.className}>{meta.label}</Badge>
-                        <span className="text-sm font-semibold">
-                          {brl(Number(inv.amount))}
-                        </span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <section className="page-section space-y-4 p-0 overflow-hidden">
+          <div className="flex flex-wrap items-center justify-between gap-3 px-5 pt-5 sm:px-6 sm:pt-6">
+            <div>
+              <h2 className="text-base font-medium">Faturas emitidas</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Referências, vencimentos, status e valores do período.</p>
+            </div>
+            <Badge variant="secondary">{filtered.length} registros</Badge>
+          </div>
+          {loading ? (
+            <div className="px-5 pb-5 sm:px-6 sm:pb-6"><LoadingState /></div>
+          ) : (
+            <BentoDataTable
+              rows={filtered}
+              getRowKey={(invoice) => invoice.id}
+              empty={<EmptyState icon={<Receipt className="h-8 w-8" />} title="Nenhuma fatura encontrada" description="Ajuste os filtros ou crie uma nova fatura." />}
+              className="rounded-none border-x-0 border-b-0"
+              columns={[
+                {
+                  key: "reference",
+                  label: "Referência",
+                  render: (invoice) => <span className="block max-w-[210px] truncate font-medium">{invoice.number || `Fatura ${invoice.id.slice(0, 8)}`}</span>,
+                },
+                {
+                  key: "client",
+                  label: "Cliente",
+                  render: (invoice) => <span className="block max-w-[190px] truncate text-sm text-muted-foreground">{clientName(invoice.company_id)}</span>,
+                },
+                {
+                  key: "due",
+                  label: "Vencimento",
+                  render: (invoice) => <span className="whitespace-nowrap text-sm text-muted-foreground">{fmt(invoice.due_date)}</span>,
+                },
+                {
+                  key: "status",
+                  label: "Status",
+                  render: (invoice) => { const meta = statusMeta[invoice.status] ?? { label: invoice.status, className: "" }; return <Badge className={meta.className}>{meta.label}</Badge>; },
+                },
+                {
+                  key: "value",
+                  label: "Valor",
+                  className: "text-right font-medium tabular-nums",
+                  headerClassName: "text-right",
+                  render: (invoice) => <span className="whitespace-nowrap">{brl(Number(invoice.amount))}</span>,
+                },
+              ]}
+              actions={(invoice) => (
+                <RowActions
+                  primaryLabel="Abrir fatura"
+                  primaryIcon={Eye}
+                  onPrimary={() => setSelected(invoice)}
+                  menuItems={[
+                    { label: "Abrir fatura", icon: ExternalLink, onSelect: () => setSelected(invoice) },
+                    ...(!isClientView && invoice.status !== "paid" ? [{ label: "Registrar pagamento", icon: CheckCircle2, onSelect: () => void registerPaymentFromInvoice(invoice) }] : []),
+                    ...(!isClientView ? [{ label: "Remover fatura", icon: Trash2, destructive: true, separatorBefore: true, onSelect: () => removeInvoice(invoice) }] : []),
+                  ]}
+                />
+              )}
+            />
+          )}
+        </section>
       </PageShell>
 
       <DetailSheet

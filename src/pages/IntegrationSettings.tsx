@@ -48,6 +48,7 @@ import { cn } from "@/lib/utils";
 import { useData } from "@/contexts/DataContext";
 import { getIntegrationCatalogItem } from "@/lib/integrationCatalog";
 import { BentoStatStrip } from "@/components/dashboard/BentoStatStrip";
+import { IconTooltipButton } from "@/components/IconTooltipButton";
 import type { Json } from "@/integrations/supabase/types";
 import { getConnectionHealthLabel, readCredentialMetadata } from "@/services/integrations/integrationConnections";
 import { revokeIntegrationCredentials, storeIntegrationCredential } from "@/services/integrations/integrationCredentials";
@@ -347,16 +348,7 @@ const IntegrationSettings = () => {
       <div className="space-y-6">
         {/* Header */}
         <div className="page-header flex items-center gap-4 animate-fade-in">
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Voltar para integrações"
-            title="Voltar para integrações"
-            onClick={() => navigate("/integrations")}
-            className="rounded-xl"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
+          <IconTooltipButton icon={ArrowLeft} label="Voltar para integrações" onClick={() => navigate("/integrations")} />
           <div className="flex-1">
             <h1 className="text-[28px] font-normal tracking-[-0.035em]">
               {integration.name}

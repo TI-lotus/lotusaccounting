@@ -164,12 +164,8 @@
 }
 
 @layer components {
-  :root:not(.dark) [data-slot="button"] {
-    border: 1px solid hsl(var(--border) / 0.9);
-  }
-
-  :root:not(.dark) [data-slot="button"].border-0 {
-    border-width: 0;
+  :root:not(.dark) [data-slot="button"][data-variant="outline"] {
+    border-color: hsl(var(--border) / 0.9);
   }
 
   .glass {

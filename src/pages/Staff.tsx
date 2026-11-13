@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database, Json } from "@/integrations/supabase/types";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
-import { Building2, CheckSquare, Copy, Grid2X2, List, Mail, Pencil, Plus, Search, Shield, ShieldAlert, ShieldCheck, UserCog, UserPlus } from "lucide-react";
+import { Building2, CheckSquare, Copy, Grid2X2, List, Mail, Pencil, Plus, Search, Shield, ShieldAlert, ShieldCheck, UserCog, UserPlus, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -33,6 +33,7 @@ import { useData } from "@/contexts/DataContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { BentoStatStrip } from "@/components/dashboard/BentoStatStrip";
 import { IconTooltipButton } from "@/components/IconTooltipButton";
+import { RowActions } from "@/components/RowActions";
 
 type ProfileRow = Pick<Database["public"]["Tables"]["profiles"]["Row"], "id" | "user_id" | "full_name" | "phone" | "job_title" | "avatar_url" | "account_type" | "company_id" | "status" | "created_at">;
 type InviteRow = Pick<Database["public"]["Tables"]["invites"]["Row"], "id" | "email" | "full_name" | "account_type" | "company_id" | "token" | "status" | "expires_at" | "created_at">;
@@ -545,31 +546,18 @@ const Staff = () => {
                         </div>
                       </button>
 
-                      <div className={cn("flex flex-wrap gap-2", peopleViewMode === "list" && "md:justify-end")}>
-                        <Button variant="outline" size="sm" className="flex-1 rounded-xl gap-1.5" onClick={(event) => { event.stopPropagation(); setSelectedMember(member); setAssignDialogOpen(true); }}>
-                          <CheckSquare className="h-3.5 w-3.5" />Tarefas
-                        </Button>
-                        {member.user_id !== profile?.user_id && profile?.account_type === "admin" && (
-                          <Button variant="outline" size="sm" className="flex-1 rounded-xl gap-1.5" onClick={(event) => { event.stopPropagation(); setSelectedMember(member); setClientAssignmentOpen(true); }}>
-                            <Building2 className="h-3.5 w-3.5" />Clientes
-                          </Button>
-                        )}
-                        {member.user_id !== profile?.user_id && profile?.account_type === "admin" && (
-                          <Button variant="outline" size="sm" className="flex-1 rounded-xl gap-1.5" onClick={(event) => { event.stopPropagation(); openMemberEditor(member); }}>
-                            <Pencil className="h-3.5 w-3.5" />Editar
-                          </Button>
-                        )}
-                        {member.user_id !== profile?.user_id && profile?.account_type === "admin" && (
-                          <Button variant="outline" size="sm" className="flex-1 rounded-xl" onClick={(event) => { event.stopPropagation(); openAccessEditor(member); }}>
-                            Acesso
-                          </Button>
-                        )}
-                        {member.user_id !== profile?.user_id && (
-                          <Button variant={member.status === "active" ? "outline" : "default"} size="sm" className="flex-1 rounded-xl gap-1.5" onClick={(event) => { event.stopPropagation(); void toggleStatus(member); }}>
-                            <ShieldAlert className="h-3.5 w-3.5" />
-                            {member.status === "active" ? "Desativar" : "Ativar"}
-                          </Button>
-                        )}
+                      <div className="flex justify-end border-t border-border/70 pt-3">
+                        <RowActions
+                          primaryLabel={`Abrir detalhes de ${name}`}
+                          primaryIcon={Eye}
+                          onPrimary={() => setDetailMember(member)}
+                          menuItems={[
+                            { label: "Atribuir tarefas", icon: CheckSquare, onSelect: () => { setSelectedMember(member); setAssignDialogOpen(true); } },
+                            ...(member.user_id !== profile?.user_id && profile?.account_type === "admin" ? [{ label: "Atribuir clientes", icon: Building2, onSelect: () => { setSelectedMember(member); setClientAssignmentOpen(true); } }] : []),
+                            ...(member.user_id !== profile?.user_id && profile?.account_type === "admin" ? [{ label: "Editar colaborador", icon: Pencil, onSelect: () => openMemberEditor(member) }, { label: "Editar acesso", icon: Shield, onSelect: () => openAccessEditor(member) }] : []),
+                            ...(member.user_id !== profile?.user_id ? [{ label: member.status === "active" ? "Desativar acesso" : "Ativar acesso", icon: ShieldAlert, onSelect: () => void toggleStatus(member) }] : []),
+                          ]}
+                        />
                       </div>
                     </div>
                   );

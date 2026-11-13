@@ -1,11 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CheckCircle2, AlertCircle, RefreshCw, XCircle } from "lucide-react";
+import { CheckCircle2, AlertCircle, RefreshCw, XCircle, ArrowUp, ArrowDown, Eye, ExternalLink, RotateCcw } from "lucide-react";
 import { BentoStatStrip } from "@/components/dashboard/BentoStatStrip";
+import { BentoDataTable } from "@/components/BentoDataTable";
+import { RowActions } from "@/components/RowActions";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useData } from "@/contexts/DataContext";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -28,6 +32,7 @@ const isIncome = (direction: string | null) =>
   direction === "entrada" || direction === "income";
 
 const Reconciliation = () => {
+  const navigate = useNavigate();
   const { payments, updatePayment } = useData();
   const { integrationConnections } = useData();
   const { user } = useAuth();
@@ -36,6 +41,7 @@ const Reconciliation = () => {
   const [matches, setMatches] = useState<ReconciliationMatch[]>([]);
   const [loadingBank, setLoadingBank] = useState(false);
   const [selectedConnection, setSelectedConnection] = useState("");
+  const [selectedPayment, setSelectedPayment] = useState<(typeof payments)[number] | null>(null);
 
   const interConnections = useMemo(
     () => integrationConnections.filter((connection) => connection.provider === "inter" || connection.integration_id === "inter"),
@@ -217,59 +223,79 @@ const Reconciliation = () => {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Lançamentos</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {payments.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">
-                Nenhum lançamento a conciliar
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {payments.map((p) => {
-                  const ok = !!p.reconciled_at;
-                  return (
-                    <div
-                      key={p.id}
-                      className="flex items-center justify-between p-3 rounded-xl hover:bg-accent/50 transition-colors"
-                    >
-                      <div>
-                        <p className="text-sm font-medium">
-                          {p.description || "Sem descrição"}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {fmt(p.paid_at ?? p.due_date)} •{" "}
-                          {isIncome(p.direction) ? "Entrada" : "Saída"}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-sm font-semibold">
-                          {brl(Number(p.amount))}
-                        </span>
-                        {ok && (
-                          <Badge className="bg-emerald-500 hover:bg-emerald-500 text-white">
-                            Conciliado
-                          </Badge>
-                        )}
-                        <Button
-                          size="sm"
-                          variant={ok ? "outline" : "default"}
-                          className="rounded-xl"
-                          onClick={() => toggle(p.id)}
-                        >
-                          {ok ? "Desfazer" : "Conciliar"}
-                        </Button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <section className="page-section animate-fade-in space-y-4">
+          <div>
+            <h2 className="text-base font-medium">Lançamentos</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Compare recebimentos com as transações importadas.</p>
+          </div>
+          <BentoDataTable
+            rows={payments}
+            getRowKey={(payment) => payment.id}
+            empty="Nenhum lançamento a conciliar."
+            columns={[
+              {
+                key: "reference",
+                label: "Referência",
+                render: (payment) => <span className="block max-w-[240px] truncate font-medium">{payment.description || "Sem descrição"}</span>,
+              },
+              {
+                key: "date",
+                label: "Data",
+                render: (payment) => <span className="whitespace-nowrap text-sm text-muted-foreground">{fmt(payment.paid_at ?? payment.due_date)}</span>,
+              },
+              {
+                key: "type",
+                label: "Tipo",
+                render: (payment) => { const income = isIncome(payment.direction); const Icon = income ? ArrowUp : ArrowDown; return <span className={income ? "inline-flex items-center gap-2 text-emerald-600 dark:text-emerald-400" : "inline-flex items-center gap-2 text-red-600 dark:text-red-400"}><Icon className="h-4 w-4" aria-hidden="true" />{income ? "Receita" : "Despesa"}</span>; },
+              },
+              {
+                key: "value",
+                label: "Valor",
+                className: "text-right font-medium tabular-nums",
+                headerClassName: "text-right",
+                render: (payment) => <span className="whitespace-nowrap">{brl(Number(payment.amount))}</span>,
+              },
+              {
+                key: "status",
+                label: "Status",
+                render: (payment) => payment.reconciled_at ? <Badge className="bg-emerald-500 text-white hover:bg-emerald-500">Conciliado</Badge> : <Badge variant="secondary">Pendente</Badge>,
+              },
+            ]}
+            actions={(payment) => {
+              const reconciled = Boolean(payment.reconciled_at);
+              return (
+                <RowActions
+                  primaryLabel={reconciled ? "Desfazer conciliação" : "Conciliar lançamento"}
+                  primaryIcon={reconciled ? RotateCcw : CheckCircle2}
+                  onPrimary={() => void toggle(payment.id)}
+                  menuItems={[
+                    { label: "Ver detalhes", icon: Eye, onSelect: () => setSelectedPayment(payment) },
+                    { label: "Abrir pagamentos", icon: ExternalLink, onSelect: () => navigate("/payments") },
+                  ]}
+                />
+              );
+            }}
+          />
+        </section>
       </div>
+      <Dialog open={Boolean(selectedPayment)} onOpenChange={(open) => !open && setSelectedPayment(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{selectedPayment?.description || "Lançamento"}</DialogTitle>
+            <DialogDescription>Detalhes da conciliação.</DialogDescription>
+          </DialogHeader>
+          {selectedPayment && (
+            <dl className="grid grid-cols-2 gap-4 rounded-2xl border border-border/70 bg-secondary/35 p-4 text-sm">
+              <div><dt className="text-xs text-muted-foreground">Referência</dt><dd className="mt-1 break-words font-medium">{selectedPayment.description || "Sem descrição"}</dd></div>
+              <div><dt className="text-xs text-muted-foreground">Valor</dt><dd className="mt-1 font-medium tabular-nums">{brl(Number(selectedPayment.amount))}</dd></div>
+              <div><dt className="text-xs text-muted-foreground">Data</dt><dd className="mt-1">{fmt(selectedPayment.paid_at ?? selectedPayment.due_date)}</dd></div>
+              <div><dt className="text-xs text-muted-foreground">Tipo</dt><dd className="mt-1">{isIncome(selectedPayment.direction) ? "Receita" : "Despesa"}</dd></div>
+              <div><dt className="text-xs text-muted-foreground">Status</dt><dd className="mt-1">{selectedPayment.reconciled_at ? "Conciliado" : "Pendente"}</dd></div>
+            </dl>
+          )}
+          <DialogFooter><Button variant="ghost" className="border-0" onClick={() => setSelectedPayment(null)}>Fechar</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 };

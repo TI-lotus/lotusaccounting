@@ -46,6 +46,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { BentoStatStrip } from "@/components/dashboard/BentoStatStrip";
+import { IconTooltipButton } from "@/components/IconTooltipButton";
 
 type ClientActivity = Pick<
   Database["public"]["Tables"]["activity_logs"]["Row"],
@@ -507,16 +508,7 @@ const ClientDetail = () => {
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4 animate-fade-in">
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Voltar para clientes"
-            title="Voltar para clientes"
-            onClick={() => navigate("/clients")}
-            className="rounded-xl"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
+          <IconTooltipButton icon={ArrowLeft} label="Voltar para clientes" onClick={() => navigate("/clients")} />
           <div className="flex-1">
             <h1 className="text-[28px] font-normal tracking-[-0.035em]">
               {client.name}

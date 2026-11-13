@@ -1,19 +1,23 @@
 import { useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  ArrowDownCircle,
-  ArrowUpCircle,
+  ArrowDown,
+  ArrowUp,
   Wallet,
   AlertTriangle,
   Receipt,
-  TrendingUp,
+  DollarSign,
+  ExternalLink,
 } from "lucide-react";
 import { useData } from "@/contexts/DataContext";
 import { RevenueChart } from "@/components/dashboard/RevenueChart";
 import { BentoStatStrip } from "@/components/dashboard/BentoStatStrip";
+import { BentoDataTable } from "@/components/BentoDataTable";
+import { RowActions } from "@/components/RowActions";
 import { contractedMonthlyFees } from "@/lib/financialMetrics";
+import { cn } from "@/lib/utils";
 
 const brl = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -22,6 +26,7 @@ const isIncome = (direction: string | null) =>
 
 const Finance = () => {
   const { payments, invoices, clients } = useData();
+  const navigate = useNavigate();
 
   const kpi = useMemo(() => {
     const income = payments
@@ -39,36 +44,83 @@ const Finance = () => {
     return { income, expense, profit: income - expense, pending, overdue, contractedFees: contractedMonthlyFees(clients) };
   }, [payments, invoices, clients]);
 
+  const trends = useMemo(() => {
+    const monthly = (predicate: (payment: (typeof payments)[number]) => boolean) =>
+      Array.from({ length: 6 }, (_, index) => {
+        const reference = new Date();
+        reference.setDate(1);
+        reference.setMonth(reference.getMonth() - (5 - index));
+        return payments
+          .filter((payment) => {
+            if (!predicate(payment)) return false;
+            const date = payment.paid_at ?? payment.created_at;
+            if (!date) return false;
+            const parsed = new Date(date);
+            return parsed.getFullYear() === reference.getFullYear() && parsed.getMonth() === reference.getMonth();
+          })
+          .reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+      });
+    const income = monthly((payment) => isIncome(payment.direction) && payment.status === "completed");
+    const expense = monthly((payment) => !isIncome(payment.direction) && payment.status === "completed");
+    return {
+      contracted: [kpi.contractedFees],
+      income,
+      expense,
+      profit: income.map((value, index) => value - expense[index]),
+      pending: monthly((payment) => payment.status === "pending"),
+      overdue: Array.from({ length: 6 }, (_, index) => {
+        const reference = new Date();
+        reference.setDate(1);
+        reference.setMonth(reference.getMonth() - (5 - index));
+        return invoices
+          .filter((invoice) => invoice.status === "overdue")
+          .filter((invoice) => {
+            const date = invoice.due_date ?? invoice.issued_at;
+            if (!date) return false;
+            const parsed = new Date(date);
+            return parsed.getFullYear() === reference.getFullYear() && parsed.getMonth() === reference.getMonth();
+          })
+          .reduce((sum, invoice) => sum + Number(invoice.amount || 0), 0);
+      }),
+    };
+  }, [invoices, kpi.contractedFees, payments]);
+
   const cards = [
     {
       label: "Honorários mensais contratados",
       value: brl(kpi.contractedFees),
       icon: Receipt,
+      trend: trends.contracted,
     },
     {
       label: "Receitas",
       value: brl(kpi.income),
-      icon: ArrowUpCircle,
+      icon: ArrowUp,
+      trend: trends.income,
     },
     {
       label: "Despesas",
       value: brl(kpi.expense),
-      icon: ArrowDownCircle,
+      icon: ArrowDown,
+      trend: trends.expense,
     },
     {
       label: "Lucro",
       value: brl(kpi.profit),
-      icon: TrendingUp,
+      icon: DollarSign,
+      trend: trends.profit,
     },
     {
       label: "A receber",
       value: brl(kpi.pending),
       icon: Wallet,
+      trend: trends.pending,
     },
     {
       label: "Em atraso",
       value: brl(kpi.overdue),
       icon: AlertTriangle,
+      trend: trends.overdue,
     },
   ];
 
@@ -88,68 +140,72 @@ const Finance = () => {
             label: card.label,
             value: card.value,
             icon: card.icon,
+            trend: card.trend,
           }))}
         />
 
         <RevenueChart />
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Últimos lançamentos</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {payments.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">
-                Nenhum lançamento registrado
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {payments.slice(0, 10).map((p) => (
-                  <div
-                    key={p.id}
-                    className="flex items-center justify-between p-3 rounded-xl hover:bg-accent/50 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      {isIncome(p.direction) ? (
-                        <ArrowUpCircle className="h-4 w-4 text-emerald-600" />
-                      ) : (
-                        <ArrowDownCircle className="h-4 w-4 text-red-600" />
-                      )}
-                      <div>
-                        <p className="text-sm font-medium">
-                          {p.description || "Sem descrição"}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {p.category || "Sem categoria"}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Badge
-                        variant={
-                          p.status === "completed" ? "default" : "secondary"
-                        }
-                        className={
-                          p.status === "completed"
-                            ? "bg-emerald-500 hover:bg-emerald-500"
-                            : ""
-                        }
-                      >
-                        {p.status === "completed" ? "Concluído" : "Pendente"}
-                      </Badge>
-                      <span
-                        className={`text-sm font-semibold ${isIncome(p.direction) ? "text-emerald-600" : "text-red-600"}`}
-                      >
-                        {isIncome(p.direction) ? "+" : "-"}{" "}
-                        {brl(Number(p.amount))}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
+        <section className="page-section animate-fade-in space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-base font-medium">Últimos lançamentos</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Movimentações recentes do financeiro.</p>
+            </div>
+            <Badge variant="secondary">{payments.length} registros</Badge>
+          </div>
+          <BentoDataTable
+            rows={payments.slice(0, 10)}
+            getRowKey={(payment) => payment.id}
+            empty="Nenhum lançamento registrado."
+            columns={[
+              {
+                key: "reference",
+                label: "Referência",
+                render: (payment) => <span className="block max-w-[230px] truncate font-medium">{payment.description || "Sem descrição"}</span>,
+              },
+              {
+                key: "category",
+                label: "Categoria",
+                render: (payment) => <span className="text-sm text-muted-foreground">{payment.category || "Sem categoria"}</span>,
+              },
+              {
+                key: "date",
+                label: "Data",
+                render: (payment) => <span className="whitespace-nowrap text-sm text-muted-foreground">{new Date(payment.paid_at ?? payment.due_date ?? payment.created_at).toLocaleDateString("pt-BR")}</span>,
+              },
+              {
+                key: "type",
+                label: "Tipo",
+                render: (payment) => {
+                  const income = isIncome(payment.direction);
+                  const Icon = income ? ArrowUp : ArrowDown;
+                  return <span className={cn("inline-flex items-center gap-2 text-sm", income ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400")}><Icon className="h-4 w-4" aria-hidden="true" />{income ? "Receita" : "Despesa"}</span>;
+                },
+              },
+              {
+                key: "value",
+                label: "Valor",
+                className: "text-right font-medium tabular-nums",
+                headerClassName: "text-right",
+                render: (payment) => <span className={cn("whitespace-nowrap", isIncome(payment.direction) ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400")}>{isIncome(payment.direction) ? "+" : "-"} {brl(Number(payment.amount))}</span>,
+              },
+              {
+                key: "status",
+                label: "Status",
+                render: (payment) => <Badge variant={payment.status === "completed" ? "default" : "secondary"}>{payment.status === "completed" ? "Concluído" : "Pendente"}</Badge>,
+              },
+            ]}
+            actions={() => (
+              <RowActions
+                primaryLabel="Abrir pagamentos"
+                primaryIcon={ExternalLink}
+                onPrimary={() => navigate("/payments")}
+                menuItems={[{ label: "Abrir pagamentos", icon: ExternalLink, onSelect: () => navigate("/payments") }]}
+              />
             )}
-          </CardContent>
-        </Card>
+          />
+        </section>
       </div>
     </DashboardLayout>
   );

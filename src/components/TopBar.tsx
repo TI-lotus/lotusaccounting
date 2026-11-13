@@ -623,7 +623,7 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
                 size="icon"
                 aria-label="Mensagens"
                 title="Mensagens"
-                className={cn("h-8 w-8 rounded-full", theme === "dark" ? "text-white hover:bg-white/15 hover:text-white" : "text-foreground hover:bg-black/5")}
+                className={cn("h-8 w-8 rounded-full border-0", theme === "dark" ? "text-white hover:bg-white/15 hover:text-white" : "text-foreground hover:bg-black/5")}
                 onClick={() => navigate("/messages")}
               >
                 <MessageSquare className="h-4 w-4" aria-hidden="true" />
@@ -640,7 +640,7 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
                     size="icon"
                     aria-label="Notificações"
                     title="Notificações"
-                    className={cn("relative h-8 w-8 rounded-full", theme === "dark" ? "text-white hover:bg-white/15 hover:text-white" : "text-foreground hover:bg-black/5")}
+                    className={cn("relative h-8 w-8 rounded-full border-0", theme === "dark" ? "text-white hover:bg-white/15 hover:text-white" : "text-foreground hover:bg-black/5")}
                   >
                     <Bell className="h-4 w-4" aria-hidden="true" />
                     {unreadCount > 0 && (

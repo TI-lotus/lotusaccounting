@@ -9,7 +9,8 @@ import {
   ResponsiveContainer,
   ReferenceLine,
 } from "recharts";
-import { Button } from "@/components/ui/button";
+import { ArrowDown, ArrowUp, DollarSign } from "lucide-react";
+import { IconTooltipButton } from "@/components/IconTooltipButton";
 import { cn } from "@/lib/utils";
 import { useData } from "@/contexts/DataContext";
 import { monthlyCashflow, type DateRange } from "@/lib/financialMetrics";
@@ -18,6 +19,12 @@ import type { Database } from "@/integrations/supabase/types";
 type PaymentRow = Database["public"]["Tables"]["payments"]["Row"];
 
 type Mode = "revenue" | "expenses" | "profit";
+
+const modeIcons = {
+  revenue: ArrowUp,
+  expenses: ArrowDown,
+  profit: DollarSign,
+} satisfies Record<Mode, typeof ArrowUp>;
 
 interface RevenueChartProps {
   className?: string;
@@ -71,17 +78,17 @@ export const RevenueChart = ({ className, dateRange, payments: providedPayments 
             {modeLabels[mode]} mensal · média {formatBRL(average)}
           </p>
         </div>
-        <div className="flex rounded-xl border border-border bg-card p-1">
+        <div className="flex rounded-full border border-border/70 bg-card p-1">
           {(Object.keys(modeLabels) as Mode[]).map((m) => (
-            <Button
+            <IconTooltipButton
               key={m}
+              icon={modeIcons[m]}
+              label={modeLabels[m]}
               variant={mode === m ? "default" : "ghost"}
-              size="sm"
-              className="rounded-lg"
+              className="rounded-full"
+              aria-pressed={mode === m}
               onClick={() => setMode(m)}
-            >
-              {modeLabels[m]}
-            </Button>
+            />
           ))}
         </div>
       </div>

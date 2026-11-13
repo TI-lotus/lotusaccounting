@@ -30,9 +30,9 @@ export const FilterPopover = ({
         <PopoverTrigger asChild>
           <Button
             type="button"
-            variant="outline"
+            variant="ghost"
             size="icon"
-            className={cn("relative h-9 w-9 rounded-full", className)}
+            className={cn("relative h-9 w-9 rounded-full border-0", className)}
             aria-label="Abrir filtros"
             title="Filtros"
           >
@@ -45,7 +45,7 @@ export const FilterPopover = ({
           </Button>
         </PopoverTrigger>
       </TooltipTrigger>
-      <TooltipContent side="bottom" sideOffset={8} className="judex-floating sidebar-tooltip">Filtros</TooltipContent>
+      <TooltipContent side="top" sideOffset={8} className="judex-floating sidebar-tooltip">Filtros</TooltipContent>
     </Tooltip>
     <PopoverContent
       align="end"

@@ -23,7 +23,7 @@ export const ThemeToggle = ({ className }: ThemeToggleProps) => {
           aria-label={label}
           title={label}
           className={cn(
-            "relative h-8 w-8 rounded-full transition-[background-color,color,transform] duration-200",
+            "relative h-8 w-8 rounded-full border-0 transition-[background-color,color,transform] duration-200",
             "hover:bg-accent",
             className,
           )}

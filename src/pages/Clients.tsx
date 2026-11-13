@@ -461,7 +461,7 @@ const Clients = () => {
                   <div><p className="font-semibold text-sm">R$ {client.serviceFee.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p><p className="text-[10px] text-muted-foreground">{client.city}/{client.state}</p></div>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button aria-label={`Ações de ${client.name}`} title={`Ações de ${client.name}`} variant="ghost" size="icon" className="rounded-lg" onClick={(event) => event.stopPropagation()}>
+                    <Button aria-label={`Ações de ${client.name}`} title={`Ações de ${client.name}`} variant="ghost" size="icon" className="h-8 w-8 rounded-full border-0" onClick={(event) => event.stopPropagation()}>
                       <MoreHorizontal className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>

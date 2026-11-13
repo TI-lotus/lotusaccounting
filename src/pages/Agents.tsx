@@ -651,7 +651,7 @@ export default function Agents() {
           </TabsList>
 
           <TabsContent value="agents" className="space-y-6 mt-6">
-            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+            <div className="rounded-2xl border border-gilver/30 bg-gilver/10 px-4 py-3 text-sm text-foreground">
               A biblioteca de agentes é uma camada de configuração visual. Ativações e execuções reais dependem de providers e jobs conectados; alterações nesta tela ficam apenas nesta sessão.
             </div>
             <div className="flex justify-end">
@@ -680,12 +680,12 @@ export default function Agents() {
                   <h2 className="text-lg font-medium">
                     {categoryLabels[category]}
                   </h2>
-                  <div
+                    <div
                     className={cn(
-                      "grid gap-4",
+                      "overflow-hidden rounded-2xl border border-border/70 bg-border/70 gap-px",
                       agentView === "grid"
-                        ? "md:grid-cols-2 lg:grid-cols-3"
-                        : "grid-cols-1",
+                        ? "grid md:grid-cols-2 lg:grid-cols-3"
+                        : "divide-y divide-border/70",
                     )}
                   >
                     {groupedAgents[category].map((agent) => {
@@ -698,7 +698,7 @@ export default function Agents() {
                         <Card
                           key={agent.id}
                           className={cn(
-                            "transition-[background-color,border-color,box-shadow] duration-200",
+                            "rounded-none border-0 transition-[background-color,border-color,box-shadow] duration-200",
                             agent.enabled
                               ? "border-primary/20 bg-card"
                               : "border-border bg-muted/30",
