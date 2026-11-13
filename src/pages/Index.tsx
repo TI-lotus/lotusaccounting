@@ -10,6 +10,7 @@ import { useUserProfile } from "@/contexts/UserProfileContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -25,11 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { FilterPopover } from "@/components/FilterPopover";
 import { toast } from "sonner";
 import {
   DollarSign,
@@ -44,7 +41,6 @@ import {
   Plus,
   CalendarClock,
   Upload,
-  SlidersHorizontal,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -1329,59 +1325,53 @@ const Index = () => {
               {metricPeriods.find((item) => item.value === dashboardPeriod)?.label} · {dashboardClientId === "all" ? "Todos os clientes" : clients.find((client) => client.id === dashboardClientId)?.name ?? "Cliente selecionado"}
             </p>
           </div>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" className="shrink-0 rounded-xl gap-2">
-                <SlidersHorizontal className="h-4 w-4" />
-                Ajustar filtros
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent align="end" className="w-[min(360px,calc(100vw-2rem))] rounded-2xl p-4">
-              <div className="space-y-4">
-                <div>
-                  <p className="text-sm font-medium">Filtros do painel</p>
-                  <p className="mt-1 text-xs text-muted-foreground">Atualize o período e a carteira analisada.</p>
-                </div>
-                <div className="space-y-2">
-                  <p className="text-xs font-medium text-muted-foreground">Período</p>
-                  <Select
-                    value={dashboardPeriod}
-                    onValueChange={(value: MetricPeriod) => setDashboardPeriod(value)}
-                  >
-                    <SelectTrigger className="h-10 w-full rounded-xl">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {metricPeriods.map((period) => (
-                        <SelectItem key={period.value} value={period.value}>
-                          {period.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <p className="text-xs font-medium text-muted-foreground">Cliente</p>
-                  <Select
-                    value={dashboardClientId}
-                    onValueChange={setDashboardClientId}
-                  >
-                    <SelectTrigger className="h-10 w-full rounded-xl">
-                      <SelectValue placeholder="Todos os clientes" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos os clientes</SelectItem>
-                      {clients.map((client) => (
-                        <SelectItem key={client.id} value={client.id}>
-                          {client.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
+          <FilterPopover
+            title="Filtros do painel"
+            description="Atualize o período e a carteira analisada."
+            activeCount={[dashboardPeriod !== "month", dashboardClientId !== "all"].filter(Boolean).length}
+            onClear={() => {
+              setDashboardPeriod("month");
+              setDashboardClientId("all");
+            }}
+          >
+            <div className="space-y-1.5">
+              <Label htmlFor="dashboard-period">Período</Label>
+              <Select
+                value={dashboardPeriod}
+                onValueChange={(value: MetricPeriod) => setDashboardPeriod(value)}
+              >
+                <SelectTrigger id="dashboard-period" className="h-10 w-full rounded-xl">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {metricPeriods.map((period) => (
+                    <SelectItem key={period.value} value={period.value}>
+                      {period.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="dashboard-client">Cliente</Label>
+              <Select
+                value={dashboardClientId}
+                onValueChange={setDashboardClientId}
+              >
+                <SelectTrigger id="dashboard-client" className="h-10 w-full rounded-xl">
+                  <SelectValue placeholder="Todos os clientes" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os clientes</SelectItem>
+                  {clients.map((client) => (
+                    <SelectItem key={client.id} value={client.id}>
+                      {client.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </FilterPopover>
         </div>
 
         {clients.length === 0 && (
@@ -1607,6 +1597,7 @@ const Index = () => {
                 >
                   <Checkbox
                     checked={task.status === "completed"}
+                    aria-label={`Marcar tarefa ${task.title} como ${task.status === "completed" ? "pendente" : "concluída"}`}
                     onCheckedChange={(checked) =>
                       updateTaskStatus(
                         task.id,
