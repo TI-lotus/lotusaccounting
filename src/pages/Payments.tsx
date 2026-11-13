@@ -46,6 +46,7 @@ import { IconTooltipButton } from "@/components/IconTooltipButton";
 import { SortToggle } from "@/components/SortToggle";
 import { BentoDataTable } from "@/components/BentoDataTable";
 import { RowActions } from "@/components/RowActions";
+import { MultiSelectFilter } from "@/components/MultiSelectFilter";
 
 interface Payment {
   id: string;
@@ -82,7 +83,7 @@ const currentQuarterRange = () => {
   };
 };
 
-type PaymentStatusFilter = "all" | "completed" | "pending";
+type PaymentStatusFilter = "completed" | "pending";
 type PaymentDateFilter = "all" | "month" | "quarter" | "custom";
 
 const Payments = () => {
@@ -98,10 +99,8 @@ const Payments = () => {
   } = useData();
   const [valueSort, setValueSort] = useState<"none" | "asc" | "desc">("none");
   const [dateSort, setDateSort] = useState<"newest" | "oldest">("newest");
-  const [typeFilter, setTypeFilter] = useState<"all" | "income" | "expense">(
-    "all",
-  );
-  const [statusFilter, setStatusFilter] = useState<PaymentStatusFilter>("all");
+  const [typeFilters, setTypeFilters] = useState<Payment["type"][]>([]);
+  const [statusFilters, setStatusFilters] = useState<PaymentStatusFilter[]>([]);
   const [dateFilter, setDateFilter] = useState<PaymentDateFilter>("all");
   const [view, setView] = useState<"list" | "calendar" | "timeline">("list");
   const [dateRange, setDateRange] = useState(currentMonthRange);
@@ -158,8 +157,8 @@ const Payments = () => {
   }, [clients, paymentRows]);
 
   const filteredPayments = payments
-    .filter((p) => typeFilter === "all" || p.type === typeFilter)
-    .filter((p) => statusFilter === "all" || p.status === statusFilter)
+    .filter((p) => typeFilters.length === 0 || typeFilters.includes(p.type))
+    .filter((p) => statusFilters.length === 0 || statusFilters.includes(p.status))
     .filter((p) => {
       if (dateFilter === "all") return true;
       if (!p.rawDate) return false;
@@ -251,37 +250,35 @@ const Payments = () => {
       <FilterPopover
         title="Filtrar e ordenar pagamentos"
         description="Combine tipo, status, período e ordenação em um único controle."
-        activeCount={[typeFilter !== "all", statusFilter !== "all", dateFilter !== "all", valueSort !== "none", dateSort !== "newest"].filter(Boolean).length}
+        activeCount={[typeFilters.length > 0, statusFilters.length > 0, dateFilter !== "all", valueSort !== "none", dateSort !== "newest"].filter(Boolean).length}
         onClear={() => {
-          setTypeFilter("all");
-          setStatusFilter("all");
+          setTypeFilters([]);
+          setStatusFilters([]);
           handleDateFilterChange("all");
           setValueSort("none");
           setDateSort("newest");
         }}
       >
-        <div className="space-y-1.5">
-          <Label htmlFor="payment-type-filter">Tipo</Label>
-          <Select value={typeFilter} onValueChange={(value: typeof typeFilter) => setTypeFilter(value)}>
-            <SelectTrigger id="payment-type-filter" className="w-full rounded-xl"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Entradas e saídas</SelectItem>
-              <SelectItem value="income">Entradas</SelectItem>
-              <SelectItem value="expense">Saídas</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="payment-status-filter">Status</Label>
-          <Select value={statusFilter} onValueChange={(value: PaymentStatusFilter) => setStatusFilter(value)}>
-            <SelectTrigger id="payment-status-filter" className="w-full rounded-xl"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os status</SelectItem>
-              <SelectItem value="completed">Concluídos</SelectItem>
-              <SelectItem value="pending">Pendentes</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <MultiSelectFilter
+          label="Tipo"
+          emptyLabel="Entradas e saídas"
+          options={[
+            { value: "income", label: "Entradas" },
+            { value: "expense", label: "Saídas" },
+          ]}
+          value={typeFilters}
+          onChange={(value) => setTypeFilters(value as Payment["type"][])}
+        />
+        <MultiSelectFilter
+          label="Status"
+          emptyLabel="Todos os status"
+          options={[
+            { value: "completed", label: "Concluídos" },
+            { value: "pending", label: "Pendentes" },
+          ]}
+          value={statusFilters}
+          onChange={(value) => setStatusFilters(value as PaymentStatusFilter[])}
+        />
         <div className="space-y-1.5">
           <Label htmlFor="payment-date-filter">Período</Label>
           <Select value={dateFilter} onValueChange={(value: PaymentDateFilter) => handleDateFilterChange(value)}>
@@ -578,6 +575,7 @@ const Payments = () => {
                 {
                   key: "date",
                   label: "Data",
+                  sortValue: (payment) => payment.rawDate ? new Date(payment.rawDate) : null,
                   render: (payment) => <span className="whitespace-nowrap text-sm text-muted-foreground">{payment.date}</span>,
                 },
                 {
@@ -593,6 +591,7 @@ const Payments = () => {
                 {
                   key: "value",
                   label: "Valor",
+                  sortValue: (payment) => payment.amount,
                   className: "text-right font-medium tabular-nums",
                   headerClassName: "text-right",
                   render: (payment) => <span className={cn("whitespace-nowrap", payment.type === "income" ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400")}>{payment.type === "income" ? "+" : "-"} {payment.amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>,

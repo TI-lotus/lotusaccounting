@@ -1140,7 +1140,7 @@ const ClientDetail = () => {
 
           <TabsContent value="financial" className="mt-6 space-y-4">
             <BentoStatStrip
-              className="animate-fade-in xl:grid-cols-3"
+              className="animate-fade-in"
               items={[
                 {
                   label: "Honorários mensais",

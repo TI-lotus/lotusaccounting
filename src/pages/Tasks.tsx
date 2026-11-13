@@ -12,12 +12,12 @@ import {
   LayoutList,
   Columns3,
   Trash2,
+  Eye,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import {
   Dialog,
@@ -50,6 +50,8 @@ import { MultiSelectFilter } from "@/components/MultiSelectFilter";
 import { BentoStatStrip } from "@/components/dashboard/BentoStatStrip";
 import { IconTooltipButton } from "@/components/IconTooltipButton";
 import { SortToggle } from "@/components/SortToggle";
+import { BentoDataTable } from "@/components/BentoDataTable";
+import { RowActions } from "@/components/RowActions";
 
 const currentMonthRange = () => {
   const now = new Date();
@@ -571,7 +573,7 @@ const Tasks = () => {
         </div>
 
         <BentoStatStrip
-          className="animate-fade-in xl:grid-cols-3"
+          className="animate-fade-in"
           items={[
             { label: "Atrasadas", value: overdueCount, icon: AlertTriangle, compact: true },
             { label: "Bloqueadas", value: blockedCount, icon: LockKeyhole, compact: true },
@@ -704,82 +706,56 @@ const Tasks = () => {
           </div>
         ) : (
           /* List View */
-          <div className="space-y-3 animate-fade-in">
-            {filteredTasks.map((task, index) => (
-              <div
-                key={task.id}
-                onClick={() => setSelectedTask(task)}
-                className={cn(
-                  "glass rounded-2xl p-4 flex items-start gap-4 transition-all cursor-pointer hover:bg-accent/35",
-                  task.status === "completed" && "opacity-60",
-                  (task.status === "overdue" || task.status === "blocked") && "border border-red-500/30",
-                )}
-                style={{ animationDelay: `${index * 50}ms` }}
-              >
-                <Checkbox
-                  checked={task.status === "completed"}
-                  onCheckedChange={() => toggleTaskStatus(task.id)}
-                  onClick={(event) => event.stopPropagation()}
-                  className="mt-1"
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3
-                      className={cn(
-                        "font-medium",
-                        task.status === "completed" &&
-                          "line-through text-muted-foreground",
-                      )}
-                    >
-                      {task.title}
-                    </h3>
-                    {getPriorityBadge(task.priority)}
-                    {getTypeBadge(task.type)}
-                    <Badge variant="outline" className="text-xs">
-                      {task.category}
-                    </Badge>
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {task.description}
-                  </p>
-                  {task.blockedReason && (
-                    <p className="mt-2 rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-xs text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
-                      {task.blockedReason}
-                    </p>
-                  )}
-                  <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground flex-wrap">
-                    <span className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3" />
-                      Prazo:{" "}
-                      {new Date(task.dueDate).toLocaleDateString("pt-BR")}
-                    </span>
-                    {task.clientName && <span>Cliente: {task.clientName}</span>}
-                    <span>Responsável: {task.assignedToName}</span>
-                  </div>
-                </div>
-                <div className="flex flex-col items-center gap-1">
-                  {getStatusIcon(task.status)}
-                  {task.status !== "completed" && task.status !== "overdue" && task.status !== "blocked" && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-xs h-6 px-2"
-                      onClick={(event) => { event.stopPropagation(); void updateTaskStatus(task.id, "in_progress"); }}
-                    >
-                      Iniciar
-                    </Button>
-                  )}
-                </div>
-              </div>
-            ))}
-
-            {filteredTasks.length === 0 && (
-              <div className="text-center py-12 text-muted-foreground">
-                <CheckCircle2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Nenhuma tarefa encontrada</p>
-              </div>
+          <BentoDataTable
+            rows={filteredTasks}
+            getRowKey={(task) => task.id}
+            empty={<span>Nenhuma tarefa encontrada.</span>}
+            columns={[
+              {
+                key: "task",
+                label: "Tarefa",
+                render: (task) => <div className="min-w-0"><p className={cn("max-w-[300px] truncate font-medium", task.status === "completed" && "text-muted-foreground line-through")}>{task.title}</p><p className="max-w-[300px] truncate text-xs text-muted-foreground">{task.description || task.category}</p></div>,
+              },
+              {
+                key: "client",
+                label: "Cliente",
+                render: (task) => <span className="block max-w-[180px] truncate text-sm text-muted-foreground">{task.clientName || "Sem cliente"}</span>,
+              },
+              {
+                key: "responsible",
+                label: "Responsável",
+                render: (task) => <span className="block max-w-[150px] truncate text-sm text-muted-foreground">{task.assignedToName || "Sem responsável"}</span>,
+              },
+              {
+                key: "dueDate",
+                label: "Prazo",
+                sortValue: (task) => task.dueDate ? new Date(task.dueDate) : null,
+                render: (task) => <span className="whitespace-nowrap text-sm text-muted-foreground">{new Date(task.dueDate).toLocaleDateString("pt-BR")}</span>,
+              },
+              {
+                key: "tags",
+                label: "Tags",
+                render: (task) => <div className="flex max-w-[180px] flex-wrap gap-1">{getPriorityBadge(task.priority)}{getTypeBadge(task.type)}<Badge variant="outline" className="text-[10px]">{task.category}</Badge></div>,
+              },
+              {
+                key: "status",
+                label: "Status",
+                render: (task) => <div className="flex items-center gap-2">{getStatusIcon(task.status)}<Badge variant="outline" className="text-[10px]">{task.status === "completed" ? "Concluída" : task.status === "in_progress" ? "Em andamento" : task.status === "overdue" ? "Atrasada" : task.status === "blocked" ? "Bloqueada" : "Pendente"}</Badge></div>,
+              },
+            ]}
+            actions={(task) => (
+              <RowActions
+                primaryLabel={`Abrir tarefa ${task.title}`}
+                primaryIcon={Eye}
+                onPrimary={() => setSelectedTask(task)}
+                menuItems={[
+                  ...(task.status !== "completed" ? [{ label: "Concluir", icon: CheckCircle2, onSelect: () => void updateTaskStatus(task.id, "completed") }] : []),
+                  ...(task.status !== "in_progress" && task.status !== "completed" ? [{ label: "Iniciar", icon: Clock, onSelect: () => void updateTaskStatus(task.id, "in_progress") }] : []),
+                  ...(viewMode !== "client" && canDeleteTasks ? [{ label: "Remover tarefa", icon: Trash2, destructive: true, separatorBefore: true, onSelect: () => void deleteTask(task.id) }] : []),
+                ]}
+              />
             )}
-          </div>
+          />
             )}
           </section>
         )}

@@ -740,106 +740,60 @@ const Documents = () => {
                   </div>
                 </div>
 
-                <div className="table-surface animate-fade-in">
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b border-border bg-accent/30">
-                          <th className="text-left p-4 font-medium text-muted-foreground">
-                            Documento
-                          </th>
-                          <th className="text-left p-4 font-medium text-muted-foreground hidden md:table-cell">
-                            Cliente
-                          </th>
-                          <th className="text-left p-4 font-medium text-muted-foreground hidden sm:table-cell">
-                            Tipo
-                          </th>
-                          <th className="text-left p-4 font-medium text-muted-foreground">
-                            Status
-                          </th>
-                          <th className="text-right p-4 font-medium text-muted-foreground">
-                            Valor
-                          </th>
-                          <th className="text-right p-4 font-medium text-muted-foreground">
-                            Ações
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filteredDocuments.map((doc, index) => (
-                          <tr
-                            key={doc.id}
-                            className="border-b border-border last:border-0 hover:bg-accent/30 transition-colors"
-                            style={{ animationDelay: `${index * 50}ms` }}
-                          >
-                            <td className="p-4">
-                              <div className="flex items-center gap-3">
-                                <div className="p-2 rounded-xl bg-accent">
-                                  <FileText className="h-4 w-4 text-accent-foreground" />
-                                </div>
-                                <div>
-                                  <p className="font-medium">{doc.name}</p>
-                                  <p className="text-xs text-muted-foreground">
-                                    {doc.date}
-                                  </p>
-                                  {doc.classifiedAutomatically && (
-                                    <p className="text-xs text-muted-foreground/70">
-                                      Classificado automaticamente
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
-                            </td>
-                            <td className="p-4 hidden md:table-cell text-muted-foreground">
-                              {doc.clientName || "—"}
-                            </td>
-                            <td className="p-4 hidden sm:table-cell text-muted-foreground">
-                              {documentTypeLabels[doc.documentType]}
-                            </td>
-                            <td className="p-4">
-                              <Badge
-                                className={statusColors[doc.status] || ""}
-                                variant="secondary"
-                              >
-                                {statusLabels[doc.status] || doc.status}
-                              </Badge>
-                            </td>
-                            <td className="p-4 text-right font-medium">
-                              {doc.amount
-                                ? `R$ ${doc.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
-                                : "—"}
-                            </td>
-                            <td className="p-4">
-                              <RowActions
-                                primaryLabel={`Visualizar ${doc.name}`}
-                                primaryIcon={Eye}
-                                onPrimary={() => void openDocumentInViewer(doc)}
-                                menuItems={[
-                                  { label: "Baixar arquivo", icon: Download, onSelect: () => void handleDownloadDocument(doc) },
-                                  ...(doc.status === "unread" ? [{ label: "Marcar como lido", icon: Eye, onSelect: () => void handleMarkAsRead(doc.id) }] : []),
-                                  ...(viewMode !== "client" && (doc.status === "pending" || doc.status === "overdue") ? [
-                                    { label: "Marcar como pago", icon: Check, onSelect: () => void handleMarkAsPaid(doc.id) },
-                                    { label: "Enviar lembrete", icon: Send, onSelect: () => handleSendReminder(doc) },
-                                  ] : []),
-                                  ...(viewMode !== "client" ? [{ label: "Excluir documento", icon: Trash2, destructive: true, separatorBefore: true, onSelect: () => void handleDeleteDocument(doc.id) }] : []),
-                                ]}
-                              />
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  {filteredDocuments.length === 0 && (
-                    <div className="text-center py-12 text-muted-foreground">
-                      <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>
-                        Nenhum documento encontrado para o período selecionado
-                      </p>
-                    </div>
+                <BentoDataTable
+                  rows={filteredDocuments}
+                  getRowKey={(doc) => doc.id}
+                  empty={<span>Nenhum documento encontrado para o período selecionado.</span>}
+                  columns={[
+                    {
+                      key: "document",
+                      label: "Documento",
+                      render: (doc) => <div className="flex min-w-0 items-center gap-3"><div className="rounded-xl bg-accent p-2"><FileText className="h-4 w-4 text-accent-foreground" /></div><div className="min-w-0"><p className="max-w-[240px] truncate font-medium">{doc.name}</p>{doc.classifiedAutomatically && <p className="text-xs text-muted-foreground/70">Classificado automaticamente</p>}</div></div>,
+                    },
+                    {
+                      key: "date",
+                      label: "Data",
+                      sortValue: (doc) => doc.createdAt ? new Date(doc.createdAt) : null,
+                      render: (doc) => <span className="whitespace-nowrap text-sm text-muted-foreground">{doc.date}</span>,
+                    },
+                    {
+                      key: "client",
+                      label: "Cliente",
+                      render: (doc) => <span className="block max-w-[180px] truncate text-sm text-muted-foreground">{doc.clientName || "—"}</span>,
+                    },
+                    {
+                      key: "type",
+                      label: "Tipo",
+                      render: (doc) => <Badge variant="outline" className="text-[10px]">{documentTypeLabels[doc.documentType]}</Badge>,
+                    },
+                    {
+                      key: "status",
+                      label: "Status",
+                      render: (doc) => <Badge className={statusColors[doc.status] || ""} variant="secondary">{statusLabels[doc.status] || doc.status}</Badge>,
+                    },
+                    {
+                      key: "amount",
+                      label: "Valor",
+                      sortValue: (doc) => doc.amount ?? 0,
+                      className: "text-right font-medium tabular-nums",
+                      headerClassName: "text-right",
+                      render: (doc) => <span className="whitespace-nowrap">{doc.amount ? `R$ ${doc.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "—"}</span>,
+                    },
+                  ]}
+                  actions={(doc) => (
+                    <RowActions
+                      primaryLabel={`Visualizar ${doc.name}`}
+                      primaryIcon={Eye}
+                      onPrimary={() => void openDocumentInViewer(doc)}
+                      menuItems={[
+                        { label: "Baixar arquivo", icon: Download, onSelect: () => void handleDownloadDocument(doc) },
+                        ...(doc.status === "unread" ? [{ label: "Marcar como lido", icon: Eye, onSelect: () => void handleMarkAsRead(doc.id) }] : []),
+                        ...(viewMode !== "client" && (doc.status === "pending" || doc.status === "overdue") ? [{ label: "Marcar como pago", icon: Check, onSelect: () => void handleMarkAsPaid(doc.id) }, { label: "Enviar lembrete", icon: Send, onSelect: () => handleSendReminder(doc) }] : []),
+                        ...(viewMode !== "client" ? [{ label: "Excluir documento", icon: Trash2, destructive: true, separatorBefore: true, onSelect: () => void handleDeleteDocument(doc.id) }] : []),
+                      ]}
+                    />
                   )}
-                </div>
+                />
               </TabsContent>
 
               <TabsContent value="arquivos" className="space-y-4 mt-4">
@@ -864,6 +818,7 @@ const Documents = () => {
                         {
                           key: "date",
                           label: "Data",
+                          sortValue: (file) => file.createdAt ? new Date(file.createdAt) : null,
                           render: (file) => <span className="whitespace-nowrap text-xs text-muted-foreground">{file.date}</span>,
                         },
                         {
@@ -874,6 +829,7 @@ const Documents = () => {
                         {
                           key: "size",
                           label: "Tamanho",
+                          sortValue: (file) => file.fileSize ?? 0,
                           render: (file) => <span className="whitespace-nowrap text-xs text-muted-foreground">{formatFileSize(file.fileSize)}</span>,
                         },
                       ]}

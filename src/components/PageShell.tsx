@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { FilterPopover } from "@/components/FilterPopover";
 import { KPITrend } from "@/components/dashboard/KPICard";
 import { Search } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export interface PageShellKPI {
   label: string;
@@ -57,6 +58,12 @@ export const PageShell = ({
   onClearFilters,
   children,
 }: PageShellProps) => {
+  const kpiGridClass = kpis?.length === 4
+    ? "lg:grid-cols-4"
+    : kpis?.length === 5
+      ? "lg:grid-cols-5"
+      : "lg:grid-cols-3";
+
   return (
     <DashboardLayout>
       <div className="mx-auto w-full max-w-[1280px] space-y-8">
@@ -72,7 +79,7 @@ export const PageShell = ({
         </div>
 
         {kpis && kpis.length > 0 && (
-          <div className="grid overflow-hidden rounded-2xl border border-border/70 bg-border/70 sm:grid-cols-2 lg:grid-cols-3">
+          <div className={cn("grid overflow-hidden rounded-2xl border border-border/70 bg-border/70 sm:grid-cols-2", kpiGridClass)}>
             {kpis.slice(0, 6).map((k, i) => (
               <div key={i} className="min-w-0 bg-card p-4 sm:p-5">
                 <div className="flex items-start justify-between gap-3">

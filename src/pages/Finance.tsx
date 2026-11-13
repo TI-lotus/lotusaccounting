@@ -172,6 +172,7 @@ const Finance = () => {
               {
                 key: "date",
                 label: "Data",
+                sortValue: (payment) => new Date(payment.paid_at ?? payment.due_date ?? payment.created_at),
                 render: (payment) => <span className="whitespace-nowrap text-sm text-muted-foreground">{new Date(payment.paid_at ?? payment.due_date ?? payment.created_at).toLocaleDateString("pt-BR")}</span>,
               },
               {
@@ -186,6 +187,7 @@ const Finance = () => {
               {
                 key: "value",
                 label: "Valor",
+                sortValue: (payment) => Number(payment.amount),
                 className: "text-right font-medium tabular-nums",
                 headerClassName: "text-right",
                 render: (payment) => <span className={cn("whitespace-nowrap", isIncome(payment.direction) ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400")}>{isIncome(payment.direction) ? "+" : "-"} {brl(Number(payment.amount))}</span>,

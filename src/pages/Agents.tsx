@@ -19,6 +19,8 @@ import { IconTooltipButton } from "@/components/IconTooltipButton";
 import { FilterPopover } from "@/components/FilterPopover";
 import { MultiSelectFilter } from "@/components/MultiSelectFilter";
 import { SortToggle } from "@/components/SortToggle";
+import { RowActions } from "@/components/RowActions";
+import { BentoDataTable } from "@/components/BentoDataTable";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -708,6 +710,46 @@ export default function Agents() {
                   <h2 className="text-lg font-medium">
                     {categoryLabels[category]}
                   </h2>
+                    {agentView === "list" ? (
+                      <BentoDataTable
+                        rows={groupedAgents[category]}
+                        getRowKey={(agent) => agent.id}
+                        empty={<span>Nenhum agente nesta categoria.</span>}
+                        columns={[
+                          {
+                            key: "agent",
+                            label: "Agente",
+                            render: (agent) => { const Icon = agent.icon; return <div className="flex min-w-0 items-center gap-3"><Icon className="h-4 w-4 shrink-0 text-gilver" aria-hidden="true" /><div className="min-w-0"><p className="max-w-[300px] truncate font-medium">{agent.name}</p><p className="max-w-[300px] truncate text-xs text-muted-foreground">{agent.description}</p></div></div>; },
+                          },
+                          {
+                            key: "status",
+                            label: "Status",
+                            render: (agent) => <Badge variant="secondary" className={statusConfig[agent.status].className}>{statusConfig[agent.status].label}</Badge>,
+                          },
+                          {
+                            key: "schedule",
+                            label: "Agenda",
+                            render: (agent) => <span className="text-sm text-muted-foreground">{agent.schedule || "Sob demanda"}</span>,
+                          },
+                          {
+                            key: "actionsToday",
+                            label: "Ações hoje",
+                            sortValue: (agent) => agent.actionsToday,
+                            className: "text-right font-medium tabular-nums",
+                            headerClassName: "text-right",
+                            render: (agent) => <span>{agent.actionsToday}</span>,
+                          },
+                        ]}
+                        actions={(agent) => (
+                          <RowActions
+                            primaryLabel={`Editar ${agent.name}`}
+                            primaryIcon={Pencil}
+                            onPrimary={() => openEdit(agent)}
+                            menuItems={[{ label: agent.enabled ? "Desativar agente" : "Ativar agente", icon: Zap, onSelect: () => toggleAgent(agent.id) }]}
+                          />
+                        )}
+                      />
+                    ) : (
                     <div
                     className={cn(
                       "overflow-hidden rounded-2xl border border-border/70 bg-border/70 gap-px",
@@ -733,10 +775,7 @@ export default function Agents() {
                           )}
                         >
                           <CardHeader
-                            className={cn(
-                              "pb-3",
-                              agentView === "list" && "pb-4",
-                            )}
+                            className="pb-3"
                           >
                             <div className="flex items-start justify-between gap-3">
                               <div className="flex items-center gap-3">
@@ -779,7 +818,7 @@ export default function Agents() {
                             </div>
                           </CardHeader>
                           <CardContent
-                            className={cn(agentView === "list" && "pt-0")}
+                            className="pt-0"
                           >
                             <CardDescription className="text-sm">
                               {agent.description}
@@ -798,6 +837,7 @@ export default function Agents() {
                       );
                     })}
                   </div>
+                    )}
                 </div>
               ),
             )}

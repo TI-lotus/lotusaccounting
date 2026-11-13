@@ -486,7 +486,7 @@ const Reports = () => {
               {reportControls}
             </div>
             <BentoStatStrip
-              className="animate-fade-in md:grid-cols-2 xl:grid-cols-3"
+              className="animate-fade-in"
               items={kpiData.map((kpi) => ({
                 label: kpi.label,
                 value: kpi.value,

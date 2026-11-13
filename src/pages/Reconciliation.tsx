@@ -241,6 +241,10 @@ const Reconciliation = () => {
               {
                 key: "date",
                 label: "Data",
+                sortValue: (payment) => {
+                  const date = payment.paid_at ?? payment.due_date;
+                  return date ? new Date(date) : null;
+                },
                 render: (payment) => <span className="whitespace-nowrap text-sm text-muted-foreground">{fmt(payment.paid_at ?? payment.due_date)}</span>,
               },
               {
@@ -251,6 +255,7 @@ const Reconciliation = () => {
               {
                 key: "value",
                 label: "Valor",
+                sortValue: (payment) => Number(payment.amount),
                 className: "text-right font-medium tabular-nums",
                 headerClassName: "text-right",
                 render: (payment) => <span className="whitespace-nowrap">{brl(Number(payment.amount))}</span>,

@@ -152,7 +152,7 @@ const Notifications = () => {
         </div>
 
         <BentoStatStrip
-          className="sm:grid-cols-2 lg:grid-cols-2"
+          className="sm:grid-cols-2"
           items={[
             { label: "Registros", value: notifications.length, compact: true },
             { label: "Não lidas", value: unreadCount, compact: true },

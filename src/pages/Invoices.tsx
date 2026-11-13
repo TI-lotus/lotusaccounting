@@ -363,6 +363,7 @@ const Invoices = () => {
                 {
                   key: "due",
                   label: "Vencimento",
+                  sortValue: (invoice) => invoice.due_date ? new Date(invoice.due_date) : null,
                   render: (invoice) => <span className="whitespace-nowrap text-sm text-muted-foreground">{fmt(invoice.due_date)}</span>,
                 },
                 {
@@ -373,6 +374,7 @@ const Invoices = () => {
                 {
                   key: "value",
                   label: "Valor",
+                  sortValue: (invoice) => Number(invoice.amount ?? 0),
                   className: "text-right font-medium tabular-nums",
                   headerClassName: "text-right",
                   render: (invoice) => <span className="whitespace-nowrap">{brl(Number(invoice.amount))}</span>,

@@ -36,6 +36,8 @@ import { getBentoGridClass } from "@/components/dashboard/bentoGrid";
 import { IconTooltipButton } from "@/components/IconTooltipButton";
 import { RowActions } from "@/components/RowActions";
 import { BentoDataTable } from "@/components/BentoDataTable";
+import { FilterPopover } from "@/components/FilterPopover";
+import { MultiSelectFilter } from "@/components/MultiSelectFilter";
 
 type ProfileRow = Pick<Database["public"]["Tables"]["profiles"]["Row"], "id" | "user_id" | "full_name" | "phone" | "job_title" | "avatar_url" | "account_type" | "company_id" | "status" | "created_at">;
 type InviteRow = Pick<Database["public"]["Tables"]["invites"]["Row"], "id" | "email" | "full_name" | "account_type" | "company_id" | "token" | "status" | "expires_at" | "created_at">;
@@ -113,6 +115,9 @@ const Staff = () => {
   const [permissionMemberId, setPermissionMemberId] = useState("");
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [inviteSearch, setInviteSearch] = useState("");
+  const [inviteStatusFilters, setInviteStatusFilters] = useState<string[]>([]);
+  const [inviteAccessFilters, setInviteAccessFilters] = useState<string[]>([]);
   const [peopleViewMode, setPeopleViewMode] = useState<"grid" | "list">("grid");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
@@ -176,6 +181,13 @@ const Staff = () => {
   const filteredMembers = members.filter((member) => {
     const haystack = `${member.full_name ?? ""} ${member.job_title ?? ""} ${member.account_type}`.toLowerCase();
     return haystack.includes(searchTerm.toLowerCase());
+  });
+  const filteredInvites = invites.filter((invite) => {
+    const search = inviteSearch.trim().toLowerCase();
+    const searchMatch = !search || `${invite.full_name ?? ""} ${invite.email}`.toLowerCase().includes(search);
+    const statusMatch = inviteStatusFilters.length === 0 || inviteStatusFilters.includes(invite.status);
+    const accessMatch = inviteAccessFilters.length === 0 || inviteAccessFilters.includes(invite.account_type);
+    return searchMatch && statusMatch && accessMatch;
   });
 
   const handleInvite = async () => {
@@ -502,7 +514,83 @@ const Staff = () => {
                 </div>
               </div>
 
-              <div className={cn("overflow-hidden rounded-2xl border border-border/70 bg-border/70", peopleViewMode === "grid" ? cn("grid gap-px", getBentoGridClass(filteredMembers.length)) : "divide-y divide-border/70")}>
+              {peopleViewMode === "list" ? (
+                <BentoDataTable
+                  rows={filteredMembers}
+                  getRowKey={(member) => member.id}
+                  empty={<span>Nenhum membro encontrado.</span>}
+                  columns={[
+                    {
+                      key: "member",
+                      label: "Colaborador",
+                      render: (member) => {
+                        const name = member.full_name || "Sem nome";
+                        return (
+                          <div className="flex min-w-0 items-center gap-3">
+                            <Avatar className="h-9 w-9 shrink-0 ring-2 ring-gilver/30">
+                              <AvatarImage src={member.avatar_url ?? undefined} />
+                              <AvatarFallback className="bg-gilver/15 text-xs font-medium text-gilver">{initials(name)}</AvatarFallback>
+                            </Avatar>
+                            <div className="min-w-0">
+                              <p className="max-w-[220px] truncate font-medium">{name}</p>
+                              <p className="max-w-[220px] truncate text-xs text-muted-foreground">{roleLabel(member.account_type)}</p>
+                            </div>
+                          </div>
+                        );
+                      },
+                    },
+                    {
+                      key: "jobTitle",
+                      label: "Cargo",
+                      render: (member) => <span className="block max-w-[180px] truncate text-sm text-muted-foreground">{member.job_title || "—"}</span>,
+                    },
+                    {
+                      key: "status",
+                      label: "Status",
+                      render: (member) => <Badge className={cn("text-[10px]", member.status === "active" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400" : "bg-muted text-muted-foreground")}>{member.status === "active" ? "Ativo" : "Inativo"}</Badge>,
+                    },
+                    {
+                      key: "tasks",
+                      label: "Tarefas",
+                      sortValue: (member) => tasks.filter((task) => task.assignedToId === member.user_id).length,
+                      render: (member) => {
+                        const memberTasks = tasks.filter((task) => task.assignedToId === member.user_id);
+                        const completed = memberTasks.filter((task) => task.status === "completed").length;
+                        const progress = memberTasks.length ? Math.round((completed / memberTasks.length) * 100) : 0;
+                        return (
+                          <div className="w-[140px] space-y-1">
+                            <div className="flex justify-between gap-2 text-[10px] text-muted-foreground"><span>{completed}/{memberTasks.length} concluídas</span><span>{progress}%</span></div>
+                            <Progress value={progress} className="h-1.5" />
+                          </div>
+                        );
+                      },
+                    },
+                    {
+                      key: "created",
+                      label: "Desde",
+                      sortValue: (member) => member.created_at ? new Date(member.created_at) : null,
+                      render: (member) => <span className="whitespace-nowrap text-sm text-muted-foreground">{member.created_at ? new Date(member.created_at).toLocaleDateString("pt-BR") : "—"}</span>,
+                    },
+                  ]}
+                  actions={(member) => {
+                    const name = member.full_name || "Sem nome";
+                    return (
+                      <RowActions
+                        primaryLabel={`Abrir detalhes de ${name}`}
+                        primaryIcon={Eye}
+                        onPrimary={() => setDetailMember(member)}
+                        menuItems={[
+                          { label: "Atribuir tarefas", icon: CheckSquare, onSelect: () => { setSelectedMember(member); setAssignDialogOpen(true); } },
+                          ...(member.user_id !== profile?.user_id && profile?.account_type === "admin" ? [{ label: "Atribuir clientes", icon: Building2, onSelect: () => { setSelectedMember(member); setClientAssignmentOpen(true); } }] : []),
+                          ...(member.user_id !== profile?.user_id && profile?.account_type === "admin" ? [{ label: "Editar colaborador", icon: Pencil, onSelect: () => openMemberEditor(member) }, { label: "Editar acesso", icon: Shield, onSelect: () => openAccessEditor(member) }] : []),
+                          ...(member.user_id !== profile?.user_id ? [{ label: member.status === "active" ? "Desativar acesso" : "Ativar acesso", icon: ShieldAlert, onSelect: () => void toggleStatus(member) }] : []),
+                        ]}
+                      />
+                    );
+                  }}
+                />
+              ) : (
+              <div className={cn("overflow-hidden rounded-2xl border border-border/70 bg-border/70", "grid gap-px", getBentoGridClass(filteredMembers.length))}>
                 {filteredMembers.map((member) => {
                   const memberTasks = tasks.filter((task) => task.assignedToId === member.user_id);
                   const completed = memberTasks.filter((task) => task.status === "completed").length;
@@ -572,6 +660,7 @@ const Staff = () => {
                   </div>
                 )}
               </div>
+              )}
             </div>
           </TabsContent>
 
@@ -582,10 +671,40 @@ const Staff = () => {
                   <h2 className="text-base font-medium">Convites enviados</h2>
                   <p className="mt-1 text-sm text-muted-foreground">Acompanhe destinatário, vínculo, status e validade do acesso.</p>
                 </div>
-                <Badge variant="secondary">{invites.length} registros</Badge>
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  <div className="relative min-w-[210px]">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+                    <Input
+                      value={inviteSearch}
+                      onChange={(event) => setInviteSearch(event.target.value)}
+                      placeholder="Buscar convite…"
+                      aria-label="Buscar convites"
+                      className="h-9 rounded-lg border-border/70 bg-card/80 pl-9 text-xs"
+                    />
+                  </div>
+                  <FilterPopover
+                    title="Filtrar convites"
+                    activeCount={inviteStatusFilters.length + inviteAccessFilters.length}
+                    onClear={() => { setInviteStatusFilters([]); setInviteAccessFilters([]); }}
+                  >
+                    <MultiSelectFilter
+                      label="Status"
+                      options={[{ value: "pending", label: "Pendentes" }, { value: "accepted", label: "Aceitos" }, { value: "revoked", label: "Revogados" }]}
+                      value={inviteStatusFilters}
+                      onChange={setInviteStatusFilters}
+                    />
+                    <MultiSelectFilter
+                      label="Tipo de acesso"
+                      options={[{ value: "collaborator", label: "Colaboradores" }, { value: "client", label: "Clientes" }]}
+                      value={inviteAccessFilters}
+                      onChange={setInviteAccessFilters}
+                    />
+                  </FilterPopover>
+                  <Badge variant="secondary">{filteredInvites.length} registros</Badge>
+                </div>
               </div>
               <BentoDataTable
-                rows={invites}
+                rows={filteredInvites}
                 getRowKey={(invite) => invite.id}
                 empty={<span>Nenhum convite criado ainda.</span>}
                 columns={[
@@ -612,6 +731,7 @@ const Staff = () => {
                   {
                     key: "created",
                     label: "Criado em",
+                    sortValue: (invite) => invite.created_at ? new Date(invite.created_at) : null,
                     render: (invite) => <span className="whitespace-nowrap text-sm text-muted-foreground">{invite.created_at ? new Date(invite.created_at).toLocaleDateString("pt-BR") : "—"}</span>,
                   },
                 ]}

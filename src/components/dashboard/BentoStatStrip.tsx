@@ -25,7 +25,7 @@ export const BentoStatStrip = ({ items, className }: BentoStatStripProps) => {
   return (
     <dl
       className={cn(
-        "grid overflow-hidden rounded-2xl border border-border/70 bg-border/70 sm:grid-cols-2 xl:grid-cols-3",
+        "grid overflow-hidden rounded-2xl border border-border/70 bg-border/70",
         className,
         getBentoGridClass(visibleItems.length),
       )}

@@ -43,6 +43,8 @@ import { FilterPopover } from "@/components/FilterPopover";
 import { IconTooltipButton } from "@/components/IconTooltipButton";
 import { MultiSelectFilter } from "@/components/MultiSelectFilter";
 import { SortToggle } from "@/components/SortToggle";
+import { BentoDataTable } from "@/components/BentoDataTable";
+import { RowActions } from "@/components/RowActions";
 import { getBentoGridClass } from "@/components/dashboard/bentoGrid";
 
 const taxRegimeLabels: Record<string, string> = {
@@ -436,6 +438,61 @@ const Clients = () => {
               <p className="text-sm">Carregando clientes...</p>
             </div>
           ) : (
+            viewMode === "list" ? (
+              <BentoDataTable
+                rows={filteredClients}
+                getRowKey={(client) => client.id}
+                empty={<span>Nenhum cliente encontrado.</span>}
+                columns={[
+                  {
+                    key: "client",
+                    label: "Cliente",
+                    render: (client) => <div className="min-w-0"><p className="max-w-[240px] truncate font-medium">{client.name}</p><p className="flex max-w-[240px] items-center gap-1 truncate text-xs text-muted-foreground"><Mail className="h-3 w-3 shrink-0" />{client.email || "Sem e-mail"}</p></div>,
+                  },
+                  {
+                    key: "responsible",
+                    label: "Responsável",
+                    render: (client) => <span className="block max-w-[160px] truncate text-sm text-muted-foreground">{client.responsibleUserName || "Sem responsável"}</span>,
+                  },
+                  {
+                    key: "tags",
+                    label: "Tags",
+                    render: (client) => <div className="flex max-w-[210px] flex-wrap gap-1"><Badge variant="outline" className="text-[10px]">{taxRegimeLabels[client.taxRegime]}</Badge><Badge variant="outline" className="text-[10px]">{client.serviceAreas.length} serviços</Badge><Badge variant="outline" className="text-[10px]">{getClientSize(client)}</Badge><Badge className={cn("text-[10px]", periodStatusStyles[currentPeriodByClient.get(client.id)?.status ?? "not_created"])}>{periodStatusLabels[currentPeriodByClient.get(client.id)?.status ?? "not_created"]}</Badge></div>,
+                  },
+                  {
+                    key: "status",
+                    label: "Status",
+                    render: (client) => <Badge variant={client.status === "active" ? "default" : client.status === "pending" ? "secondary" : "outline"}>{client.status === "active" ? "Ativo" : client.status === "pending" ? "Pendente" : "Inativo"}</Badge>,
+                  },
+                  {
+                    key: "fee",
+                    label: "Honorários",
+                    sortValue: (client) => client.serviceFee,
+                    className: "text-right font-medium tabular-nums",
+                    headerClassName: "text-right",
+                    render: (client) => <span className="whitespace-nowrap">R$ {client.serviceFee.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>,
+                  },
+                  {
+                    key: "progress",
+                    label: "Competência",
+                    sortValue: (client) => { const period = currentPeriodByClient.get(client.id); return period?.status === "closed" ? 100 : period?.progressPercent ?? 0; },
+                    render: (client) => { const period = currentPeriodByClient.get(client.id); const progress = period?.status === "closed" ? 100 : period?.progressPercent ?? 0; return <div className="w-[120px] space-y-1"><div className="flex justify-between text-[10px] text-muted-foreground"><span>{progress}%</span><span>{periodStatusLabels[period?.status ?? "not_created"]}</span></div><Progress value={progress} className="h-1.5" /></div>; },
+                  },
+                ]}
+                actions={(client) => (
+                  <RowActions
+                    primaryLabel={`Abrir detalhes de ${client.name}`}
+                    primaryIcon={Eye}
+                    onPrimary={() => setSelectedClient(client)}
+                    menuItems={[
+                      { label: "Editar cadastro", icon: Edit, onSelect: () => navigate(`/clients/${client.id}`) },
+                      { label: "Enviar e-mail", icon: Mail, onSelect: () => undefined },
+                      { label: "Remover cliente", icon: Trash2, destructive: true, separatorBefore: true, onSelect: () => void handleDeleteClient(client.id) },
+                    ]}
+                  />
+                )}
+              />
+            ) : (
             <div className={cn(
               "overflow-hidden rounded-2xl border border-border/70 bg-border/70",
               viewMode === "grid" ? cn("grid gap-px", getBentoGridClass(filteredClients.length)) : "divide-y divide-border/70",
@@ -535,6 +592,7 @@ const Clients = () => {
                 </div>
               )}
             </div>
+            )
           )}
         </div>
 
