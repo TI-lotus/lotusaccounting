@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import {
@@ -58,7 +59,6 @@ import {
   List,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { WorkflowFlow } from "@/components/WorkflowFlow";
 import { useData } from "@/contexts/DataContext";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database, Json } from "@/integrations/supabase/types";
@@ -380,6 +380,7 @@ const statusConfig: Record<
 };
 
 export default function Agents() {
+  const navigate = useNavigate();
   const { clients, documents, payments, invoices, tasks, fiscalObligations } =
     useData();
   const [agents, setAgents] = useState<Agent[]>(initialAgents);
@@ -654,6 +655,9 @@ export default function Agents() {
           </TabsList>
 
           <TabsContent value="agents" className="space-y-6 mt-6">
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+              A biblioteca de agentes é uma camada de configuração visual. Ativações e execuções reais dependem de providers e jobs conectados; alterações nesta tela ficam apenas nesta sessão.
+            </div>
             <div className="flex justify-end">
               <div className="flex rounded-xl border border-border bg-card p-1">
                 <Button
@@ -785,7 +789,22 @@ export default function Agents() {
           </TabsContent>
 
           <TabsContent value="workflow" className="mt-6">
-            <WorkflowFlow />
+            <Card>
+              <CardHeader>
+                <CardTitle>Construtor de workflows</CardTitle>
+                <CardDescription>
+                  O construtor visual tem uma área própria para evitar duplicação entre biblioteca e workflows.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-wrap items-center justify-between gap-4">
+                <p className="max-w-2xl text-sm text-muted-foreground">
+                  Consulte e edite o fluxo em um único local. Persistência, execução genérica e jobs ainda precisam da camada de automação definitiva.
+                </p>
+                <Button className="rounded-xl" onClick={() => navigate("/workflows")}>
+                  Abrir construtor
+                </Button>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="executions" className="mt-6 space-y-4">
