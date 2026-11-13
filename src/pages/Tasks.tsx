@@ -543,6 +543,7 @@ const Tasks = () => {
             onDateRangeChange={setDateRange}
             events={filteredTasks.map((task) => ({
               day: new Date(task.dueDate).getDate(),
+              date: task.dueDate,
               title: task.title,
               subtitle: `${task.category} • ${task.clientName ?? "Lotus"}`,
               time: "10:00",

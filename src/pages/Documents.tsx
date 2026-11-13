@@ -624,6 +624,7 @@ const Documents = () => {
               onDateRangeChange={setDateRange}
               events={documents.map((doc) => ({
                 day: new Date(doc.createdAt).getDate(),
+                date: doc.createdAt,
                 title: doc.name,
                 subtitle: `${doc.clientName ?? "Sem cliente"} • ${documentTypeLabels[doc.documentType]}`,
                 time: "09:00",

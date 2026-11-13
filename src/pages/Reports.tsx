@@ -217,6 +217,7 @@ const Reports = () => {
         .filter((invoice) => isInRange(invoice.due_date))
         .map((invoice) => ({
           day: eventDay(invoice.due_date as string),
+          date: invoice.due_date as string,
           title: `Fatura ${invoice.number ?? invoice.id.slice(0, 8)}`,
           subtitle: clients.find((client) => client.id === invoice.company_id)?.name ?? "Sem cliente",
           amount: formatCurrency(Number(invoice.amount ?? 0)),
@@ -228,6 +229,7 @@ const Reports = () => {
           const date = (payment.due_date ?? payment.paid_at ?? payment.created_at) as string;
           return {
             day: eventDay(date),
+              date,
             title: payment.description ?? "Pagamento",
             subtitle: clients.find((client) => client.id === payment.company_id)?.name ?? "Sem cliente",
             amount: formatCurrency(Number(payment.amount ?? 0)),
@@ -238,6 +240,7 @@ const Reports = () => {
         .filter((task) => isInRange(task.dueDate))
         .map((task) => ({
           day: eventDay(task.dueDate),
+          date: task.dueDate,
           title: task.title,
           subtitle: task.clientName ?? "Sem cliente",
           status: task.status === "completed" ? "Concluida" : task.status === "overdue" ? "Atrasada" : "Tarefa",
@@ -246,6 +249,7 @@ const Reports = () => {
         .filter((document) => isInRange(document.createdAt))
         .map((document) => ({
           day: eventDay(document.createdAt),
+          date: document.createdAt,
           title: document.name,
           subtitle: document.clientName ?? "Sem cliente",
           status: document.status === "processed" ? "Processado" : "Documento",
@@ -254,6 +258,7 @@ const Reports = () => {
         .filter((obligation) => isInRange(obligation.due_date))
         .map((obligation) => ({
           day: eventDay(obligation.due_date),
+          date: obligation.due_date,
           title: obligation.name,
           subtitle: clients.find((client) => client.id === obligation.company_id)?.name ?? "Sem cliente",
           status: obligation.status === "completed" ? "Entregue" : "Obrigacao fiscal",

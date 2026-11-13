@@ -541,6 +541,7 @@ const Payments = () => {
             onDateRangeChange={setDateRange}
             events={filteredPayments.map((payment) => ({
               day: payment.rawDate ? new Date(payment.rawDate).getDate() : 1,
+              date: payment.rawDate ?? undefined,
               title: payment.description,
               subtitle: payment.category,
               time: "09:00",

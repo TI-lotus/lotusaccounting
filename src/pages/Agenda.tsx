@@ -29,6 +29,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspacePermission } from "@/hooks/useWorkspacePermission";
 import { FilterPopover } from "@/components/FilterPopover";
+import { largeCalendarClassNames } from "@/components/calendarStyles";
 
 type AgendaKind = "task" | "payment" | "document" | "obligation";
 
@@ -204,11 +205,6 @@ const Agenda = () => {
     .filter((i) => isSameDay(i.date, selectedDate))
     .sort((a, b) => a.date.getTime() - b.date.getTime());
 
-  const upcoming = filtered
-    .filter((i) => i.date >= startOfDay(new Date()))
-    .sort((a, b) => a.date.getTime() - b.date.getTime())
-    .slice(0, 8);
-
   const openModule = (item: AgendaItem) => {
     if (item.kind === "task") navigate("/tasks");
     if (item.kind === "document") navigate("/documents");
@@ -253,9 +249,9 @@ const Agenda = () => {
           </FilterPopover>
           </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-6">
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.65fr)]">
           <Card className="page-section animate-fade-in">
-            <CardContent className="p-4">
+            <CardContent className="p-4 sm:p-5">
               <Calendar
                 mode="single"
                 selected={selectedDate}
@@ -266,47 +262,11 @@ const Agenda = () => {
                 }}
                 modifiersClassNames={{
                   hasEvents:
-                    "font-semibold underline decoration-primary decoration-2 underline-offset-4",
+                    "border-gilver/70 bg-gilver/10 font-semibold",
                 }}
-                className="rounded-md"
+                className="w-full max-w-none p-0"
+                classNames={largeCalendarClassNames}
               />
-              <div className="mt-4 space-y-2">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                  Próximos eventos
-                </p>
-                {upcoming.length === 0 ? (
-                  <p className="text-xs text-muted-foreground py-4 text-center">
-                    Sem eventos
-                  </p>
-                ) : (
-                  upcoming.map((item) => {
-                    const cfg = kindConfig[item.kind];
-                    const Icon = cfg.icon;
-                    return (
-                      <button
-                        key={item.id}
-                        onClick={() => {
-                          setSelectedDate(startOfDay(item.date));
-                          setSelectedItem(item);
-                        }}
-                        className="w-full text-left flex items-start gap-2 p-2 rounded-lg hover:bg-accent/50 transition-colors"
-                      >
-                        <Icon
-                          className={cn("h-4 w-4 mt-0.5 shrink-0", cfg.color)}
-                        />
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs font-medium truncate">
-                            {item.title}
-                          </p>
-                          <p className="text-[11px] text-muted-foreground">
-                            {format(item.date, "dd 'de' MMM", { locale: ptBR })}
-                          </p>
-                        </div>
-                      </button>
-                    );
-                  })
-                )}
-              </div>
             </CardContent>
           </Card>
 
@@ -331,7 +291,7 @@ const Agenda = () => {
                   <p className="text-sm">Nenhum evento para esta data</p>
                 </div>
               ) : (
-                <div className="space-y-2">
+                <div className="custom-scroll max-h-[min(62vh,620px)] space-y-2 overflow-y-auto pr-1">
                   {dayItems.map((item) => {
                     const cfg = kindConfig[item.kind];
                     const Icon = cfg.icon;
