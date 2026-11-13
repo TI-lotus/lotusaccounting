@@ -32,6 +32,7 @@ import { cn } from "@/lib/utils";
 import { useData } from "@/contexts/DataContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { BentoStatStrip } from "@/components/dashboard/BentoStatStrip";
+import { IconTooltipButton } from "@/components/IconTooltipButton";
 
 type ProfileRow = Pick<Database["public"]["Tables"]["profiles"]["Row"], "id" | "user_id" | "full_name" | "phone" | "job_title" | "avatar_url" | "account_type" | "company_id" | "status" | "created_at">;
 type InviteRow = Pick<Database["public"]["Tables"]["invites"]["Row"], "id" | "email" | "full_name" | "account_type" | "company_id" | "token" | "status" | "expires_at" | "created_at">;
@@ -493,12 +494,8 @@ const Staff = () => {
                 </div>
                 <Badge variant="secondary" className="px-3 py-1.5">{filteredMembers.length} membros</Badge>
                 <div className="ml-auto flex rounded-xl border border-border bg-card p-1">
-                  <Button variant={peopleViewMode === "grid" ? "default" : "ghost"} size="sm" className="h-8 rounded-lg gap-1.5" aria-pressed={peopleViewMode === "grid"} onClick={() => setPeopleViewMode("grid")}>
-                    <Grid2X2 className="h-3.5 w-3.5" />Grade
-                  </Button>
-                  <Button variant={peopleViewMode === "list" ? "default" : "ghost"} size="sm" className="h-8 rounded-lg gap-1.5" aria-pressed={peopleViewMode === "list"} onClick={() => setPeopleViewMode("list")}>
-                    <List className="h-3.5 w-3.5" />Lista
-                  </Button>
+                  <IconTooltipButton icon={Grid2X2} label="Grade" variant={peopleViewMode === "grid" ? "default" : "ghost"} aria-pressed={peopleViewMode === "grid"} onClick={() => setPeopleViewMode("grid")} />
+                  <IconTooltipButton icon={List} label="Lista" variant={peopleViewMode === "list" ? "default" : "ghost"} aria-pressed={peopleViewMode === "list"} onClick={() => setPeopleViewMode("list")} />
                 </div>
               </div>
 

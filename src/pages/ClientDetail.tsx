@@ -45,6 +45,7 @@ import {
 } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
+import { BentoStatStrip } from "@/components/dashboard/BentoStatStrip";
 
 type ClientActivity = Pick<
   Database["public"]["Tables"]["activity_logs"]["Row"],
@@ -1144,58 +1145,28 @@ const ClientDetail = () => {
           </TabsContent>
 
           <TabsContent value="financial" className="mt-6 space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Card>
-                <CardContent className="pt-6">
-                  <p className="text-xs text-muted-foreground">
-                    Honorários mensais
-                  </p>
-                  <p className="text-2xl font-semibold mt-1">
-                    R${" "}
-                    {client.serviceFee.toLocaleString("pt-BR", {
-                      minimumFractionDigits: 2,
-                    })}
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-6">
-                  <p className="text-xs text-muted-foreground">Saldo estimado de honorários no mês</p>
-                  <p className="text-2xl font-semibold mt-1">
-                    {brl(Math.max(0, client.serviceFee - financialSummary.currentMonthReceived))}
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-6">
-                  <p className="text-xs text-muted-foreground">Faturado</p>
-                  <p className="text-2xl font-semibold mt-1">
-                    {brl(financialSummary.invoiced)}
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-6">
-                  <p className="text-xs text-muted-foreground">Recebido</p>
-                  <p className="text-2xl font-semibold mt-1">
-                    {brl(
-                      Math.max(
-                        financialSummary.received,
-                        financialSummary.paidInvoices,
-                      ),
-                    )}
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-6">
-                  <p className="text-xs text-muted-foreground">Em aberto</p>
-                  <p className="text-2xl font-semibold mt-1">
-                    {brl(financialSummary.pending)}
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
+            <BentoStatStrip
+              className="animate-fade-in xl:grid-cols-5"
+              items={[
+                {
+                  label: "Honorários mensais",
+                  value: brl(client.serviceFee),
+                  icon: CreditCard,
+                },
+                {
+                  label: "Saldo estimado",
+                  value: brl(Math.max(0, client.serviceFee - financialSummary.currentMonthReceived)),
+                  icon: Wallet,
+                },
+                { label: "Faturado", value: brl(financialSummary.invoiced), icon: FileText },
+                {
+                  label: "Recebido",
+                  value: brl(Math.max(financialSummary.received, financialSummary.paidInvoices)),
+                  icon: CheckSquare,
+                },
+                { label: "Em aberto", value: brl(financialSummary.pending), icon: Activity },
+              ]}
+            />
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <Card>
                 <CardHeader>

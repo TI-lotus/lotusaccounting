@@ -59,6 +59,7 @@ import { CalendarEventView } from "@/components/CalendarEventView";
 import { supabase } from "@/integrations/supabase/client";
 import { useViewMode } from "@/contexts/ViewModeContext";
 import { BentoStatStrip } from "@/components/dashboard/BentoStatStrip";
+import { IconTooltipButton } from "@/components/IconTooltipButton";
 
 const statusColors: Record<string, string> = {
   paid: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400",
@@ -585,16 +586,15 @@ const Documents = () => {
               ].map((item) => {
                 const Icon = item.icon;
                 return (
-                  <Button
+                  <IconTooltipButton
                     key={item.value}
+                    icon={Icon}
+                    label={item.label}
                     variant={view === item.value ? "default" : "ghost"}
-                    size="sm"
                     className="rounded-xl"
+                    aria-pressed={view === item.value}
                     onClick={() => setView(item.value as typeof view)}
-                  >
-                    <Icon className="h-4 w-4" />
-                    {item.label}
-                  </Button>
+                  />
                 );
               })}
             </div>

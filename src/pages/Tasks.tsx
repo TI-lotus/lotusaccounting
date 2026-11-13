@@ -46,6 +46,8 @@ import { useViewMode } from "@/contexts/ViewModeContext";
 import { CalendarEventView } from "@/components/CalendarEventView";
 import { useWorkspacePermission } from "@/hooks/useWorkspacePermission";
 import { FilterPopover } from "@/components/FilterPopover";
+import { BentoStatStrip } from "@/components/dashboard/BentoStatStrip";
+import { IconTooltipButton } from "@/components/IconTooltipButton";
 
 const currentMonthRange = () => {
   const now = new Date();
@@ -329,36 +331,30 @@ const Tasks = () => {
           </div>
           <div className="flex gap-2">
             <div className="flex border border-border rounded-xl overflow-hidden">
-              <Button
+              <IconTooltipButton
+                icon={LayoutList}
+                label="Lista"
                 variant={viewType === "list" ? "default" : "ghost"}
-                size="sm"
                 className="rounded-none rounded-l-xl"
-                aria-label="Exibir tarefas em lista"
                 aria-pressed={viewType === "list"}
                 onClick={() => setViewType("list")}
-              >
-                <LayoutList className="h-4 w-4" />
-              </Button>
-              <Button
+              />
+              <IconTooltipButton
+                icon={Columns3}
+                label="Kanban"
                 variant={viewType === "grid" ? "default" : "ghost"}
-                size="sm"
                 className="rounded-none rounded-r-xl"
-                aria-label="Exibir tarefas em grade"
                 aria-pressed={viewType === "grid"}
                 onClick={() => setViewType("grid")}
-              >
-                <Columns3 className="h-4 w-4" />
-              </Button>
-              <Button
+              />
+              <IconTooltipButton
+                icon={Calendar}
+                label="Calendário"
                 variant={viewType === "calendar" ? "default" : "ghost"}
-                size="sm"
                 className="rounded-none"
-                aria-label="Exibir tarefas no calendário"
                 aria-pressed={viewType === "calendar"}
                 onClick={() => setViewType("calendar")}
-              >
-                <Calendar className="h-4 w-4" />
-              </Button>
+              />
             </div>
             {viewMode !== "client" && (
               <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -508,54 +504,16 @@ const Tasks = () => {
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 gap-4 animate-fade-in md:grid-cols-5">
-          <div className="glass rounded-2xl p-4 flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-red-500/10">
-              <AlertTriangle className="h-5 w-5 text-red-500" />
-            </div>
-            <div>
-              <p className="text-2xl font-semibold">{overdueCount}</p>
-              <p className="text-sm text-muted-foreground">Atrasadas</p>
-            </div>
-          </div>
-          <div className="glass rounded-2xl p-4 flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-red-500/10">
-              <LockKeyhole className="h-5 w-5 text-red-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-semibold">{blockedCount}</p>
-              <p className="text-sm text-muted-foreground">Bloqueadas</p>
-            </div>
-          </div>
-          <div className="glass rounded-2xl p-4 flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-amber-500/10">
-              <AlertCircle className="h-5 w-5 text-amber-500" />
-            </div>
-            <div>
-              <p className="text-2xl font-semibold">{pendingCount}</p>
-              <p className="text-sm text-muted-foreground">Pendentes</p>
-            </div>
-          </div>
-          <div className="glass rounded-2xl p-4 flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-primary/10">
-              <Clock className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-2xl font-semibold">{inProgressCount}</p>
-              <p className="text-sm text-muted-foreground">Em Andamento</p>
-            </div>
-          </div>
-          <div className="glass rounded-2xl p-4 flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-emerald-500/10">
-              <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-            </div>
-            <div>
-              <p className="text-2xl font-semibold">{completedCount}</p>
-              <p className="text-sm text-muted-foreground">Concluídas</p>
-            </div>
-          </div>
-        </div>
+        <BentoStatStrip
+          className="animate-fade-in xl:grid-cols-5"
+          items={[
+            { label: "Atrasadas", value: overdueCount, icon: AlertTriangle },
+            { label: "Bloqueadas", value: blockedCount, icon: LockKeyhole },
+            { label: "Pendentes", value: pendingCount, icon: AlertCircle },
+            { label: "Em andamento", value: inProgressCount, icon: Clock },
+            { label: "Concluídas", value: completedCount, icon: CheckCircle2 },
+          ]}
+        />
 
         {/* Filters */}
         <div className="filter-toolbar flex items-center justify-between gap-3 animate-fade-in">

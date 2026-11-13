@@ -45,6 +45,7 @@ import { useData } from "@/contexts/DataContext";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { FilterPopover } from "@/components/FilterPopover";
+import { BentoStatStrip } from "@/components/dashboard/BentoStatStrip";
 import {
   ClientData,
   ClientPeriodChecklistItemData,
@@ -899,44 +900,15 @@ const WorkQueue = () => {
           </div>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <Card>
-            <CardContent className="flex items-center gap-3 pt-6">
-              <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-              <div>
-                <p className="text-2xl font-semibold">{stats.completedToday}</p>
-                <p className="text-sm text-muted-foreground">Concluídas hoje</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="flex items-center gap-3 pt-6">
-              <AlertTriangle className="h-5 w-5 text-red-600" />
-              <div>
-                <p className="text-2xl font-semibold">{stats.overdue}</p>
-                <p className="text-sm text-muted-foreground">Atrasadas</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="flex items-center gap-3 pt-6">
-              <LockKeyhole className="h-5 w-5 text-violet-600" />
-              <div>
-                <p className="text-2xl font-semibold">{stats.review}</p>
-                <p className="text-sm text-muted-foreground">Em revisão</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="flex items-center gap-3 pt-6">
-              <UserCheck className="h-5 w-5 text-blue-600" />
-              <div>
-                <p className="text-2xl font-semibold">{stats.clients}</p>
-                <p className="text-sm text-muted-foreground">Clientes sob responsabilidade</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <BentoStatStrip
+          className="animate-fade-in"
+          items={[
+            { label: "Concluídas hoje", value: stats.completedToday, icon: CheckCircle2 },
+            { label: "Atrasadas", value: stats.overdue, icon: AlertTriangle },
+            { label: "Em revisão", value: stats.review, icon: LockKeyhole },
+            { label: "Clientes sob responsabilidade", value: stats.clients, icon: UserCheck },
+          ]}
+        />
 
         <div className="grid gap-4 xl:grid-cols-2">
           {(Object.keys(sectionMeta) as QueueSectionKey[]).map((section) => {

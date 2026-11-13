@@ -39,6 +39,7 @@ import { TimelineView } from "@/components/TimelineView";
 import { useViewMode } from "@/contexts/ViewModeContext";
 import { useData } from "@/contexts/DataContext";
 import { FilterPopover } from "@/components/FilterPopover";
+import { IconTooltipButton } from "@/components/IconTooltipButton";
 
 interface Payment {
   id: string;
@@ -386,19 +387,16 @@ const Payments = () => {
               { value: "calendar", label: "Calendário", icon: Calendar },
               { value: "timeline", label: "Timeline", icon: Clock3 },
             ].map((item) => {
-              const Icon = item.icon;
               return (
-                <Button
+                <IconTooltipButton
                   key={item.value}
+                  icon={item.icon}
+                  label={item.label}
                   variant={view === item.value ? "default" : "ghost"}
-                  size="sm"
                   className="rounded-xl"
                   aria-pressed={view === item.value}
                   onClick={() => setView(item.value as typeof view)}
-                >
-                  <Icon className="h-4 w-4" />
-                  {item.label}
-                </Button>
+                />
               );
             })}
           </div>

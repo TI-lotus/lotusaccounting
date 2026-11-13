@@ -42,6 +42,7 @@ import {
 } from "@/types";
 import { cn } from "@/lib/utils";
 import { FilterPopover } from "@/components/FilterPopover";
+import { BentoStatStrip } from "@/components/dashboard/BentoStatStrip";
 
 const monthNames = [
   "Janeiro",
@@ -570,32 +571,15 @@ const Periods = () => {
           </Button>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          <Card>
-            <CardContent className="pt-6">
-              <p className="text-sm text-muted-foreground">Criadas</p>
-              <p className="mt-1 text-2xl font-semibold">{stats.created}/{stats.total}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <p className="text-sm text-muted-foreground">Aguardando documentos</p>
-              <p className="mt-1 text-2xl font-semibold text-amber-600">{stats.waiting}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <p className="text-sm text-muted-foreground">Bloqueadas</p>
-              <p className="mt-1 text-2xl font-semibold text-red-600">{stats.blocked}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <p className="text-sm text-muted-foreground">Fechadas</p>
-              <p className="mt-1 text-2xl font-semibold text-emerald-600">{stats.closed}</p>
-            </CardContent>
-          </Card>
-        </div>
+        <BentoStatStrip
+          className="animate-fade-in"
+          items={[
+            { label: "Criadas", value: `${stats.created}/${stats.total}`, icon: CalendarClock },
+            { label: "Aguardando documentos", value: stats.waiting, icon: FileWarning },
+            { label: "Bloqueadas", value: stats.blocked, icon: ShieldAlert },
+            { label: "Fechadas", value: stats.closed, icon: CheckCircle2 },
+          ]}
+        />
 
         <Card>
           <CardHeader className="gap-4">

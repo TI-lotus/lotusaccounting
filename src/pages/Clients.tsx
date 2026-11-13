@@ -40,6 +40,7 @@ import type { ClientPeriodStatus } from "@/types";
 import { cn } from "@/lib/utils";
 import { useWorkspaceMembers } from "@/hooks/useWorkspaceMembers";
 import { FilterPopover } from "@/components/FilterPopover";
+import { IconTooltipButton } from "@/components/IconTooltipButton";
 
 const taxRegimeLabels: Record<string, string> = {
   simples_nacional: "Simples Nacional",
@@ -396,8 +397,8 @@ const Clients = () => {
               {filteredClients.length} clientes
             </Badge>
             <div className="ml-auto flex rounded-xl border border-border bg-card p-1">
-              <Button variant={viewMode === "grid" ? "default" : "ghost"} size="sm" className="rounded-lg" aria-pressed={viewMode === "grid"} onClick={() => setViewMode("grid")}><Grid2X2 className="h-4 w-4" />Grade</Button>
-              <Button variant={viewMode === "list" ? "default" : "ghost"} size="sm" className="rounded-lg" aria-pressed={viewMode === "list"} onClick={() => setViewMode("list")}><List className="h-4 w-4" />Lista</Button>
+              <IconTooltipButton icon={Grid2X2} label="Grade" variant={viewMode === "grid" ? "default" : "ghost"} aria-pressed={viewMode === "grid"} onClick={() => setViewMode("grid")} />
+              <IconTooltipButton icon={List} label="Lista" variant={viewMode === "list" ? "default" : "ghost"} aria-pressed={viewMode === "list"} onClick={() => setViewMode("list")} />
             </div>
           </div>
 

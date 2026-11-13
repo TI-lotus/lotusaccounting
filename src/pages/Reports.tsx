@@ -16,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { RevenueChart } from "@/components/dashboard/RevenueChart";
 import { QuickStats } from "@/components/dashboard/QuickStats";
+import { BentoStatStrip } from "@/components/dashboard/BentoStatStrip";
 import { CalendarEventView } from "@/components/CalendarEventView";
 import { useData } from "@/contexts/DataContext";
 import { useViewMode } from "@/contexts/ViewModeContext";
@@ -23,6 +24,7 @@ import { withinDateRange } from "@/lib/financialMetrics";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FilterPopover } from "@/components/FilterPopover";
+import { IconTooltipButton } from "@/components/IconTooltipButton";
 import {
   Select,
   SelectContent,
@@ -368,22 +370,22 @@ const Reports = () => {
 
         <div className="flex flex-wrap items-center justify-between gap-3 animate-fade-in">
           <div className="flex rounded-2xl border border-border bg-card p-1">
-            <Button
+            <IconTooltipButton
+              icon={LayoutDashboard}
+              label="Dashboard"
               variant={view === "dashboard" ? "default" : "ghost"}
-              size="sm"
               className="rounded-xl"
+              aria-pressed={view === "dashboard"}
               onClick={() => setView("dashboard")}
-            >
-              <LayoutDashboard className="h-4 w-4" /> Dashboard
-            </Button>
-            <Button
+            />
+            <IconTooltipButton
+              icon={Calendar}
+              label="Calendário"
               variant={view === "calendar" ? "default" : "ghost"}
-              size="sm"
               className="rounded-xl"
+              aria-pressed={view === "calendar"}
               onClick={() => setView("calendar")}
-            >
-              <Calendar className="h-4 w-4" /> Calendário
-            </Button>
+            />
           </div>
         </div>
 
@@ -480,30 +482,15 @@ const Reports = () => {
 
         {view === "dashboard" && (
           <>
-            {/* KPI Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4 animate-fade-in">
-              {kpiData.map((kpi) => {
-                const Icon = kpi.icon;
-                return (
-                  <Card key={kpi.label}>
-                    <CardContent className="pt-6">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm text-muted-foreground">
-                          {kpi.label}
-                        </span>
-                        <Icon className="h-4 w-4 text-muted-foreground" />
-                      </div>
-                      <p className="text-2xl font-semibold">{kpi.value}</p>
-                      <p
-                        className={`text-xs ${kpi.positive ? "text-emerald-600" : "text-red-600"}`}
-                      >
-                        {kpi.change}
-                      </p>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
+            <BentoStatStrip
+              className="animate-fade-in md:grid-cols-2 xl:grid-cols-5"
+              items={kpiData.map((kpi) => ({
+                label: kpi.label,
+                value: kpi.value,
+                hint: kpi.change,
+                icon: kpi.icon,
+              }))}
+            />
 
             <Tabs value={reportType} onValueChange={(value) => setReportType(value as ReportType)} className="animate-fade-in">
 

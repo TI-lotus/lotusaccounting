@@ -13,7 +13,8 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { KPITrend } from "@/components/dashboard/KPICard";
+import { BentoStatStrip } from "@/components/dashboard/BentoStatStrip";
+import { IconTooltipButton } from "@/components/IconTooltipButton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -660,24 +661,22 @@ export default function Agents() {
             </div>
             <div className="flex justify-end">
               <div className="flex rounded-xl border border-border bg-card p-1">
-                <Button
+                <IconTooltipButton
+                  icon={LayoutGrid}
+                  label="Grade"
                   variant={agentView === "grid" ? "default" : "ghost"}
-                  size="sm"
                   className="rounded-lg"
+                  aria-pressed={agentView === "grid"}
                   onClick={() => setAgentView("grid")}
-                >
-                  <LayoutGrid className="h-4 w-4" />
-                  Grade
-                </Button>
-                <Button
+                />
+                <IconTooltipButton
+                  icon={List}
+                  label="Lista"
                   variant={agentView === "list" ? "default" : "ghost"}
-                  size="sm"
                   className="rounded-lg"
+                  aria-pressed={agentView === "list"}
                   onClick={() => setAgentView("list")}
-                >
-                  <List className="h-4 w-4" />
-                  Lista
-                </Button>
+                />
               </div>
             </div>
             {(Object.keys(groupedAgents) as Agent["category"][]).map(
@@ -808,47 +807,14 @@ export default function Agents() {
           </TabsContent>
 
           <TabsContent value="executions" className="mt-6 space-y-4">
-            {/* Execution stats */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              <Card className="px-4 py-3">
-                <div className="flex items-end justify-between gap-3">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4 text-foreground" />
-                      <span className="text-sm text-muted-foreground">Sucesso</span>
-                    </div>
-                    <div className="text-xl font-semibold text-foreground mt-1">{successCount}</div>
-                  </div>
-                  <KPITrend tone="positive" />
-                </div>
-              </Card>
-              <Card className="px-4 py-3">
-                <div className="flex items-end justify-between gap-3">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <XCircle className="h-4 w-4 text-foreground" />
-                      <span className="text-sm text-muted-foreground">Erros</span>
-                    </div>
-                    <div className="text-xl font-semibold text-foreground mt-1">{errorCount}</div>
-                  </div>
-                  <KPITrend tone="negative" />
-                </div>
-              </Card>
-              <Card className="px-4 py-3">
-                <div className="flex items-end justify-between gap-3">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <Play className="h-4 w-4 text-foreground" />
-                      <span className="text-sm text-muted-foreground">
-                        Executando
-                      </span>
-                    </div>
-                    <div className="text-xl font-semibold text-foreground mt-1">{runningCount}</div>
-                  </div>
-                  <KPITrend />
-                </div>
-              </Card>
-            </div>
+            <BentoStatStrip
+              className="sm:grid-cols-3 xl:grid-cols-3"
+              items={[
+                { label: "Sucesso", value: successCount, icon: CheckCircle },
+                { label: "Erros", value: errorCount, icon: XCircle },
+                { label: "Executando", value: runningCount, icon: Play },
+              ]}
+            />
 
             {/* Filters */}
             <div className="filter-toolbar flex items-center gap-2 flex-wrap">

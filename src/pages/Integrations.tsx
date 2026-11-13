@@ -138,7 +138,16 @@ const Integrations = () => {
                 </div>
                 <Badge variant="secondary">{items.length}</Badge>
               </div>
-              <div className="grid gap-px overflow-hidden rounded-2xl border border-border/70 bg-border/70 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              <div
+                className={cn(
+                  "grid gap-px overflow-hidden rounded-2xl border border-border/70 bg-border/70",
+                  items.length === 1
+                    ? "mx-auto max-w-sm"
+                    : items.length === 4
+                      ? "mx-auto sm:grid-cols-2 xl:max-w-4xl"
+                      : "sm:grid-cols-2 xl:grid-cols-3",
+                )}
+              >
                 {items.map((integration) => {
                   const Icon = integration.icon;
                   const connection = connectionById.get(integration.id);

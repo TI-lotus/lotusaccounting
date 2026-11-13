@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { useData } from "@/contexts/DataContext";
 import { RevenueChart } from "@/components/dashboard/RevenueChart";
-import { KPITrend } from "@/components/dashboard/KPICard";
+import { BentoStatStrip } from "@/components/dashboard/BentoStatStrip";
 import { contractedMonthlyFees } from "@/lib/financialMetrics";
 
 const brl = (n: number) =>
@@ -44,37 +44,31 @@ const Finance = () => {
       label: "Honorários mensais contratados",
       value: brl(kpi.contractedFees),
       icon: Receipt,
-      color: "text-primary",
     },
     {
       label: "Receitas",
       value: brl(kpi.income),
       icon: ArrowUpCircle,
-      color: "text-emerald-600",
     },
     {
       label: "Despesas",
       value: brl(kpi.expense),
       icon: ArrowDownCircle,
-      color: "text-red-600",
     },
     {
       label: "Lucro",
       value: brl(kpi.profit),
       icon: TrendingUp,
-      color: kpi.profit >= 0 ? "text-emerald-600" : "text-red-600",
     },
     {
       label: "A receber",
       value: brl(kpi.pending),
       icon: Wallet,
-      color: "text-amber-600",
     },
     {
       label: "Em atraso",
       value: brl(kpi.overdue),
       icon: AlertTriangle,
-      color: "text-red-600",
     },
   ];
 
@@ -88,27 +82,14 @@ const Finance = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {cards.map((c) => {
-            const Icon = c.icon;
-            return (
-              <Card key={c.label}>
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-secondary">
-                      <Icon className="h-4 w-4 text-foreground" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm text-muted-foreground">{c.label}</p>
-                      <p className="text-xl font-semibold text-foreground">{c.value}</p>
-                    </div>
-                    <KPITrend />
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+        <BentoStatStrip
+          className="animate-fade-in xl:grid-cols-3"
+          items={cards.map((card) => ({
+            label: card.label,
+            value: card.value,
+            icon: card.icon,
+          }))}
+        />
 
         <RevenueChart />
 
