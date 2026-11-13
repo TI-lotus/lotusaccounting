@@ -359,7 +359,7 @@ const Documents = () => {
                 Gerencie faturas, relatórios e documentos
               </p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap items-center justify-end gap-2">
               <input
                 ref={fileInputRef}
                 type="file"
@@ -480,6 +480,26 @@ const Documents = () => {
                   </DialogContent>
                 </Dialog>
               )}
+              <div className="flex rounded-full border border-border bg-card p-1">
+                {[
+                  { value: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+                  { value: "list", label: "Lista", icon: List },
+                  { value: "calendar", label: "Calendário", icon: Calendar },
+                ].map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <IconTooltipButton
+                      key={item.value}
+                      icon={Icon}
+                      label={item.label}
+                      variant={view === item.value ? "default" : "ghost"}
+                      className="rounded-full"
+                      aria-pressed={view === item.value}
+                      onClick={() => setView(item.value as typeof view)}
+                    />
+                  );
+                })}
+              </div>
             </div>
           </div>
 
@@ -557,42 +577,16 @@ const Documents = () => {
             </div>
           )}
 
-          <div className="flex flex-wrap items-center justify-between gap-3 animate-fade-in">
-            <div className="flex rounded-full border border-border bg-card p-1">
-              {[
-                {
-                  value: "dashboard",
-                  label: "Dashboard",
-                  icon: LayoutDashboard,
-                },
-                { value: "list", label: "Lista", icon: List },
-                { value: "calendar", label: "Calendário", icon: Calendar },
-              ].map((item) => {
-                const Icon = item.icon;
-                return (
-                  <IconTooltipButton
-                    key={item.value}
-                    icon={Icon}
-                    label={item.label}
-                    variant={view === item.value ? "default" : "ghost"}
-                    className="rounded-full"
-                    aria-pressed={view === item.value}
-                    onClick={() => setView(item.value as typeof view)}
-                  />
-                );
-              })}
-            </div>
-          </div>
-
           {view === "dashboard" && (
             <BentoStatStrip
               className="animate-fade-in"
               items={[
-                { label: "Documentos", value: documents.length, icon: FileText },
+                { label: "Documentos", value: documents.length, icon: FileText, compact: true },
                 {
                   label: "Pendentes",
                   value: documents.filter((doc) => doc.status === "pending").length,
                   icon: Clock,
+                  compact: true,
                 },
                 {
                   label: "Período",

@@ -4,6 +4,7 @@ import { useData } from "@/contexts/DataContext";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { getBentoGridClass } from "@/components/dashboard/bentoGrid";
 
 interface RiskItem {
   id: string;
@@ -150,7 +151,7 @@ export const PendingRisksPanel = () => {
           Nenhuma pendência crítica no momento.
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+        <div className={cn("grid gap-3", getBentoGridClass(items.length))}>
           {items.map((item) => {
             const Icon = item.icon;
             return (

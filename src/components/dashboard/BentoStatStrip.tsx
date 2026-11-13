@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { KPITrend } from "@/components/dashboard/KPICard";
+import { getBentoGridClass } from "@/components/dashboard/bentoGrid";
 
 export interface BentoStat {
   label: string;
@@ -9,6 +10,7 @@ export interface BentoStat {
   hint?: ReactNode;
   icon?: LucideIcon;
   trend?: number[];
+  compact?: boolean;
 }
 
 interface BentoStatStripProps {
@@ -22,13 +24,14 @@ export const BentoStatStrip = ({ items, className }: BentoStatStripProps) => (
     className={cn(
       "grid overflow-hidden rounded-2xl border border-border/70 bg-border/70 sm:grid-cols-2 xl:grid-cols-3",
       className,
+      getBentoGridClass(items.length),
     )}
   >
     {items.map((item) => {
       const Icon = item.icon;
-      const showTrend = Boolean(item.trend?.length) || typeof item.value === "number";
+      const showTrend = !item.compact && (Boolean(item.trend?.length) || typeof item.value === "number");
       return (
-        <div key={item.label} className="min-h-28 min-w-0 bg-card p-4 sm:p-5">
+        <div key={item.label} className={cn("min-w-0 bg-card p-4 sm:p-5", item.compact ? "min-h-20" : "min-h-28")}>
           <div className="flex items-start justify-between gap-3">
             <dt className="truncate text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
               {item.label}
@@ -41,7 +44,7 @@ export const BentoStatStrip = ({ items, className }: BentoStatStripProps) => (
           </div>
           <div className="mt-2 flex items-end justify-between gap-3">
             <div className="min-w-0">
-              <dd className="text-xl font-semibold tracking-tight text-foreground">
+              <dd className={cn("font-semibold tracking-tight text-foreground", item.compact ? "text-lg" : "text-xl")}>
                 {item.value}
               </dd>
               {item.hint && (

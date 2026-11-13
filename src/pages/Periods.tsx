@@ -574,10 +574,10 @@ const Periods = () => {
         <BentoStatStrip
           className="animate-fade-in"
           items={[
-            { label: "Criadas", value: stats.created, hint: `${stats.total} no total`, icon: CalendarClock },
-            { label: "Aguardando documentos", value: stats.waiting, icon: FileWarning },
-            { label: "Bloqueadas", value: stats.blocked, icon: ShieldAlert },
-            { label: "Fechadas", value: stats.closed, icon: CheckCircle2 },
+            { label: "Criadas", value: stats.created, hint: `${stats.total} no total`, icon: CalendarClock, compact: true },
+            { label: "Aguardando documentos", value: stats.waiting, icon: FileWarning, compact: true },
+            { label: "Bloqueadas", value: stats.blocked, icon: ShieldAlert, compact: true },
+            { label: "Fechadas", value: stats.closed, icon: CheckCircle2, compact: true },
           ]}
         />
 

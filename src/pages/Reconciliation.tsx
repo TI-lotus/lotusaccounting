@@ -141,8 +141,8 @@ const Reconciliation = () => {
         <BentoStatStrip
           className="sm:grid-cols-2"
           items={[
-            { label: "A conciliar", value: totals.pendCount, hint: brl(totals.pendAmount), icon: AlertCircle },
-            { label: "Conciliados", value: totals.okCount, hint: brl(totals.okAmount), icon: CheckCircle2 },
+            { label: "A conciliar", value: totals.pendCount, hint: brl(totals.pendAmount), icon: AlertCircle, compact: true },
+            { label: "Conciliados", value: totals.okCount, hint: brl(totals.okAmount), icon: CheckCircle2, compact: true },
           ]}
         />
 
@@ -184,9 +184,9 @@ const Reconciliation = () => {
             <BentoStatStrip
               className="sm:grid-cols-3"
               items={[
-                { label: "Contas conectadas", value: accounts.length },
-                { label: "Transações importadas", value: transactions.length },
-                { label: "Sugestões pendentes", value: suggestedMatches.length },
+                { label: "Contas conectadas", value: accounts.length, compact: true },
+                { label: "Transações importadas", value: transactions.length, compact: true },
+                { label: "Sugestões pendentes", value: suggestedMatches.length, compact: true },
               ]}
             />
 

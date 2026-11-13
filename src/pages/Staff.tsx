@@ -32,6 +32,7 @@ import { cn } from "@/lib/utils";
 import { useData } from "@/contexts/DataContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { BentoStatStrip } from "@/components/dashboard/BentoStatStrip";
+import { getBentoGridClass } from "@/components/dashboard/bentoGrid";
 import { IconTooltipButton } from "@/components/IconTooltipButton";
 import { RowActions } from "@/components/RowActions";
 
@@ -463,10 +464,10 @@ const Staff = () => {
         <BentoStatStrip
           className="animate-fade-in"
           items={[
-            { label: "Equipe", value: members.length, icon: UserCog },
-            { label: "Ativos", value: activeMembers.length, icon: ShieldCheck },
-            { label: "Convites", value: pendingInvites.length, icon: UserPlus },
-            { label: "Acessos cliente", value: clientsProfiles.length, icon: CheckSquare },
+            { label: "Equipe", value: members.length, icon: UserCog, compact: true },
+            { label: "Ativos", value: activeMembers.length, icon: ShieldCheck, compact: true },
+            { label: "Convites", value: pendingInvites.length, icon: UserPlus, compact: true },
+            { label: "Acessos cliente", value: clientsProfiles.length, icon: CheckSquare, compact: true },
           ]}
         />
 
@@ -500,7 +501,7 @@ const Staff = () => {
                 </div>
               </div>
 
-              <div className={cn("overflow-hidden rounded-2xl border border-border/70 bg-border/70", peopleViewMode === "grid" ? "grid gap-px sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "divide-y divide-border/70")}>
+              <div className={cn("overflow-hidden rounded-2xl border border-border/70 bg-border/70", peopleViewMode === "grid" ? cn("grid gap-px", getBentoGridClass(filteredMembers.length)) : "divide-y divide-border/70")}>
                 {filteredMembers.map((member) => {
                   const memberTasks = tasks.filter((task) => task.assignedToId === member.user_id);
                   const completed = memberTasks.filter((task) => task.status === "completed").length;

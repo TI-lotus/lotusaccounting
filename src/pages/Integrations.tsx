@@ -17,6 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState, ErrorState, LoadingState } from "@/components/PageStates";
 import { cn } from "@/lib/utils";
 import { BentoStatStrip } from "@/components/dashboard/BentoStatStrip";
+import { getBentoGridClass } from "@/components/dashboard/bentoGrid";
 import { useData } from "@/contexts/DataContext";
 import {
   integrationCatalog,
@@ -109,10 +110,10 @@ const Integrations = () => {
         <BentoStatStrip
           className="animate-fade-in"
           items={[
-            { label: "Conectadas", value: totals.connected, icon: Check },
-            { label: "Jobs pendentes", value: totals.pendingJobs, icon: Clock },
-            { label: "Erros abertos", value: totals.unresolvedErrors, icon: AlertTriangle },
-            { label: "Automações ativas", value: totals.activeRules, icon: Settings },
+            { label: "Conectadas", value: totals.connected, icon: Check, compact: true },
+            { label: "Jobs pendentes", value: totals.pendingJobs, icon: Clock, compact: true },
+            { label: "Erros abertos", value: totals.unresolvedErrors, icon: AlertTriangle, compact: true },
+            { label: "Automações ativas", value: totals.activeRules, icon: Settings, compact: true },
           ]}
         />
 
@@ -141,11 +142,7 @@ const Integrations = () => {
               <div
                 className={cn(
                   "grid gap-px overflow-hidden rounded-2xl border border-border/70 bg-border/70",
-                  items.length === 1
-                    ? "mx-auto max-w-sm"
-                    : items.length === 4
-                      ? "mx-auto sm:grid-cols-2 xl:max-w-4xl"
-                      : "sm:grid-cols-2 xl:grid-cols-3",
+                  getBentoGridClass(items.length),
                 )}
               >
                 {items.map((integration) => {

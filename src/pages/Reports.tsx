@@ -368,27 +368,6 @@ const Reports = () => {
           </Button>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 animate-fade-in">
-          <div className="flex rounded-full border border-border bg-card p-1">
-            <IconTooltipButton
-              icon={LayoutDashboard}
-              label="Dashboard"
-              variant={view === "dashboard" ? "default" : "ghost"}
-              className="rounded-full"
-              aria-pressed={view === "dashboard"}
-              onClick={() => setView("dashboard")}
-            />
-            <IconTooltipButton
-              icon={Calendar}
-              label="Calendário"
-              variant={view === "calendar" ? "default" : "ghost"}
-              className="rounded-full"
-              aria-pressed={view === "calendar"}
-              onClick={() => setView("calendar")}
-            />
-          </div>
-        </div>
-
         <div className="filter-toolbar flex flex-wrap items-center justify-between gap-3 animate-fade-in">
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-3">
             <div className="space-y-1.5">
@@ -470,6 +449,24 @@ const Reports = () => {
               </Select>
             </div>
           </FilterPopover>
+          <div className="flex rounded-full border border-border bg-card p-1">
+            <IconTooltipButton
+              icon={LayoutDashboard}
+              label="Dashboard"
+              variant={view === "dashboard" ? "default" : "ghost"}
+              className="rounded-full"
+              aria-pressed={view === "dashboard"}
+              onClick={() => setView("dashboard")}
+            />
+            <IconTooltipButton
+              icon={Calendar}
+              label="Calendário"
+              variant={view === "calendar" ? "default" : "ghost"}
+              className="rounded-full"
+              aria-pressed={view === "calendar"}
+              onClick={() => setView("calendar")}
+            />
+          </div>
         </div>
         {view === "calendar" && (
           <CalendarEventView
@@ -489,6 +486,7 @@ const Reports = () => {
                 value: kpi.value,
                 hint: kpi.change,
                 icon: kpi.icon,
+                compact: true,
               }))}
             />
 

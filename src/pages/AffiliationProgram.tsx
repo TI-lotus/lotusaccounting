@@ -6,7 +6,7 @@ const AffiliationProgram = () => (
   <DashboardLayout>
       <div className="mx-auto w-full max-w-[1100px] space-y-8 animate-fade-in">
       <div>
-          <Gift className="mb-3 h-5 w-5 text-gilver" aria-hidden="true" title="Programa de afiliados" />
+          <Gift className="mb-3 h-5 w-5 text-gilver" aria-hidden="true" />
           <h1 className="text-[30px] font-normal tracking-[-0.035em]">Programa de afiliados</h1>
           <p className="mt-2 max-w-2xl text-[13px] leading-6 text-muted-foreground">Indicações e comissões serão exibidas aqui quando o programa estiver habilitado.</p>
       </div>

@@ -784,18 +784,21 @@ const IntegrationSettings = () => {
                   value: usage.calls.toLocaleString("pt-BR"),
                   hint: `de ${usage.limit.toLocaleString("pt-BR")}`,
                   icon: BarChart3,
+                  compact: true,
                 },
                 {
                   label: "Período",
                   value: usage.period,
                   hint: "Ciclo atual",
                   icon: Clock,
+                  compact: true,
                 },
                 {
                   label: "Utilização",
                   value: `${usagePercent.toFixed(1)}%`,
                   hint: `${Math.max(usage.limit - usage.calls, 0).toLocaleString("pt-BR")} chamadas restantes`,
                   icon: BarChart3,
+                  compact: true,
                 },
               ]}
             />

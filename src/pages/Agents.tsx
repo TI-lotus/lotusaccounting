@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { BentoStatStrip } from "@/components/dashboard/BentoStatStrip";
+import { getBentoGridClass } from "@/components/dashboard/bentoGrid";
 import { IconTooltipButton } from "@/components/IconTooltipButton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -624,55 +625,55 @@ export default function Agents() {
           <BentoStatStrip
             className="w-full max-w-md sm:grid-cols-2 xl:grid-cols-2"
             items={[
-              { label: "Agentes ativos", value: totalActive, icon: Zap },
-              { label: "Ações hoje", value: totalActions, icon: Play },
+              { label: "Agentes ativos", value: totalActive, icon: Zap, compact: true },
+              { label: "Ações hoje", value: totalActions, icon: Play, compact: true },
             ]}
           />
         </div>
 
         <Tabs defaultValue="agents">
-          <TabsList>
-            <TabsTrigger value="agents" className="gap-2">
-              <Zap className="h-4 w-4" />
-              Biblioteca
-            </TabsTrigger>
-            <TabsTrigger value="workflow" className="gap-2">
-              <FileSearch className="h-4 w-4" />
-              Workflow
-            </TabsTrigger>
-            <TabsTrigger value="executions" className="gap-2">
-              <Play className="h-4 w-4" />
-              Execuções
-            </TabsTrigger>
-            <TabsTrigger value="approvals" className="gap-2">
-              <CheckCircle className="h-4 w-4" />
-              Aprovações
-            </TabsTrigger>
-          </TabsList>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <TabsList>
+              <TabsTrigger value="agents" className="gap-2">
+                <Zap className="h-4 w-4" />
+                Biblioteca
+              </TabsTrigger>
+              <TabsTrigger value="workflow" className="gap-2">
+                <FileSearch className="h-4 w-4" />
+                Workflow
+              </TabsTrigger>
+              <TabsTrigger value="executions" className="gap-2">
+                <Play className="h-4 w-4" />
+                Execuções
+              </TabsTrigger>
+              <TabsTrigger value="approvals" className="gap-2">
+                <CheckCircle className="h-4 w-4" />
+                Aprovações
+              </TabsTrigger>
+            </TabsList>
+            <div className="flex rounded-full border border-border bg-card p-1">
+              <IconTooltipButton
+                icon={LayoutGrid}
+                label="Grade"
+                variant={agentView === "grid" ? "default" : "ghost"}
+                className="rounded-full"
+                aria-pressed={agentView === "grid"}
+                onClick={() => setAgentView("grid")}
+              />
+              <IconTooltipButton
+                icon={List}
+                label="Lista"
+                variant={agentView === "list" ? "default" : "ghost"}
+                className="rounded-full"
+                aria-pressed={agentView === "list"}
+                onClick={() => setAgentView("list")}
+              />
+            </div>
+          </div>
 
           <TabsContent value="agents" className="space-y-6 mt-6">
             <div className="rounded-2xl border border-gilver/30 bg-gilver/10 px-4 py-3 text-sm text-foreground">
               A biblioteca de agentes é uma camada de configuração visual. Ativações e execuções reais dependem de providers e jobs conectados; alterações nesta tela ficam apenas nesta sessão.
-            </div>
-            <div className="flex justify-end">
-              <div className="flex rounded-full border border-border bg-card p-1">
-                <IconTooltipButton
-                  icon={LayoutGrid}
-                  label="Grade"
-                  variant={agentView === "grid" ? "default" : "ghost"}
-                  className="rounded-full"
-                  aria-pressed={agentView === "grid"}
-                  onClick={() => setAgentView("grid")}
-                />
-                <IconTooltipButton
-                  icon={List}
-                  label="Lista"
-                  variant={agentView === "list" ? "default" : "ghost"}
-                  className="rounded-full"
-                  aria-pressed={agentView === "list"}
-                  onClick={() => setAgentView("list")}
-                />
-              </div>
             </div>
             {(Object.keys(groupedAgents) as Agent["category"][]).map(
               (category) => (
@@ -684,7 +685,7 @@ export default function Agents() {
                     className={cn(
                       "overflow-hidden rounded-2xl border border-border/70 bg-border/70 gap-px",
                       agentView === "grid"
-                        ? "grid md:grid-cols-2 lg:grid-cols-3"
+                        ? cn("grid", getBentoGridClass(groupedAgents[category].length))
                         : "divide-y divide-border/70",
                     )}
                   >
@@ -798,9 +799,9 @@ export default function Agents() {
             <BentoStatStrip
               className="sm:grid-cols-3 xl:grid-cols-3"
               items={[
-                { label: "Sucesso", value: successCount, icon: CheckCircle },
-                { label: "Erros", value: errorCount, icon: XCircle },
-                { label: "Executando", value: runningCount, icon: Play },
+                { label: "Sucesso", value: successCount, icon: CheckCircle, compact: true },
+                { label: "Erros", value: errorCount, icon: XCircle, compact: true },
+                { label: "Executando", value: runningCount, icon: Play, compact: true },
               ]}
             />
 

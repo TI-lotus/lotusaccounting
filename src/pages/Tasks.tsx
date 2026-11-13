@@ -507,11 +507,11 @@ const Tasks = () => {
         <BentoStatStrip
           className="animate-fade-in xl:grid-cols-3"
           items={[
-            { label: "Atrasadas", value: overdueCount, icon: AlertTriangle },
-            { label: "Bloqueadas", value: blockedCount, icon: LockKeyhole },
-            { label: "Pendentes", value: pendingCount, icon: AlertCircle },
-            { label: "Em andamento", value: inProgressCount, icon: Clock },
-            { label: "Concluídas", value: completedCount, icon: CheckCircle2 },
+            { label: "Atrasadas", value: overdueCount, icon: AlertTriangle, compact: true },
+            { label: "Bloqueadas", value: blockedCount, icon: LockKeyhole, compact: true },
+            { label: "Pendentes", value: pendingCount, icon: AlertCircle, compact: true },
+            { label: "Em andamento", value: inProgressCount, icon: Clock, compact: true },
+            { label: "Concluídas", value: completedCount, icon: CheckCircle2, compact: true },
           ]}
         />
 

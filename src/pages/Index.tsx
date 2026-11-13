@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { useNavigate } from "react-router-dom";
 import { BentoMetric } from "@/components/dashboard/KPICard";
+import { getBentoGridClass } from "@/components/dashboard/bentoGrid";
 import { PendingRisksPanel } from "@/components/dashboard/PendingRisksPanel";
 import { OperationalIndicatorsPanel } from "@/components/dashboard/OperationalIndicatorsPanel";
 import { useViewMode } from "@/contexts/ViewModeContext";
@@ -836,7 +837,7 @@ const ClientDashboard = () => {
               <span className="font-medium">{currentPeriod?.progressPercent ?? 0}%</span>
             </div>
             <Progress value={currentPeriod?.progressPercent ?? 0} className="h-2" />
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            <div className={cn("grid gap-2", getBentoGridClass(Math.min(currentPeriodSteps.length, 6)))}>
               {currentPeriodSteps.slice(0, 6).map((step) => (
                 <div key={step.id} className="rounded-xl border border-border p-3">
                   <p className="truncate text-sm font-medium">{step.title}</p>
@@ -895,7 +896,7 @@ const ClientDashboard = () => {
         </div>
       </div>
 
-      <div className="grid overflow-hidden rounded-[28px] border border-border/70 bg-border/70 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 animate-fade-in">
+      <div className={cn("grid overflow-hidden rounded-[28px] border border-border/70 bg-border/70 gap-px animate-fade-in", getBentoGridClass(clientMetrics.length))}>
         {clientMetrics.map((metric, index) => (
           <BentoMetric
             key={metric.id}
@@ -905,10 +906,7 @@ const ClientDashboard = () => {
             trend={metric.points.week.map((point) => point.value)}
             icon={metric.icon}
             featured={index === 0}
-            className={cn(
-              index === 0 && "md:col-span-2 lg:col-span-2 lg:row-span-2",
-              index === 3 && "md:col-span-2 lg:col-span-2",
-            )}
+            className={cn(index === 0 && "min-h-44")}
             onClick={() => setSelectedMetric(metric)}
           />
         ))}
@@ -1388,7 +1386,7 @@ const Index = () => {
 
         <LiaInsights />
 
-        <div className="grid overflow-hidden rounded-[28px] border border-border/70 bg-border/70 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 animate-fade-in">
+        <div className={cn("grid overflow-hidden rounded-[28px] border border-border/70 bg-border/70 gap-px animate-fade-in", getBentoGridClass(officeMetrics.length))}>
           {officeMetrics.map((metric, index) => (
             <BentoMetric
               key={metric.id}
@@ -1398,10 +1396,7 @@ const Index = () => {
               trend={metric.points[dashboardPeriod].map((point) => point.value)}
               icon={metric.icon}
               featured={index === 0}
-              className={cn(
-                index === 0 && "md:col-span-2 lg:col-span-2 lg:row-span-2",
-                index === 3 && "md:col-span-2 lg:col-span-2",
-              )}
+              className={cn(index === 0 && "min-h-44")}
               onClick={() => setSelectedMetric(metric)}
             />
           ))}
@@ -1424,30 +1419,20 @@ const Index = () => {
               Abrir ciclo mensal
             </Button>
           </div>
-          <dl className="grid gap-y-4 border-y border-border/70 py-5 sm:grid-cols-2 sm:divide-x sm:divide-border/70 lg:grid-cols-5">
-            <div className="px-1 lg:pl-0">
-              <dt className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">Criadas</dt>
-              <dd className="mt-2 text-xl font-semibold tracking-tight text-foreground">
-                {currentPeriodStats.created}/{activeClientsForPeriod.length}
-              </dd>
-            </div>
-            <div className="px-1 sm:px-4">
-              <dt className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">Progresso médio</dt>
-              <dd className="mt-2 text-xl font-semibold tracking-tight text-foreground">{currentPeriodStats.averageProgress}%</dd>
-            </div>
-            <div className="px-1 sm:px-4">
-              <dt className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">Aguardando docs</dt>
-              <dd className="mt-2 text-xl font-semibold tracking-tight text-foreground">{currentPeriodStats.waiting}</dd>
-            </div>
-            <div className="px-1 sm:px-4">
-              <dt className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">Em revisão</dt>
-              <dd className="mt-2 text-xl font-semibold tracking-tight text-foreground">{currentPeriodStats.review}</dd>
-            </div>
-            <div className="px-1 sm:px-4 lg:pr-0">
-              <dt className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">Bloqueadas</dt>
-              <dd className="mt-2 text-xl font-semibold tracking-tight text-foreground">{currentPeriodStats.blocked}</dd>
-            </div>
-          </dl>
+          <div className="flex flex-wrap gap-2 border-y border-border/70 py-4">
+            {[
+              ["Criadas", `${currentPeriodStats.created}/${activeClientsForPeriod.length}`],
+              ["Progresso médio", `${currentPeriodStats.averageProgress}%`],
+              ["Aguardando docs", currentPeriodStats.waiting],
+              ["Em revisão", currentPeriodStats.review],
+              ["Bloqueadas", currentPeriodStats.blocked],
+            ].map(([label, value]) => (
+              <span key={label} className="inline-flex items-baseline gap-2 rounded-full border border-border/70 bg-card px-3 py-2 text-xs text-muted-foreground">
+                <span>{label}</span>
+                <strong className="text-sm font-semibold text-foreground">{value}</strong>
+              </span>
+            ))}
+          </div>
           <div className="mt-5 grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
             <div className="space-y-2">
               {currentPeriodRisks.length === 0 ? (
@@ -1537,20 +1522,11 @@ const Index = () => {
                 </div>
               </div>
             ) : (
-              <dl className="grid gap-y-4 divide-y divide-border/70 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
-                <div className="pb-4 sm:pb-0 sm:pr-4">
-                  <dt className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">Recebido</dt>
-                  <dd className="mt-2 text-lg font-semibold tracking-tight text-foreground">{brl(totalRevenue)}</dd>
-                </div>
-                <div className="py-4 sm:px-4 sm:py-0">
-                  <dt className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">Faturas</dt>
-                  <dd className="mt-2 text-lg font-semibold tracking-tight text-foreground">{filteredInvoices.length}</dd>
-                </div>
-                <div className="pt-4 sm:pl-4 sm:pt-0">
-                  <dt className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">Pagamentos</dt>
-                  <dd className="mt-2 text-lg font-semibold tracking-tight text-foreground">{filteredPayments.length}</dd>
-                </div>
-              </dl>
+              <div className="flex flex-wrap gap-2 border-y border-border/70 py-4">
+                <span className="inline-flex items-baseline gap-2 rounded-full border border-border/70 bg-card px-3 py-2 text-xs text-muted-foreground"><span>Recebido</span><strong className="text-sm font-semibold text-foreground">{brl(totalRevenue)}</strong></span>
+                <span className="inline-flex items-baseline gap-2 rounded-full border border-border/70 bg-card px-3 py-2 text-xs text-muted-foreground"><span>Faturas</span><strong className="text-sm font-semibold text-foreground">{filteredInvoices.length}</strong></span>
+                <span className="inline-flex items-baseline gap-2 rounded-full border border-border/70 bg-card px-3 py-2 text-xs text-muted-foreground"><span>Pagamentos</span><strong className="text-sm font-semibold text-foreground">{filteredPayments.length}</strong></span>
+              </div>
             )}
           </div>
           <div className="glass rounded-2xl p-6 animate-fade-in">

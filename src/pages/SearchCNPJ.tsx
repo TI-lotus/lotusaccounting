@@ -90,7 +90,7 @@ const SearchCNPJ = () => {
     <DashboardLayout>
       <div className="mx-auto w-full max-w-[1100px] space-y-8 animate-fade-in">
         <div>
-          <Search className="mb-3 h-5 w-5 text-gilver" aria-hidden="true" title="Consulta CNPJ" />
+          <Search className="mb-3 h-5 w-5 text-gilver" aria-hidden="true" />
           <h1 className="text-[30px] font-normal tracking-[-0.035em]">Consulta CNPJ</h1>
           <p className="mt-2 max-w-2xl text-[13px] leading-6 text-muted-foreground">
             Pesquise informações de empresas pelo CNPJ
@@ -133,7 +133,7 @@ const SearchCNPJ = () => {
           <Card className="page-section animate-fade-in">
             <CardHeader className="px-0 pt-0">
               <div className="flex items-center gap-3">
-                <Building2 className="h-5 w-5 text-gilver" aria-hidden="true" title="Empresa consultada" />
+                <Building2 className="h-5 w-5 text-gilver" aria-hidden="true" />
                 <div>
                   <CardTitle>{companyName}</CardTitle>
                   <CardDescription>{tradeName}</CardDescription>

@@ -902,10 +902,10 @@ const WorkQueue = () => {
         <BentoStatStrip
           className="animate-fade-in"
           items={[
-            { label: "Concluídas hoje", value: stats.completedToday, icon: CheckCircle2 },
-            { label: "Atrasadas", value: stats.overdue, icon: AlertTriangle },
-            { label: "Em revisão", value: stats.review, icon: LockKeyhole },
-            { label: "Clientes sob responsabilidade", value: stats.clients, icon: UserCheck },
+            { label: "Concluídas hoje", value: stats.completedToday, icon: CheckCircle2, compact: true },
+            { label: "Atrasadas", value: stats.overdue, icon: AlertTriangle, compact: true },
+            { label: "Em revisão", value: stats.review, icon: LockKeyhole, compact: true },
+            { label: "Clientes sob responsabilidade", value: stats.clients, icon: UserCheck, compact: true },
           ]}
         />
 

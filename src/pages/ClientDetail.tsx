@@ -1146,19 +1146,22 @@ const ClientDetail = () => {
                   label: "Honorários mensais",
                   value: brl(client.serviceFee),
                   icon: CreditCard,
+                  compact: true,
                 },
                 {
                   label: "Saldo estimado",
                   value: brl(Math.max(0, client.serviceFee - financialSummary.currentMonthReceived)),
                   icon: Wallet,
+                  compact: true,
                 },
-                { label: "Faturado", value: brl(financialSummary.invoiced), icon: FileText },
+                { label: "Faturado", value: brl(financialSummary.invoiced), icon: FileText, compact: true },
                 {
                   label: "Recebido",
                   value: brl(Math.max(financialSummary.received, financialSummary.paidInvoices)),
                   icon: CheckSquare,
+                  compact: true,
                 },
-                { label: "Em aberto", value: brl(financialSummary.pending), icon: Activity },
+                { label: "Em aberto", value: brl(financialSummary.pending), icon: Activity, compact: true },
               ]}
             />
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

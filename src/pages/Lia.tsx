@@ -21,7 +21,7 @@ const Lia = () => (
         <Card className="page-section">
           <CardContent className="space-y-3">
             <div className="flex items-center gap-3">
-              <Sparkles className="h-5 w-5 text-gilver" aria-hidden="true" title="Lia" />
+              <Sparkles className="h-5 w-5 text-gilver" aria-hidden="true" />
               <p className="text-base font-medium">Converse enquanto trabalha</p>
             </div>
             <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
@@ -36,7 +36,7 @@ const Lia = () => (
           return (
             <Card key={c.title} className="rounded-none border-0">
               <CardContent className="min-h-36 space-y-3 p-5 sm:p-6">
-                <Icon className="h-5 w-5 text-gilver" aria-hidden="true" title={c.title} />
+                <Icon className="h-5 w-5 text-gilver" aria-hidden="true" />
                 <p className="font-medium">{c.title}</p>
                 <p className="text-sm leading-6 text-muted-foreground">{c.desc}</p>
               </CardContent>
