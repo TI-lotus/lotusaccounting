@@ -11,7 +11,6 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Dialog,
@@ -223,7 +222,7 @@ const Agenda = () => {
           </p>
         </div>
 
-        <section className="page-section space-y-4 animate-fade-in">
+        <section className="space-y-4 animate-fade-in">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="text-base font-medium">Eventos e obrigações</h2>
@@ -251,8 +250,7 @@ const Agenda = () => {
           </div>
 
         <div className="grid items-stretch grid-cols-1 gap-4 lg:grid-cols-2">
-          <Card className="page-section h-full min-h-[600px] animate-fade-in">
-            <CardContent className="flex h-full flex-col p-4 sm:p-5">
+          <div className="flex h-full min-h-[600px] flex-col rounded-2xl border border-border/70 bg-card p-4 sm:p-5">
               <Calendar
                 mode="single"
                 month={visibleMonth}
@@ -277,11 +275,9 @@ const Agenda = () => {
                 fromYear={2010}
                 toYear={new Date().getFullYear() + 5}
               />
-            </CardContent>
-          </Card>
+          </div>
 
-          <Card className="page-section h-full min-h-[600px] animate-fade-in">
-            <CardContent className="flex h-full min-h-[600px] flex-col p-6">
+          <div className="flex h-full min-h-[600px] flex-col rounded-2xl border border-border/70 bg-card p-5 sm:p-6">
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h2 className="text-lg font-semibold capitalize">
@@ -296,12 +292,12 @@ const Agenda = () => {
                 </div>
               </div>
               {dayItems.length === 0 ? (
-                <div className="py-16 text-center text-muted-foreground">
+                <div className="flex min-h-64 flex-1 flex-col items-center justify-center text-center text-muted-foreground">
                   <CalendarIcon className="h-10 w-10 mx-auto mb-3 opacity-50" />
                   <p className="text-sm">Nenhum evento para esta data</p>
                 </div>
               ) : (
-                <div className="custom-scroll min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
+                <div className="custom-scroll min-h-0 flex-1 space-y-0 overflow-y-auto pr-1">
                   {dayItems.map((item) => {
                     const cfg = kindConfig[item.kind];
                     const Icon = cfg.icon;
@@ -309,10 +305,10 @@ const Agenda = () => {
                       <button
                         key={item.id}
                         onClick={() => setSelectedItem(item)}
-                        className="flex w-full items-start gap-3 p-3 rounded-xl border border-border text-left hover:bg-accent/40 transition-colors"
+                        className="group flex w-full items-start gap-3 border-b border-border/70 px-2 py-3 text-left transition-colors last:border-b-0 hover:bg-accent/30"
                       >
-                        <div className={cn("p-2 rounded-lg", cfg.badge)}>
-                          <Icon className="h-4 w-4" />
+                        <div className={cn("mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl", cfg.badge)}>
+                          <Icon className="h-4 w-4" aria-hidden="true" />
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-medium truncate">
@@ -337,8 +333,7 @@ const Agenda = () => {
                   })}
                 </div>
               )}
-            </CardContent>
-          </Card>
+          </div>
         </div>
         </section>
 

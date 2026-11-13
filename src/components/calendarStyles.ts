@@ -4,7 +4,7 @@ export const largeCalendarClassNames = {
   caption: "flex h-10 items-center justify-center pt-1 relative",
   caption_label: "text-base font-medium capitalize",
   caption_dropdowns: "flex h-10 items-center justify-center gap-2",
-  dropdown: "rounded-xl border border-border bg-card px-3 py-2 text-sm font-medium text-foreground outline-none transition-colors hover:bg-accent focus:ring-2 focus:ring-ring/60",
+  dropdown: "absolute inset-0 z-20 h-full w-full cursor-pointer opacity-0 outline-none",
   dropdown_month: "relative min-w-[132px] cursor-pointer rounded-xl border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent",
   dropdown_year: "relative min-w-[88px] cursor-pointer rounded-xl border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent",
   nav: "space-x-2 flex items-center",

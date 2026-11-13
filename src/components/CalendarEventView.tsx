@@ -126,7 +126,7 @@ export const CalendarEventView = ({ title, events, dateRange, onDateRangeChange,
   );
 
   return (
-    <section className="page-section animate-fade-in space-y-4">
+    <section className="animate-fade-in space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-base font-medium">{title}</h2>
@@ -182,14 +182,14 @@ export const CalendarEventView = ({ title, events, dateRange, onDateRangeChange,
           </div>
           <div className="custom-scroll mt-4 min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
             {selectedEvents.length === 0 ? (
-              <div className="flex min-h-64 flex-col items-center justify-center rounded-xl border border-dashed border-border/70 px-4 text-center">
+                <div className="flex min-h-64 flex-col items-center justify-center px-4 text-center">
                 <CalendarClock className="mb-3 h-8 w-8 text-muted-foreground/60" aria-hidden="true" />
                 <p className="text-sm font-medium">Nenhum item neste dia</p>
                 <p className="mt-1 text-xs text-muted-foreground">Escolha outra data no calendário.</p>
               </div>
             ) : (
               selectedEvents.map((event, index) => (
-                <div key={`${event.title}-${event.time ?? ""}-${index}`} className="rounded-xl border border-border/70 bg-background/70 p-3 transition-colors hover:border-gilver/50 hover:bg-accent/30">
+                <div key={`${event.title}-${event.time ?? ""}-${index}`} className="border-b border-border/70 px-2 py-3 transition-colors last:border-b-0 hover:bg-accent/30">
                   <div className="flex items-start gap-3">
                     <div className="mt-0.5 shrink-0">{eventStatusIcon(event.status)}</div>
                     <div className="min-w-0 flex-1">
