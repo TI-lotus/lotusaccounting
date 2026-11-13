@@ -232,7 +232,10 @@ const Agenda = () => {
             <Filter className="h-4 w-4" aria-hidden="true" />
             <span>Eventos e obrigações</span>
           </div>
-          <FilterPopover activeCount={activeFilter === "all" ? 0 : 1}>
+          <FilterPopover
+            activeCount={activeFilter === "all" ? 0 : 1}
+            onClear={() => setActiveFilter("all")}
+          >
             <div className="grid grid-cols-2 gap-2">
               {filterOptions.map((opt) => (
                 <Button

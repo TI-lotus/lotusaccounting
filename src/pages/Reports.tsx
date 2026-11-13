@@ -22,6 +22,14 @@ import { useData } from "@/contexts/DataContext";
 import { useViewMode } from "@/contexts/ViewModeContext";
 import { withinDateRange } from "@/lib/financialMetrics";
 import { Input } from "@/components/ui/input";
+import { FilterPopover } from "@/components/FilterPopover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const formatCurrency = (value: number) =>
   value.toLocaleString("pt-BR", {
@@ -49,6 +57,24 @@ const currentMonthRange = () => {
   };
 };
 
+type ReportPeriod = "month" | "quarter" | "year" | "custom";
+
+const reportPeriodRange = (period: Exclude<ReportPeriod, "custom">) => {
+  const now = new Date();
+  const year = now.getFullYear();
+  if (period === "year") {
+    return { start: `${year}-01-01`, end: `${year}-12-31` };
+  }
+  if (period === "quarter") {
+    const quarterStartMonth = Math.floor(now.getMonth() / 3) * 3;
+    return {
+      start: `${year}-${String(quarterStartMonth + 1).padStart(2, "0")}-01`,
+      end: new Date(year, quarterStartMonth + 3, 0).toISOString().slice(0, 10),
+    };
+  }
+  return currentMonthRange();
+};
+
 const Reports = () => {
   const { viewMode } = useViewMode();
   const {
@@ -63,6 +89,11 @@ const Reports = () => {
   } = useData();
   const [view, setView] = useState<"dashboard" | "calendar">("dashboard");
   const [dateRange, setDateRange] = useState(currentMonthRange);
+  const [periodPreset, setPeriodPreset] = useState<ReportPeriod>("month");
+  const handlePeriodChange = (period: ReportPeriod) => {
+    setPeriodPreset(period);
+    if (period !== "custom") setDateRange(reportPeriodRange(period));
+  };
   const documents = useMemo(() => allDocuments.filter((doc) => withinDateRange(doc.createdAt, dateRange)), [allDocuments, dateRange]);
   const invoices = useMemo(() => allInvoices.filter((invoice) => withinDateRange(invoice.issued_at ?? invoice.created_at, dateRange)), [allInvoices, dateRange]);
   const payments = useMemo(() => allPayments.filter((payment) => withinDateRange(payment.paid_at ?? payment.created_at, dateRange)), [allPayments, dateRange]);
@@ -308,8 +339,8 @@ const Reports = () => {
             className="rounded-xl gap-2"
             onClick={() => handleExportCsv()}
           >
-            <BarChart3 className="h-4 w-4" />
-            Gerar Relatório
+            <Download className="h-4 w-4" />
+            Exportar CSV
           </Button>
         </div>
 
@@ -334,9 +365,55 @@ const Reports = () => {
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-3">
-          <label className="text-sm space-y-1">Início<Input type="date" value={dateRange.start} max={dateRange.end} onChange={(event) => event.target.value && setDateRange({ ...dateRange, start: event.target.value })} /></label>
-          <label className="text-sm space-y-1">Fim<Input type="date" value={dateRange.end} min={dateRange.start} onChange={(event) => event.target.value && setDateRange({ ...dateRange, end: event.target.value })} /></label>
+        <div className="filter-toolbar flex flex-wrap items-center justify-between gap-3 animate-fade-in">
+          <p className="text-sm text-muted-foreground">
+            Período: <span className="font-medium text-foreground">{formatDate(dateRange.start)} — {formatDate(dateRange.end)}</span>
+          </p>
+          <FilterPopover
+            title="Filtros do relatório"
+            description="Escolha um período pronto ou informe um intervalo personalizado."
+            activeCount={periodPreset === "month" ? 0 : 1}
+            onClear={() => handlePeriodChange("month")}
+          >
+            <div className="space-y-1.5">
+              <p className="text-xs font-medium text-muted-foreground">Período</p>
+              <Select value={periodPreset} onValueChange={(value) => handlePeriodChange(value as ReportPeriod)}>
+                <SelectTrigger className="w-full rounded-xl">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="month">Mês atual</SelectItem>
+                  <SelectItem value="quarter">Trimestre atual</SelectItem>
+                  <SelectItem value="year">Ano atual</SelectItem>
+                  <SelectItem value="custom">Personalizado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {periodPreset === "custom" && (
+              <div className="grid grid-cols-2 gap-2">
+                <label className="space-y-1 text-xs font-medium text-muted-foreground" htmlFor="report-start">
+                  Início
+                  <Input
+                    id="report-start"
+                    type="date"
+                    value={dateRange.start}
+                    max={dateRange.end}
+                    onChange={(event) => event.target.value && setDateRange({ ...dateRange, start: event.target.value })}
+                  />
+                </label>
+                <label className="space-y-1 text-xs font-medium text-muted-foreground" htmlFor="report-end">
+                  Fim
+                  <Input
+                    id="report-end"
+                    type="date"
+                    value={dateRange.end}
+                    min={dateRange.start}
+                    onChange={(event) => event.target.value && setDateRange({ ...dateRange, end: event.target.value })}
+                  />
+                </label>
+              </div>
+            )}
+          </FilterPopover>
         </div>
         {view === "calendar" && (
           <CalendarEventView
@@ -710,6 +787,7 @@ const Reports = () => {
                       variant="ghost"
                       size="icon"
                       className="rounded-lg shrink-0"
+                      aria-label={`Exportar ${report.name}`}
                       onClick={() =>
                         handleExportCsv(
                           report.name.toLowerCase().replace(/\s+/g, "-"),

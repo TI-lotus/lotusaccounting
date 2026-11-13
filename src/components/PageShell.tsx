@@ -3,10 +3,9 @@ import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { FilterPopover } from "@/components/FilterPopover";
 import { KPITrend } from "@/components/dashboard/KPICard";
-import { Search, SlidersHorizontal } from "lucide-react";
+import { Search } from "lucide-react";
 
 export interface PageShellKPI {
   label: string;
@@ -33,6 +32,8 @@ interface PageShellProps {
   searchValue?: string;
   onSearchChange?: (v: string) => void;
   searchPlaceholder?: string;
+  filterCount?: number;
+  onClearFilters?: () => void;
   children: ReactNode;
 }
 
@@ -53,6 +54,8 @@ export const PageShell = ({
   searchValue,
   onSearchChange,
   searchPlaceholder = "Buscar...",
+  filterCount = 0,
+  onClearFilters,
   children,
 }: PageShellProps) => {
   return (
@@ -107,30 +110,17 @@ export const PageShell = ({
                   value={searchValue ?? ""}
                   onChange={(e) => onSearchChange(e.target.value)}
                   placeholder={searchPlaceholder}
+                  name="page-search"
+                  autoComplete="off"
+                  aria-label={searchPlaceholder}
                   className="h-10 rounded-xl border-border/70 bg-card/80 pl-9"
                 />
               </div>
             )}
             {filters && (
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="h-10 rounded-xl gap-2">
-                    <SlidersHorizontal className="h-4 w-4" />
-                    Filtros
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent
-                  align="end"
-                  className="w-[min(360px,calc(100vw-2rem))] rounded-2xl p-3"
-                >
-                  <div className="space-y-3">
-                    <p className="px-1 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                      Filtrar resultados
-                    </p>
-                    <div className="space-y-2">{filters}</div>
-                  </div>
-                </PopoverContent>
-              </Popover>
+              <FilterPopover activeCount={filterCount} onClear={onClearFilters}>
+                {filters}
+              </FilterPopover>
             )}
           </div>
         )}

@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 interface FilterPopoverProps {
   children: ReactNode;
   activeCount?: number;
+  onClear?: () => void;
   title?: string;
   description?: string;
   className?: string;
@@ -16,6 +17,7 @@ interface FilterPopoverProps {
 export const FilterPopover = ({
   children,
   activeCount = 0,
+  onClear,
   title = "Filtrar resultados",
   description,
   className,
@@ -48,6 +50,20 @@ export const FilterPopover = ({
           {description && <p className="mt-1 text-xs leading-5 text-muted-foreground">{description}</p>}
         </div>
         <div className="space-y-3">{children}</div>
+        {onClear && (
+          <div className="flex justify-end border-t border-border/60 pt-3">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-8 rounded-lg text-xs"
+              onClick={onClear}
+              disabled={activeCount === 0}
+            >
+              Limpar filtros
+            </Button>
+          </div>
+        )}
       </div>
     </PopoverContent>
   </Popover>

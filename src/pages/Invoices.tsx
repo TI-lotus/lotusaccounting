@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { PageShell } from "@/components/PageShell";
+import { MultiSelectFilter } from "@/components/MultiSelectFilter";
 import { EmptyState, LoadingState } from "@/components/PageStates";
 import { DetailSheet } from "@/components/DetailSheet";
 import { Card, CardContent } from "@/components/ui/card";
@@ -77,7 +78,7 @@ const Invoices = () => {
     generateMonthlyServiceFeeInvoices,
   } = useData();
   const { profile } = useAuth();
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [statusFilters, setStatusFilters] = useState<string[]>([]);
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<Invoice | null>(null);
@@ -162,7 +163,7 @@ const Invoices = () => {
     clients.find((c) => c.id === id)?.name ?? "—";
 
   const filtered = invoices
-    .filter((i) => statusFilter === "all" || i.status === statusFilter)
+    .filter((i) => statusFilters.length === 0 || statusFilters.includes(i.status))
     .filter((i) => {
       if (!search.trim()) return true;
       const q = search.toLowerCase();
@@ -183,8 +184,7 @@ const Invoices = () => {
     .filter((i) => i.status === "overdue")
     .reduce((a, i) => a + Number(i.amount || 0), 0);
 
-  const statusTabs = [
-    { value: "all", label: "Todas" },
+  const statusOptions = [
     { value: "pending", label: "Pendentes" },
     { value: "paid", label: "Pagas" },
     { value: "overdue", label: "Atrasadas" },
@@ -294,12 +294,19 @@ const Invoices = () => {
           { label: "Pendentes", value: brl(totalPending) },
           { label: "Atrasadas", value: brl(totalOverdue) },
         ]}
-        tabs={statusTabs}
-        activeTab={statusFilter}
-        onTabChange={setStatusFilter}
+        filters={
+          <MultiSelectFilter
+            label="Status"
+            options={statusOptions}
+            value={statusFilters}
+            onChange={setStatusFilters}
+          />
+        }
+        filterCount={statusFilters.length}
+        onClearFilters={() => setStatusFilters([])}
         searchValue={search}
         onSearchChange={setSearch}
-        searchPlaceholder="Buscar por número ou cliente..."
+        searchPlaceholder="Buscar por número ou cliente…"
       >
         <Card>
           <CardContent className="pt-6">

@@ -604,6 +604,13 @@ const Periods = () => {
               <FilterPopover
                 activeCount={[periodMonth !== initial.month, periodYear !== initial.year, statusFilter !== "all", responsibleFilter !== "all", clientFilter !== "all"].filter(Boolean).length}
                 description="Escolha o período e refine por status, responsável ou cliente."
+                onClear={() => {
+                  setPeriodMonth(initial.month);
+                  setPeriodYear(initial.year);
+                  setStatusFilter("all");
+                  setResponsibleFilter("all");
+                  setClientFilter("all");
+                }}
               >
                 <div className="grid grid-cols-2 gap-3">
                   <Select value={String(periodMonth)} onValueChange={(value) => setPeriodMonth(Number(value))}>

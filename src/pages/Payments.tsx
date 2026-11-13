@@ -376,7 +376,10 @@ const Payments = () => {
               );
             })}
           </div>
-          <FilterPopover activeCount={typeFilter === "all" ? 0 : 1}>
+          <FilterPopover
+            activeCount={typeFilter === "all" ? 0 : 1}
+            onClear={() => setTypeFilter("all")}
+          >
             <Button
               type="button"
               variant={typeFilter === "all" ? "default" : "ghost"}

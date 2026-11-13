@@ -16,8 +16,9 @@ import {
   Calendar,
   LayoutDashboard,
   List,
-  SlidersHorizontal,
 } from "lucide-react";
+import { FilterPopover } from "@/components/FilterPopover";
+import { MultiSelectFilter } from "@/components/MultiSelectFilter";
 import { DocumentViewer, ViewableDocument } from "@/components/DocumentViewer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -57,7 +58,6 @@ import { CalendarEventView } from "@/components/CalendarEventView";
 import { supabase } from "@/integrations/supabase/client";
 import { useViewMode } from "@/contexts/ViewModeContext";
 import { KPITrend } from "@/components/dashboard/KPICard";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 const statusColors: Record<string, string> = {
   paid: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400",
@@ -182,7 +182,7 @@ const Documents = () => {
     clients,
   } = useData();
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterStatuses, setFilterStatuses] = useState<string[]>([]);
   const [filterMonth, setFilterMonth] = useState<string>(String(currentMonth));
   const [filterYear, setFilterYear] = useState<string>(String(currentYear));
   const [filterClient, setFilterClient] = useState<string>("all");
@@ -196,7 +196,7 @@ const Documents = () => {
   });
   const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("recebidos");
-  const [requestView, setRequestView] = useState<DocumentRequestView>("actionable");
+  const [requestViews, setRequestViews] = useState<DocumentRequestView[]>(["actionable"]);
   const [view, setView] = useState<"dashboard" | "list" | "calendar">(
     "dashboard",
   );
@@ -207,7 +207,7 @@ const Documents = () => {
   const [viewerDoc, setViewerDoc] = useState<ViewableDocument | null>(null);
 
   const filteredDocuments = documents.filter((doc) => {
-    const statusMatch = filterStatus === "all" || doc.status === filterStatus;
+    const statusMatch = filterStatuses.length === 0 || filterStatuses.includes(doc.status);
     const monthMatch = doc.month === parseInt(filterMonth);
     const yearMatch = doc.year === parseInt(filterYear);
     const clientMatch = filterClient === "all" || doc.clientId === filterClient;
@@ -227,14 +227,17 @@ const Documents = () => {
     resolved: visibleDocumentRequests.filter((request) => ["approved", "waived"].includes(request.status)).length,
     all: visibleDocumentRequests.length,
   };
-  const filteredDocumentRequests = visibleDocumentRequests.filter((request) => {
-    if (requestView === "actionable") return ["requested", "rejected"].includes(request.status);
-    if (requestView === "approval") return request.status === "uploaded";
-    if (requestView === "rejected") return request.status === "rejected";
-    if (requestView === "overdue") return isRequestOverdue(request);
-    if (requestView === "resolved") return ["approved", "waived"].includes(request.status);
+  const matchesRequestView = (request: (typeof visibleDocumentRequests)[number], view: DocumentRequestView) => {
+    if (view === "actionable") return ["requested", "rejected"].includes(request.status);
+    if (view === "approval") return request.status === "uploaded";
+    if (view === "rejected") return request.status === "rejected";
+    if (view === "overdue") return isRequestOverdue(request);
+    if (view === "resolved") return ["approved", "waived"].includes(request.status);
     return true;
-  });
+  };
+  const filteredDocumentRequests = visibleDocumentRequests.filter((request) =>
+    requestViews.length === 0 || requestViews.some((view) => matchesRequestView(request, view)),
+  );
 
   const handleAddDocument = async () => {
     if (!newDoc.name || !newDoc.client) {
@@ -505,28 +508,28 @@ const Documents = () => {
                 </div>
                 <Badge variant="outline">{visibleDocumentRequests.length} no total</Badge>
               </div>
-              <div className="mb-4 flex flex-wrap gap-2">
-                {[
-                  { value: "actionable", label: "Pendentes", count: requestCounts.actionable },
-                  { value: "approval", label: "Aprovação", count: requestCounts.approval },
-                  { value: "rejected", label: "Recusados", count: requestCounts.rejected },
-                  { value: "overdue", label: "Vencidos", count: requestCounts.overdue },
-                  { value: "resolved", label: "Resolvidos", count: requestCounts.resolved },
-                  { value: "all", label: "Todos", count: requestCounts.all },
-                ].map((item) => (
-                  <Button
-                    key={item.value}
-                    size="sm"
-                    variant={requestView === item.value ? "default" : "outline"}
-                    className="h-8 rounded-xl gap-2"
-                    onClick={() => setRequestView(item.value as DocumentRequestView)}
-                  >
-                    {item.label}
-                    <Badge variant="secondary" className="h-5 rounded-lg px-1.5 text-[10px]">
-                      {item.count}
-                    </Badge>
-                  </Button>
-                ))}
+              <div className="mb-4 flex justify-end">
+                <FilterPopover
+                  title="Filtrar solicitações"
+                  description="Combine estados para acompanhar o fluxo de envio e aprovação."
+                  activeCount={requestViews.length}
+                  onClear={() => setRequestViews([])}
+                >
+                  <MultiSelectFilter
+                    label="Visão"
+                    emptyLabel="Todas"
+                    options={[
+                      { value: "actionable", label: "Pendentes", count: requestCounts.actionable },
+                      { value: "approval", label: "Aprovação", count: requestCounts.approval },
+                      { value: "rejected", label: "Recusados", count: requestCounts.rejected },
+                      { value: "overdue", label: "Vencidos", count: requestCounts.overdue },
+                      { value: "resolved", label: "Resolvidos", count: requestCounts.resolved },
+                      { value: "all", label: "Todos", count: requestCounts.all },
+                    ]}
+                    value={requestViews}
+                    onChange={(values) => setRequestViews(values as DocumentRequestView[])}
+                  />
+                </FilterPopover>
               </div>
               <div className="grid gap-3 lg:grid-cols-2">
                 {filteredDocumentRequests.map((request) => {
@@ -670,71 +673,68 @@ const Documents = () => {
                       {filteredDocuments.length} documento(s)
                     </Badge>
                     <span className="hidden text-xs text-muted-foreground sm:inline">
-                      {statusLabels[filterStatus] ?? "Todos os status"}
+                      {filterStatuses.length === 0
+                        ? "Todos os status"
+                        : `${filterStatuses.length} status selecionado(s)`}
                     </span>
                   </div>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" size="sm" className="gap-2">
-                        <SlidersHorizontal className="h-4 w-4" />
-                        Filtros
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent align="end" className="w-[min(360px,calc(100vw-2rem))] p-4">
-                      <div className="space-y-4">
-                        <div>
-                          <p className="text-sm font-medium">Filtrar documentos</p>
-                          <p className="mt-1 text-xs text-muted-foreground">Ajuste o status, competência e cliente.</p>
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Status</Label>
-                          <div className="grid grid-cols-2 gap-2">
-                            {["all", "pending", "paid", "overdue", "unread"].map((s) => (
-                              <Button
-                                key={s}
-                                variant={filterStatus === s ? "default" : "outline"}
-                                size="sm"
-                                className="justify-start"
-                                onClick={() => setFilterStatus(s)}
-                              >
-                                {s === "all" ? "Todos" : statusLabels[s] || s}
-                              </Button>
+                  <FilterPopover
+                    title="Filtrar documentos"
+                    description="Ajuste status, competência e cliente."
+                    activeCount={
+                      filterStatuses.length +
+                      (filterClient === "all" ? 0 : 1) +
+                      (filterMonth === String(currentMonth) ? 0 : 1) +
+                      (filterYear === String(currentYear) ? 0 : 1)
+                    }
+                    onClear={() => {
+                      setFilterStatuses([]);
+                      setFilterClient("all");
+                      setFilterMonth(String(currentMonth));
+                      setFilterYear(String(currentYear));
+                    }}
+                  >
+                    <MultiSelectFilter
+                      label="Status"
+                      options={["pending", "paid", "overdue", "unread"].map((status) => ({
+                        value: status,
+                        label: statusLabels[status] ?? status,
+                        count: documents.filter((doc) => doc.status === status).length,
+                      }))}
+                      value={filterStatuses}
+                      onChange={setFilterStatuses}
+                    />
+                    {viewMode !== "client" && (
+                      <div className="space-y-1.5">
+                        <Label>Cliente</Label>
+                        <Select value={filterClient} onValueChange={setFilterClient}>
+                          <SelectTrigger><SelectValue placeholder="Todos clientes" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Todos clientes</SelectItem>
+                            {clients.filter((client) => client.status === "active").map((c) => (
+                              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                             ))}
-                          </div>
-                        </div>
-                        {viewMode !== "client" && (
-                          <div className="space-y-2">
-                            <Label>Cliente</Label>
-                            <Select value={filterClient} onValueChange={setFilterClient}>
-                              <SelectTrigger><SelectValue placeholder="Todos clientes" /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="all">Todos clientes</SelectItem>
-                                {clients.filter((client) => client.status === "active").map((c) => (
-                                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        )}
-                        <div className="grid grid-cols-2 gap-2">
-                          <div className="space-y-2">
-                            <Label>Competência</Label>
-                            <Select value={filterMonth} onValueChange={setFilterMonth}>
-                              <SelectTrigger><SelectValue /></SelectTrigger>
-                              <SelectContent>{months.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}</SelectContent>
-                            </Select>
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Ano</Label>
-                            <Select value={filterYear} onValueChange={setFilterYear}>
-                              <SelectTrigger><SelectValue /></SelectTrigger>
-                              <SelectContent>{years.map((y) => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
-                            </Select>
-                          </div>
-                        </div>
+                          </SelectContent>
+                        </Select>
                       </div>
-                    </PopoverContent>
-                  </Popover>
+                    )}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1.5">
+                        <Label>Competência</Label>
+                        <Select value={filterMonth} onValueChange={setFilterMonth}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>{months.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}</SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label>Ano</Label>
+                        <Select value={filterYear} onValueChange={setFilterYear}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>{years.map((y) => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </FilterPopover>
                 </div>
 
                 <div className="table-surface animate-fade-in">

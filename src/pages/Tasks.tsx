@@ -557,6 +557,12 @@ const Tasks = () => {
             <FilterPopover
               activeCount={[statusFilter !== "all", typeFilter !== "all", clientFilter !== "all", assigneeFilter !== "all"].filter(Boolean).length}
               description="Combine status, tipo, cliente e responsável."
+              onClear={() => {
+                setStatusFilter("all");
+                setTypeFilter("all");
+                setClientFilter("all");
+                setAssigneeFilter("all");
+              }}
             >
                 <div className="space-y-2">
                   <p className="text-xs font-medium text-muted-foreground">Status</p>
