@@ -16,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState, ErrorState, LoadingState } from "@/components/PageStates";
 import { cn } from "@/lib/utils";
+import { BentoStatStrip } from "@/components/dashboard/BentoStatStrip";
 import { useData } from "@/contexts/DataContext";
 import {
   integrationCatalog,
@@ -105,21 +106,15 @@ const Integrations = () => {
           </p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {[
-            ["Conectadas", totals.connected],
-            ["Jobs pendentes", totals.pendingJobs],
-            ["Erros abertos", totals.unresolvedErrors],
-            ["Automações ativas", totals.activeRules],
-          ].map(([label, value]) => (
-            <Card key={label} className="kpi-card">
-              <CardContent className="pt-6">
-                <p className="text-xs text-muted-foreground">{label}</p>
-                <p className="mt-1 text-2xl font-semibold">{value}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <BentoStatStrip
+          className="animate-fade-in"
+          items={[
+            { label: "Conectadas", value: totals.connected, icon: Check },
+            { label: "Jobs pendentes", value: totals.pendingJobs, icon: Clock },
+            { label: "Erros abertos", value: totals.unresolvedErrors, icon: AlertTriangle },
+            { label: "Automações ativas", value: totals.activeRules, icon: Settings },
+          ]}
+        />
 
         <Tabs defaultValue="catalog" className="space-y-6">
           <TabsList className="segmented-tabs">
@@ -143,7 +138,7 @@ const Integrations = () => {
                 </div>
                 <Badge variant="secondary">{items.length}</Badge>
               </div>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              <div className="grid gap-px overflow-hidden rounded-2xl border border-border/70 bg-border/70 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {items.map((integration) => {
                   const Icon = integration.icon;
                   const connection = connectionById.get(integration.id);
@@ -153,20 +148,19 @@ const Integrations = () => {
                     <div
                       key={integration.id}
                       className={cn(
-                        "rounded-2xl border border-border/70 bg-card p-5 flex flex-col gap-4 transition-[background-color,border-color,box-shadow] duration-200 hover:border-foreground/20 hover:bg-accent/20",
+                        "flex flex-col gap-4 bg-card p-5 transition-colors duration-200 hover:bg-accent/20",
                         connected && "bg-gilver/5",
                       )}
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div
                           className={cn(
-                            "p-2.5 rounded-xl",
-                            connected
-                              ? "bg-gilver/15 text-gilver"
-                              : "bg-muted text-muted-foreground",
+                            "text-gilver",
+                            !connected && "text-muted-foreground",
                           )}
+                          title={integration.name}
                         >
-                          <Icon className="h-5 w-5" strokeWidth={1.5} />
+                          <Icon className="h-5 w-5" strokeWidth={1.5} aria-hidden="true" />
                         </div>
                         <Badge className={statusStyles[status] ?? statusStyles.disconnected}>
                           <StatusIcon status={status} />

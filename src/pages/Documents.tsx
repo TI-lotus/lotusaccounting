@@ -14,6 +14,7 @@ import {
   File,
   ScanText,
   Calendar,
+  Clock,
   LayoutDashboard,
   List,
 } from "lucide-react";
@@ -57,7 +58,7 @@ import { cn } from "@/lib/utils";
 import { CalendarEventView } from "@/components/CalendarEventView";
 import { supabase } from "@/integrations/supabase/client";
 import { useViewMode } from "@/contexts/ViewModeContext";
-import { KPITrend } from "@/components/dashboard/KPICard";
+import { BentoStatStrip } from "@/components/dashboard/BentoStatStrip";
 
 const statusColors: Record<string, string> = {
   paid: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400",
@@ -600,34 +601,22 @@ const Documents = () => {
           </div>
 
           {view === "dashboard" && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-fade-in">
-              <div className="kpi-card">
-                <div className="flex items-end justify-between gap-3">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Documentos</p>
-                    <p className="text-2xl font-semibold">{documents.length}</p>
-                  </div>
-                  <KPITrend />
-                </div>
-              </div>
-              <div className="kpi-card">
-                <div className="flex items-end justify-between gap-3">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Pendentes</p>
-                    <p className="text-2xl font-semibold">
-                      {documents.filter((doc) => doc.status === "pending").length}
-                    </p>
-                  </div>
-                  <KPITrend />
-                </div>
-              </div>
-              <div className="kpi-card">
-                <p className="text-sm text-muted-foreground">Período</p>
-                <p className="text-2xl font-semibold">
-                  {months.find((m) => m.value === filterMonth)?.label}
-                </p>
-              </div>
-            </div>
+            <BentoStatStrip
+              className="animate-fade-in"
+              items={[
+                { label: "Documentos", value: documents.length, icon: FileText },
+                {
+                  label: "Pendentes",
+                  value: documents.filter((doc) => doc.status === "pending").length,
+                  icon: Clock,
+                },
+                {
+                  label: "Período",
+                  value: months.find((m) => m.value === filterMonth)?.label,
+                  icon: Calendar,
+                },
+              ]}
+            />
           )}
 
           {view === "calendar" && (

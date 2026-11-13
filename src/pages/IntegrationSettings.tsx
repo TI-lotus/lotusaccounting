@@ -32,7 +32,6 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -48,6 +47,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useData } from "@/contexts/DataContext";
 import { getIntegrationCatalogItem } from "@/lib/integrationCatalog";
+import { BentoStatStrip } from "@/components/dashboard/BentoStatStrip";
 import type { Json } from "@/integrations/supabase/types";
 import { getConnectionHealthLabel, readCredentialMetadata } from "@/services/integrations/integrationConnections";
 import { revokeIntegrationCredentials, storeIntegrationCredential } from "@/services/integrations/integrationCredentials";
@@ -779,55 +779,29 @@ const IntegrationSettings = () => {
 
           {/* Usage Tab */}
           <TabsContent value="usage" className="space-y-6 mt-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-muted-foreground">
-                      Chamadas API
-                    </span>
-                    <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                  <p className="text-2xl font-semibold">
-                    {usage.calls.toLocaleString("pt-BR")}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    de {usage.limit.toLocaleString("pt-BR")}
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-muted-foreground">
-                      Período
-                    </span>
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                  <p className="text-2xl font-semibold">{usage.period}</p>
-                  <p className="text-sm text-muted-foreground">Ciclo atual</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-muted-foreground">
-                      Utilização
-                    </span>
-                    <span className="text-sm font-medium">
-                      {usagePercent.toFixed(1)}%
-                    </span>
-                  </div>
-                  <Progress value={usagePercent} className="h-2" />
-                  <p className="text-sm text-muted-foreground mt-2">
-                    {Math.max(usage.limit - usage.calls, 0).toLocaleString(
-                      "pt-BR",
-                    )}{" "}
-                    chamadas restantes
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
+            <BentoStatStrip
+              className="md:grid-cols-3 xl:grid-cols-3"
+              items={[
+                {
+                  label: "Chamadas API",
+                  value: usage.calls.toLocaleString("pt-BR"),
+                  hint: `de ${usage.limit.toLocaleString("pt-BR")}`,
+                  icon: BarChart3,
+                },
+                {
+                  label: "Período",
+                  value: usage.period,
+                  hint: "Ciclo atual",
+                  icon: Clock,
+                },
+                {
+                  label: "Utilização",
+                  value: `${usagePercent.toFixed(1)}%`,
+                  hint: `${Math.max(usage.limit - usage.calls, 0).toLocaleString("pt-BR")} chamadas restantes`,
+                  icon: BarChart3,
+                },
+              ]}
+            />
 
             <Card>
               <CardHeader>

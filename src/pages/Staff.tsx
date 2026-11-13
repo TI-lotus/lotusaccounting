@@ -31,6 +31,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useData } from "@/contexts/DataContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { BentoStatStrip } from "@/components/dashboard/BentoStatStrip";
 
 type ProfileRow = Pick<Database["public"]["Tables"]["profiles"]["Row"], "id" | "user_id" | "full_name" | "phone" | "job_title" | "avatar_url" | "account_type" | "company_id" | "status" | "created_at">;
 type InviteRow = Pick<Database["public"]["Tables"]["invites"]["Row"], "id" | "email" | "full_name" | "account_type" | "company_id" | "token" | "status" | "expires_at" | "created_at">;
@@ -457,24 +458,15 @@ const Staff = () => {
           </Dialog>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-fade-in">
-          <div className="kpi-card flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-gilver/10"><UserCog className="h-5 w-5 text-gilver" /></div>
-            <div><p className="text-2xl font-semibold">{members.length}</p><p className="text-sm text-muted-foreground">Equipe</p></div>
-          </div>
-          <div className="kpi-card flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-emerald-500/10"><ShieldCheck className="h-5 w-5 text-emerald-500" /></div>
-            <div><p className="text-2xl font-semibold">{activeMembers.length}</p><p className="text-sm text-muted-foreground">Ativos</p></div>
-          </div>
-          <div className="kpi-card flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-amber-500/10"><UserPlus className="h-5 w-5 text-amber-500" /></div>
-            <div><p className="text-2xl font-semibold">{pendingInvites.length}</p><p className="text-sm text-muted-foreground">Convites</p></div>
-          </div>
-          <div className="kpi-card flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-blue-500/10"><CheckSquare className="h-5 w-5 text-blue-500" /></div>
-            <div><p className="text-2xl font-semibold">{clientsProfiles.length}</p><p className="text-sm text-muted-foreground">Acessos cliente</p></div>
-          </div>
-        </div>
+        <BentoStatStrip
+          className="animate-fade-in"
+          items={[
+            { label: "Equipe", value: members.length, icon: UserCog },
+            { label: "Ativos", value: activeMembers.length, icon: ShieldCheck },
+            { label: "Convites", value: pendingInvites.length, icon: UserPlus },
+            { label: "Acessos cliente", value: clientsProfiles.length, icon: CheckSquare },
+          ]}
+        />
 
         <Tabs defaultValue="people" className="animate-fade-in">
           <TabsList>
@@ -510,7 +502,7 @@ const Staff = () => {
                 </div>
               </div>
 
-              <div className={cn("grid gap-4", peopleViewMode === "grid" ? "sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "grid-cols-1")}>
+              <div className={cn("overflow-hidden rounded-2xl border border-border/70 bg-border/70", peopleViewMode === "grid" ? "grid gap-px sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "divide-y divide-border/70")}>
                 {filteredMembers.map((member) => {
                   const memberTasks = tasks.filter((task) => task.assignedToId === member.user_id);
                   const completed = memberTasks.filter((task) => task.status === "completed").length;
@@ -518,7 +510,7 @@ const Staff = () => {
                   return (
                     <div
                       key={member.id}
-                      className="flex flex-col gap-3 rounded-2xl border border-border/70 bg-card/70 p-4 transition-[background-color,border-color,box-shadow] duration-200 hover:border-foreground/20 hover:bg-accent/30"
+                      className="flex flex-col gap-3 bg-card p-4 transition-colors duration-200 hover:bg-accent/30"
                     >
                       <button
                         type="button"

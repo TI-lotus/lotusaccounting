@@ -407,7 +407,7 @@ const Clients = () => {
               <p className="text-sm">Carregando clientes...</p>
             </div>
           ) : (
-            <div className={cn("grid gap-3", viewMode === "grid" ? "sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "grid-cols-1")}>
+            <div className={cn("overflow-hidden rounded-2xl border border-border/70 bg-border/70", viewMode === "grid" ? "grid gap-px sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "divide-y divide-border/70")}>
               {filteredClients.map((client, index) => (
               (() => {
                 const period = currentPeriodByClient.get(client.id);
@@ -416,7 +416,7 @@ const Clients = () => {
                 return (
               <div
                 key={client.id}
-                className={cn("rounded-2xl border border-border/70 bg-card/70 p-4 hover:border-foreground/20 hover:bg-accent/30 transition-[background-color,border-color,box-shadow] duration-200 flex gap-4", viewMode === "grid" ? "flex-col" : "items-center")}
+                className={cn("flex gap-4 bg-card p-4 transition-colors duration-200 hover:bg-accent/30", viewMode === "grid" ? "flex-col" : "items-center")}
                 style={{ animationDelay: `${index * 50}ms` }}
               >
                 <button
