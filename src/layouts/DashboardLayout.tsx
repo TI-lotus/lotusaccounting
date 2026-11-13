@@ -16,6 +16,8 @@ const STORAGE_KEY = "lia-chat-panel-state";
 export const DashboardLayout = ({ children, className }: DashboardLayoutProps) => {
   const location = useLocation();
   const { isCollapsed } = useViewMode();
+  const isMessagesPage = location.pathname === "/messages";
+  const isLiaPage = location.pathname === "/lia";
   const [chatState, setChatState] = useState<ChatPanelState>(() => {
     if (typeof window === "undefined") return "closed";
     const saved = window.localStorage.getItem(STORAGE_KEY) as ChatPanelState | null;
@@ -27,8 +29,10 @@ export const DashboardLayout = ({ children, className }: DashboardLayoutProps) =
   }, [chatState]);
 
   useEffect(() => {
-    if (location.pathname === "/lia") setChatState("open");
-  }, [location.pathname]);
+    // The Lia panel is intentionally scoped to its own route. This prevents a
+    // persisted open state from covering the fixed workspace messaging panes.
+    setChatState(isLiaPage ? "open" : "closed");
+  }, [isLiaPage]);
 
   return (
     <div className="min-h-screen flex flex-col w-full bg-background">
@@ -38,8 +42,8 @@ export const DashboardLayout = ({ children, className }: DashboardLayoutProps) =
         className={cn(
           "min-w-0 flex-1 overflow-x-hidden px-4 py-5 sm:px-6 sm:py-6 lg:pr-8 lg:transition-[padding] lg:duration-300",
           isCollapsed ? "lg:pl-[5.5rem]" : "lg:pl-[17rem]",
-          chatState === "open" && "lg:pr-[396px]",
-          chatState === "minimized" && "lg:pr-20",
+          isLiaPage && chatState === "open" && "lg:pr-[396px]",
+          isLiaPage && chatState === "minimized" && "lg:pr-20",
           className
         )}
       >
@@ -47,7 +51,7 @@ export const DashboardLayout = ({ children, className }: DashboardLayoutProps) =
           {children}
         </div>
       </main>
-      <ChatBox state={chatState} onStateChange={setChatState} />
+      {!isMessagesPage && <ChatBox state={isLiaPage ? chatState : "closed"} onStateChange={setChatState} />}
     </div>
   );
 };
