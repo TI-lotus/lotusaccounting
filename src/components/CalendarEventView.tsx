@@ -7,6 +7,7 @@ import { format, isSameDay, isSameMonth, startOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { DateRange } from "react-day-picker";
 import { largeCalendarClassNames } from "@/components/calendarStyles";
+import { CalendarMonthSelector } from "@/components/CalendarMonthSelector";
 
 export interface CalendarEventItem {
   day: number;
@@ -140,6 +141,16 @@ export const CalendarEventView = ({ title, events, dateRange, onDateRangeChange,
 
       <div className="grid items-stretch gap-4 lg:grid-cols-2">
         <div className="flex h-full min-h-[600px] flex-col rounded-2xl border border-border/70 bg-card p-4 sm:p-5">
+          <div className="mb-3 flex items-center justify-between border-b border-border/70 pb-3">
+            <CalendarMonthSelector
+              value={visibleMonth}
+              onChange={(nextMonth) => {
+                const normalized = startOfMonth(nextMonth);
+                setVisibleMonth(normalized);
+                setSelectedDate(normalized);
+              }}
+            />
+          </div>
           <Calendar
             mode="single"
             month={visibleMonth}
@@ -158,10 +169,7 @@ export const CalendarEventView = ({ title, events, dateRange, onDateRangeChange,
               hasEvents: "border-gilver/70 bg-gilver/10 font-semibold",
             }}
             className="w-full max-w-none p-0"
-            classNames={largeCalendarClassNames}
-            captionLayout="dropdown"
-            fromYear={2010}
-            toYear={new Date().getFullYear() + 5}
+            classNames={{ ...largeCalendarClassNames, caption: "hidden" }}
           />
           <div className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-border/70 pt-3 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-gilver" />Com eventos</span>

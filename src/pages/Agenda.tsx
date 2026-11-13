@@ -2,10 +2,10 @@ import { useMemo, useState } from "react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import {
   Calendar as CalendarIcon,
+  CalendarClock,
+  DollarSign,
   FileText,
-  Receipt,
   CheckSquare,
-  ScrollText,
   ExternalLink,
   Trash2,
 } from "lucide-react";
@@ -29,6 +29,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspacePermission } from "@/hooks/useWorkspacePermission";
 import { FilterPopover } from "@/components/FilterPopover";
 import { largeCalendarClassNames } from "@/components/calendarStyles";
+import { CalendarMonthSelector } from "@/components/CalendarMonthSelector";
 
 type AgendaKind = "task" | "payment" | "document" | "obligation";
 
@@ -54,7 +55,7 @@ const kindConfig: Record<
   },
   payment: {
     label: "Pagamento",
-    icon: Receipt,
+    icon: DollarSign,
     color: "text-emerald-600 dark:text-emerald-400",
     badge:
       "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
@@ -68,7 +69,7 @@ const kindConfig: Record<
   },
   obligation: {
     label: "Obrigação",
-    icon: ScrollText,
+    icon: CalendarClock,
     color: "text-amber-600 dark:text-amber-400",
     badge: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300",
   },
@@ -251,6 +252,16 @@ const Agenda = () => {
 
         <div className="grid items-stretch grid-cols-1 gap-4 lg:grid-cols-2">
           <div className="flex h-full min-h-[600px] flex-col rounded-2xl border border-border/70 bg-card p-4 sm:p-5">
+              <div className="mb-3 border-b border-border/70 pb-3">
+                <CalendarMonthSelector
+                  value={visibleMonth}
+                  onChange={(nextMonth) => {
+                    const normalized = startOfMonth(nextMonth);
+                    setVisibleMonth(normalized);
+                    setSelectedDate(normalized);
+                  }}
+                />
+              </div>
               <Calendar
                 mode="single"
                 month={visibleMonth}
@@ -270,10 +281,7 @@ const Agenda = () => {
                     "border-gilver/70 bg-gilver/10 font-semibold",
                 }}
                 className="w-full max-w-none p-0"
-                classNames={largeCalendarClassNames}
-                captionLayout="dropdown"
-                fromYear={2010}
-                toYear={new Date().getFullYear() + 5}
+                classNames={{ ...largeCalendarClassNames, caption: "hidden" }}
               />
           </div>
 
@@ -307,7 +315,7 @@ const Agenda = () => {
                         onClick={() => setSelectedItem(item)}
                         className="group flex w-full items-start gap-3 border-b border-border/70 px-2 py-3 text-left transition-colors last:border-b-0 hover:bg-accent/30"
                       >
-                        <div className={cn("mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl", cfg.badge)}>
+                        <div className={cn("mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-current/20 bg-transparent", cfg.color)}>
                           <Icon className="h-4 w-4" aria-hidden="true" />
                         </div>
                         <div className="min-w-0 flex-1">
@@ -346,7 +354,7 @@ const Agenda = () => {
                 <>
                   <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
-                      <span className={cn("rounded-lg p-2", cfg.badge)}><Icon className="h-4 w-4" /></span>
+                       <span className={cn("rounded-full border border-current/20 bg-transparent p-2", cfg.color)}><Icon className="h-4 w-4" /></span>
                       {selectedItem.title}
                     </DialogTitle>
                     <DialogDescription>{cfg.label} · {format(selectedItem.date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</DialogDescription>
