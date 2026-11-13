@@ -193,9 +193,9 @@ export const AppSidebar = () => {
       <div className={cn(
         "sidebar-nav-scroll flex items-center gap-1 overflow-x-auto px-3 py-2 custom-scroll lg:min-h-0 lg:flex-1 lg:flex-col lg:items-stretch lg:gap-1.5 lg:overflow-x-hidden lg:px-3 lg:py-5",
         hasExpandedGroup ? "lg:overflow-y-auto" : "lg:overflow-y-hidden",
-        isCollapsed ? "lg:px-1.5" : "",
+        isCollapsed ? "lg:items-center lg:px-1.5" : "",
       )}>
-        <div className={cn("shrink-0 lg:w-full", isCollapsed ? "lg:flex lg:justify-center" : "w-[220px]") }>
+        <div className={cn("shrink-0 lg:w-full", isCollapsed ? "lg:flex lg:items-center lg:justify-center" : "w-[220px]") }>
           <WorkspaceSwitcher compact={isCollapsed} />
         </div>
         {groups.map((group) => {

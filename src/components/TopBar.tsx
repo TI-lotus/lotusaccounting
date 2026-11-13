@@ -17,6 +17,10 @@ import {
   Crown,
   LogOut,
   Check,
+  UserRound,
+  Building2,
+  Palette,
+  ShieldCheck,
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react";
@@ -53,7 +57,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { SettingsContent } from "@/pages/Settings";
+import { SettingsContent, type SettingsSection } from "@/pages/Settings";
 import { useData } from "@/contexts/DataContext";
 import { integrationCatalog } from "@/lib/integrationCatalog";
 import { supabase } from "@/integrations/supabase/client";
@@ -76,6 +80,20 @@ const aiKeywords = [
   "lotus ia",
   "perguntar",
   "pergunta",
+];
+
+const lotusPlanPrices: Record<string, string> = {
+  starter: "R$ 220",
+  business: "R$ 450",
+  enterprise: "R$ 630",
+};
+
+const settingsSections: Array<{ id: SettingsSection | "billing"; label: string; description: string; icon: React.ElementType }> = [
+  { id: "profile", label: "Perfil", description: "Nome, foto e e-mail", icon: UserRound },
+  { id: "organization", label: "Organização", description: "Escritório e dados fiscais", icon: Building2 },
+  { id: "preferences", label: "Preferências", description: "Tema, avisos e automações", icon: Palette },
+  { id: "security", label: "Segurança", description: "Senha e autenticação", icon: ShieldCheck },
+  { id: "billing", label: "Plano e cobrança", description: "Plano atual e assinatura", icon: CreditCard },
 ];
 
 interface TopBarProps {
@@ -129,6 +147,7 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
   const [notificationOpen, setNotificationOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsSection, setSettingsSection] = useState<SettingsSection | "billing">("profile");
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [subscription, setSubscription] = useState<TenantSubscription | null>(null);
   const navigate = useNavigate();
@@ -787,8 +806,64 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
             <DialogTitle>Configurações</DialogTitle>
             <DialogDescription>Seu espaço, do seu jeito.</DialogDescription>
           </DialogHeader>
-          <div className="dialog-body account-settings-body custom-scroll">
-            <SettingsContent showHeader={false} />
+          <div className="dialog-body account-settings-body settings-modal-body">
+            <div className="settings-modal-layout">
+              <nav className="settings-modal-nav" aria-label="Seções das configurações">
+                {settingsSections.map((item) => {
+                  const Icon = item.icon;
+                  const active = settingsSection === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setSettingsSection(item.id)}
+                      className={cn("settings-modal-nav-item", active && "is-active")}
+                      aria-current={active ? "page" : undefined}
+                    >
+                      <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                      <span className="min-w-0 text-left">
+                        <strong>{item.label}</strong>
+                        <small>{item.description}</small>
+                      </span>
+                    </button>
+                  );
+                })}
+              </nav>
+              <div className="settings-modal-content custom-scroll">
+                {settingsSection === "billing" ? (
+                  <div className="space-y-5">
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">Plano e cobrança</p>
+                      <h3 className="mt-2 text-xl font-medium tracking-tight">Sua assinatura Lotus</h3>
+                      <p className="mt-1 text-sm text-muted-foreground">Veja o plano ativo e escolha a estrutura certa para o seu escritório.</p>
+                    </div>
+                    <div className="rounded-2xl border border-border bg-card p-5">
+                      <div className="flex flex-wrap items-start justify-between gap-4">
+                        <div>
+                          <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">Plano atual</p>
+                          <p className="mt-2 text-2xl font-medium capitalize">{subscription?.plan_id || "Nenhum plano ativo"}</p>
+                          <p className="mt-1 text-sm text-muted-foreground">{subscription?.plan_id ? `${lotusPlanPrices[subscription.plan_id]}/mês · ${subscription.status === "active" ? "Assinatura ativa" : "Configuração comercial"}` : "Escolha um plano para ativar a cobrança."}</p>
+                        </div>
+                        <Button onClick={() => { setSettingsOpen(false); setUpgradeOpen(true); }}>Ver planos</Button>
+                      </div>
+                    </div>
+                    <div className="grid gap-2 sm:grid-cols-3">
+                      {Object.entries(lotusPlanPrices).map(([id, price]) => {
+                        const selected = subscription?.plan_id === id;
+                        return (
+                          <div key={id} className={cn("rounded-xl border p-3", selected ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card")}>
+                            <p className="text-sm font-medium capitalize">{id}</p>
+                            <p className={cn("mt-1 text-xs", selected ? "text-primary-foreground/75" : "text-muted-foreground")}>{price}/mês</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <SettingsContent showHeader={false} section={settingsSection} />
+                )}
+              </div>
+            </div>
           </div>
           <DialogFooter className="dialog-footer">
             <span className="settings-saved">Preferências salvas automaticamente</span>
@@ -812,12 +887,12 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
             ].map((plan) => (
               (() => {
                 const current = subscription?.plan_id === plan.id;
-                return <article key={plan.name} className={cn("judex-plan", plan.featured && "featured", current && "current")}>
+                return <article key={plan.name} className={cn("judex-plan", plan.featured && "featured", current && "current !border-primary !bg-primary !text-primary-foreground")}>
                 <span className="plan-eyebrow">{current ? "LOTUS · PLANO ATUAL" : plan.featured ? "LOTUS · MAIS POSSIBILIDADES" : "LOTUS"}</span>
                 <h3>{plan.name}</h3>
-                <p>{plan.description}</p>
-                <strong className="plan-price">Valor a definir</strong>
-                <small>Limites em definição</small>
+                <p className={cn(current && "!text-primary-foreground/80")}>{plan.description}</p>
+                <strong className="plan-price">{lotusPlanPrices[plan.id]}</strong>
+                <small className={cn(current && "!text-primary-foreground/70")}>por mês</small>
                 <div className="plan-features-label">Recursos previstos</div>
                 <ul>
                   {plan.features.map((feature) => (
@@ -827,7 +902,7 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
                 <Button
                   variant={current || plan.featured ? "default" : "outline"}
                   disabled={current}
-                  className={cn("w-full", (current || plan.featured) && "bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-100")}
+                  className={cn("w-full", (current || plan.featured) && "bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-100", current && "!bg-primary-foreground !text-primary")}
                   onClick={() => {
                     setUpgradeOpen(false);
                     navigate("/upgrade");

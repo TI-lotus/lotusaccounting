@@ -36,6 +36,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 type ThemePreference = "light" | "dark" | "system";
+export type SettingsSection = "all" | "profile" | "organization" | "preferences" | "security";
 type MfaFactor = {
   id: string;
   friendly_name?: string;
@@ -46,8 +47,10 @@ const isThemePreference = (value: string | null): value is ThemePreference =>
 
 export const SettingsContent = ({
   showHeader = true,
+  section = "all",
 }: {
   showHeader?: boolean;
+  section?: SettingsSection;
 }) => {
   const profile = useUserProfile();
   const { workspaceSettings, updateWorkspaceSettings } = useData();
@@ -97,6 +100,7 @@ export const SettingsContent = ({
   const [mfaCode, setMfaCode] = useState("");
   const [mfaLoading, setMfaLoading] = useState(false);
   const isAdmin = authProfile?.account_type === "admin";
+  const showSection = (target: Exclude<SettingsSection, "all">) => section === "all" || section === target;
 
   const loadMfaFactors = useCallback(async () => {
     const { data, error } = await supabase.auth.mfa.listFactors();
@@ -295,7 +299,7 @@ export const SettingsContent = ({
       )}
 
       {/* Profile */}
-      <div className="page-section animate-fade-in">
+      {showSection("profile") && <div className="page-section animate-fade-in">
         <div className="mb-5">
           <h2 className="text-base font-medium">Perfil</h2>
           <p className="mt-1 text-sm text-muted-foreground">Dados pessoais e identificação de acesso.</p>
@@ -376,10 +380,10 @@ export const SettingsContent = ({
             </div>
           </div>
         </div>
-      </div>
+      </div>}
 
       {/* Company */}
-      <div className="page-section animate-fade-in">
+      {showSection("organization") && <div className="page-section animate-fade-in">
         <div className="mb-5">
           <h2 className="text-base font-medium">Empresa</h2>
           <p className="mt-1 text-sm text-muted-foreground">Identidade e período fiscal do escritório.</p>
@@ -412,10 +416,10 @@ export const SettingsContent = ({
             </div>
           </div>
         </div>
-      </div>
+      </div>}
 
       {/* Preferences */}
-      <div className="page-section animate-fade-in">
+      {showSection("preferences") && <div className="page-section animate-fade-in">
         <div className="mb-5">
           <h2 className="text-base font-medium">Preferências</h2>
           <p className="mt-1 text-sm text-muted-foreground">Ajustes de visualização e moeda.</p>
@@ -456,10 +460,10 @@ export const SettingsContent = ({
             <span className="text-sm text-muted-foreground">BRL (R$)</span>
           </div>
         </div>
-      </div>
+      </div>}
 
       {/* Notifications */}
-      <div className="page-section animate-fade-in">
+      {showSection("preferences") && <div className="page-section animate-fade-in">
         <div className="mb-5">
           <h2 className="text-base font-medium">Notificações</h2>
           <p className="mt-1 text-sm text-muted-foreground">Escolha quais avisos chegam a você.</p>
@@ -548,10 +552,10 @@ export const SettingsContent = ({
             )}
           </div>
         </div>
-      </div>
+      </div>}
 
       {/* Automations */}
-      <div className="page-section animate-fade-in">
+      {showSection("preferences") && <div className="page-section animate-fade-in">
         <div className="mb-5">
           <h2 className="text-base font-medium">Automações</h2>
           <p className="mt-1 text-sm text-muted-foreground">Regras que ajudam o escritório a manter o ciclo em dia.</p>
@@ -593,10 +597,10 @@ export const SettingsContent = ({
             </div>
           ))}
         </div>
-      </div>
+      </div>}
 
       {/* Security */}
-      <div className="page-section animate-fade-in">
+      {showSection("security") && <div className="page-section animate-fade-in">
         <div className="mb-5">
           <h2 className="text-base font-medium">Segurança</h2>
           <p className="mt-1 text-sm text-muted-foreground">Proteja sua conta e seus dados de trabalho.</p>
@@ -626,13 +630,13 @@ export const SettingsContent = ({
             <Button variant="outline" size="sm" className="rounded-lg" onClick={handlePasswordUpdate}>Atualizar senha</Button>
           </div>
         </div>
-      </div>
+      </div>}
 
-      <div className="flex justify-end">
+      {section !== "security" && <div className="flex justify-end">
         <Button className="rounded-xl px-8" onClick={handleSaveSettings}>
           Salvar Alterações
         </Button>
-      </div>
+      </div>}
 
       <Dialog open={mfaDialogOpen} onOpenChange={(open) => void openMfaDialog(open)}>
         <DialogContent className="sm:max-w-md">
