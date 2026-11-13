@@ -560,7 +560,7 @@ const Periods = () => {
       <div className="space-y-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Ciclo mensal</h1>
+            <h1 className="text-[28px] font-normal tracking-[-0.035em]">Ciclo mensal</h1>
             <p className="text-muted-foreground">
               Acompanhe a competência contábil de cada cliente, do início ao fechamento.
             </p>
@@ -574,7 +574,7 @@ const Periods = () => {
         <BentoStatStrip
           className="animate-fade-in"
           items={[
-            { label: "Criadas", value: `${stats.created}/${stats.total}`, icon: CalendarClock },
+            { label: "Criadas", value: stats.created, hint: `${stats.total} no total`, icon: CalendarClock },
             { label: "Aguardando documentos", value: stats.waiting, icon: FileWarning },
             { label: "Bloqueadas", value: stats.blocked, icon: ShieldAlert },
             { label: "Fechadas", value: stats.closed, icon: CheckCircle2 },

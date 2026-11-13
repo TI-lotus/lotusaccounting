@@ -6,7 +6,6 @@ import {
   Receipt,
   CheckSquare,
   ScrollText,
-  Filter,
   ExternalLink,
   Trash2,
 } from "lucide-react";
@@ -221,17 +220,14 @@ const Agenda = () => {
     <DashboardLayout>
       <div className="space-y-6">
         <div className="animate-fade-in">
-          <h1 className="text-2xl font-semibold tracking-tight">Agenda</h1>
+          <h1 className="text-[28px] font-normal tracking-[-0.035em]">Agenda</h1>
           <p className="text-muted-foreground">
             Visão unificada de tarefas, pagamentos, documentos e obrigações.
           </p>
         </div>
 
         <div className="filter-toolbar flex items-center justify-between gap-3 animate-fade-in">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Filter className="h-4 w-4" aria-hidden="true" />
-            <span>Eventos e obrigações</span>
-          </div>
+          <p className="text-sm text-muted-foreground">Eventos e obrigações</p>
           <FilterPopover
             activeCount={activeFilter === "all" ? 0 : 1}
             onClear={() => setActiveFilter("all")}
@@ -254,7 +250,7 @@ const Agenda = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-6">
-          <Card className="animate-fade-in">
+          <Card className="page-section animate-fade-in">
             <CardContent className="p-4">
               <Calendar
                 mode="single"
@@ -310,7 +306,7 @@ const Agenda = () => {
             </CardContent>
           </Card>
 
-          <Card className="animate-fade-in">
+          <Card className="page-section animate-fade-in">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <div>

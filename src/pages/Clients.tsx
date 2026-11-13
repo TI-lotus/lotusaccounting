@@ -215,7 +215,7 @@ const Clients = () => {
       <div className="space-y-6">
         <div className="page-header flex items-center justify-between gap-4 animate-fade-in">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Clientes</h1>
+            <h1 className="text-[28px] font-normal tracking-[-0.035em]">Clientes</h1>
             <p className="text-muted-foreground">Gerencie seus relacionamentos com clientes</p>
           </div>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

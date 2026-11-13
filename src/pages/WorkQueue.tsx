@@ -860,7 +860,7 @@ const WorkQueue = () => {
       <div className="space-y-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Minha fila</h1>
+            <h1 className="text-[28px] font-normal tracking-[-0.035em]">Minha fila</h1>
             <p className="text-muted-foreground">
               Execução diária por colaborador, cliente e competência.
             </p>

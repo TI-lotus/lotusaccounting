@@ -18,6 +18,8 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import type { Database } from "@/integrations/supabase/types";
+import { BentoStatStrip } from "@/components/dashboard/BentoStatStrip";
+import { FilterPopover } from "@/components/FilterPopover";
 
 type UserNotificationRow = Database["public"]["Tables"]["user_notifications"]["Row"];
 
@@ -139,7 +141,7 @@ const Notifications = () => {
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="text-sm font-medium text-muted-foreground">Centro operacional</p>
-            <h1 className="text-3xl font-semibold tracking-tight">Notificações</h1>
+            <h1 className="text-[28px] font-normal tracking-[-0.035em]">Notificações</h1>
             <p className="mt-1 text-sm text-muted-foreground">
               {unreadCount} não lidas em {notifications.length} registros recentes.
             </p>
@@ -149,37 +151,49 @@ const Notifications = () => {
           </Button>
         </div>
 
-        <div className="grid gap-3 md:grid-cols-[1fr_190px_190px]">
-          <div className="relative">
+        <BentoStatStrip
+          className="sm:grid-cols-2 lg:grid-cols-2"
+          items={[
+            { label: "Registros", value: notifications.length },
+            { label: "Não lidas", value: unreadCount },
+            { label: "Lidas", value: notifications.length - unreadCount },
+            { label: "Exibidas", value: filteredNotifications.length },
+          ]}
+        />
+
+        <div className="filter-toolbar flex flex-wrap items-center gap-2">
+          <div className="relative min-w-[220px] flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Pesquisar por título, descrição ou tipo"
-              className="h-11 rounded-xl pl-10"
+              className="h-10 w-full rounded-xl border-border/70 bg-card/80 pl-10"
             />
           </div>
-          <select
-            value={category}
-            onChange={(event) => setCategory(event.target.value)}
-            className="h-11 rounded-xl border border-border bg-background px-3 text-sm"
-          >
-            <option value="all">Todas categorias</option>
-            {categories.map(([kind, label]) => (
-              <option key={kind} value={kind}>
-                {label}
-              </option>
-            ))}
-          </select>
-          <select
-            value={status}
-            onChange={(event) => setStatus(event.target.value as "all" | "unread" | "read")}
-            className="h-11 rounded-xl border border-border bg-background px-3 text-sm"
-          >
-            <option value="all">Todas</option>
-            <option value="unread">Não lidas</option>
-            <option value="read">Lidas</option>
-          </select>
+            <FilterPopover
+              activeCount={(category === "all" ? 0 : 1) + (status === "all" ? 0 : 1)}
+              onClear={() => { setCategory("all"); setStatus("all"); }}
+            >
+              <div className="grid gap-4">
+                <div className="space-y-2">
+                  <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">Categoria</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[["all", "Todas"], ...categories].map(([value, label]) => (
+                      <Button key={value} type="button" size="sm" variant={category === value ? "default" : "outline"} className="justify-start" onClick={() => setCategory(value)}>{label}</Button>
+                    ))}
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">Status</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[["all", "Todas"], ["unread", "Não lidas"], ["read", "Lidas"]].map(([value, label]) => (
+                      <Button key={value} type="button" size="sm" variant={status === value ? "default" : "outline"} className="justify-start" onClick={() => setStatus(value as "all" | "unread" | "read")}>{label}</Button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+          </FilterPopover>
         </div>
 
         <div className="space-y-3">

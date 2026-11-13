@@ -322,7 +322,7 @@ const Tasks = () => {
       <div className="space-y-6">
         <div className="flex items-center justify-between animate-fade-in">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">
+            <h1 className="text-[28px] font-normal tracking-[-0.035em]">
               Minhas Tarefas
             </h1>
             <p className="text-muted-foreground">
@@ -505,7 +505,7 @@ const Tasks = () => {
         </div>
 
         <BentoStatStrip
-          className="animate-fade-in xl:grid-cols-5"
+          className="animate-fade-in xl:grid-cols-3"
           items={[
             { label: "Atrasadas", value: overdueCount, icon: AlertTriangle },
             { label: "Bloqueadas", value: blockedCount, icon: LockKeyhole },

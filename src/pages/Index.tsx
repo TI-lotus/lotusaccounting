@@ -810,7 +810,7 @@ const ClientDashboard = () => {
         onChange={(event) => void handleRequestFileUpload(event)}
       />
       <div className="animate-fade-in">
-        <h1 className="text-2xl font-semibold tracking-tight">Minha empresa</h1>
+        <h1 className="text-[28px] font-normal tracking-[-0.035em]">Minha empresa</h1>
         <p className="text-muted-foreground">
           Bem-vindo de volta, {profile.firstName}. Aqui está o resumo da sua
           empresa.
@@ -895,7 +895,7 @@ const ClientDashboard = () => {
         </div>
       </div>
 
-      <div className="grid overflow-hidden rounded-[28px] border border-border/70 bg-border/70 grid-cols-1 md:grid-cols-2 lg:grid-cols-4 animate-fade-in">
+      <div className="grid overflow-hidden rounded-[28px] border border-border/70 bg-border/70 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 animate-fade-in">
         {clientMetrics.map((metric, index) => (
           <BentoMetric
             key={metric.id}
@@ -1296,7 +1296,7 @@ const Index = () => {
     <DashboardLayout>
       <div className="space-y-6">
         <div className="animate-fade-in">
-          <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
+          <h1 className="text-[28px] font-normal tracking-[-0.035em]">Dashboard</h1>
           <p className="text-muted-foreground">
             Bem-vindo de volta, {profile.firstName}. Aqui está seu panorama
             financeiro.
@@ -1388,7 +1388,7 @@ const Index = () => {
 
         <LiaInsights />
 
-        <div className="grid overflow-hidden rounded-[28px] border border-border/70 bg-border/70 grid-cols-1 md:grid-cols-2 lg:grid-cols-4 animate-fade-in">
+        <div className="grid overflow-hidden rounded-[28px] border border-border/70 bg-border/70 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 animate-fade-in">
           {officeMetrics.map((metric, index) => (
             <BentoMetric
               key={metric.id}

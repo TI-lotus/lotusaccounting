@@ -100,7 +100,7 @@ const Integrations = () => {
     <DashboardLayout>
       <div className="space-y-8">
         <div className="page-header animate-fade-in">
-          <h1 className="text-2xl font-semibold tracking-tight">Integrações</h1>
+          <h1 className="text-[28px] font-normal tracking-[-0.035em]">Integrações</h1>
           <p className="text-muted-foreground">
             Conecte serviços para otimizar seu fluxo contábil
           </p>

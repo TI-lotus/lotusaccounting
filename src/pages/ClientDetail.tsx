@@ -518,7 +518,7 @@ const ClientDetail = () => {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div className="flex-1">
-            <h1 className="text-2xl font-semibold tracking-tight">
+            <h1 className="text-[28px] font-normal tracking-[-0.035em]">
               {client.name}
             </h1>
             <p className="text-muted-foreground">{client.cnpj}</p>
@@ -1148,7 +1148,7 @@ const ClientDetail = () => {
 
           <TabsContent value="financial" className="mt-6 space-y-4">
             <BentoStatStrip
-              className="animate-fade-in xl:grid-cols-5"
+              className="animate-fade-in xl:grid-cols-3"
               items={[
                 {
                   label: "Honorários mensais",

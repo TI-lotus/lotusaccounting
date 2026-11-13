@@ -226,7 +226,7 @@ const Payments = () => {
       <div className="space-y-6">
         <div className="flex items-center justify-between animate-fade-in">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">
+            <h1 className="text-[28px] font-normal tracking-[-0.035em]">
               Pagamentos
             </h1>
             <p className="text-muted-foreground">

@@ -358,7 +358,7 @@ const IntegrationSettings = () => {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div className="flex-1">
-            <h1 className="text-2xl font-semibold tracking-tight">
+            <h1 className="text-[28px] font-normal tracking-[-0.035em]">
               {integration.name}
             </h1>
             <p className="text-muted-foreground">{integration.description}</p>

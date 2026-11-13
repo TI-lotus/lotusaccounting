@@ -408,7 +408,7 @@ const Staff = () => {
       <div className="space-y-6">
         <div className="page-header flex items-center justify-between gap-4 animate-fade-in">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Equipe e acessos</h1>
+            <h1 className="text-[28px] font-normal tracking-[-0.035em]">Equipe e acessos</h1>
             <p className="text-muted-foreground">Convide usuários, acompanhe papéis e controle vínculos por cliente</p>
           </div>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

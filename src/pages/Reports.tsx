@@ -352,7 +352,7 @@ const Reports = () => {
       <div className="space-y-6">
         <div className="flex flex-wrap gap-4 items-center justify-between animate-fade-in">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">
+            <h1 className="text-[28px] font-normal tracking-[-0.035em]">
               Relatórios
             </h1>
             <p className="text-muted-foreground">
@@ -483,7 +483,7 @@ const Reports = () => {
         {view === "dashboard" && (
           <>
             <BentoStatStrip
-              className="animate-fade-in md:grid-cols-2 xl:grid-cols-5"
+              className="animate-fade-in md:grid-cols-2 xl:grid-cols-3"
               items={kpiData.map((kpi) => ({
                 label: kpi.label,
                 value: kpi.value,

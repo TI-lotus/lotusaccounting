@@ -184,6 +184,20 @@ const Invoices = () => {
     .filter((i) => i.status === "overdue")
     .reduce((a, i) => a + Number(i.amount || 0), 0);
 
+  const invoiceTrend = (targetStatus?: Invoice["status"]) =>
+    Array.from({ length: 6 }, (_, index) => {
+      const reference = new Date();
+      reference.setDate(1);
+      reference.setMonth(reference.getMonth() - (5 - index));
+      return invoices
+        .filter((invoice) => {
+          if (targetStatus && invoice.status !== targetStatus) return false;
+          const issuedAt = invoice.issued_at ? new Date(invoice.issued_at) : null;
+          return issuedAt?.getFullYear() === reference.getFullYear() && issuedAt.getMonth() === reference.getMonth();
+        })
+        .reduce((sum, invoice) => sum + Number(invoice.amount || 0), 0);
+    });
+
   const statusOptions = [
     { value: "pending", label: "Pendentes" },
     { value: "paid", label: "Pagas" },
@@ -289,10 +303,10 @@ const Invoices = () => {
           )
         }
         kpis={[
-          { label: "Total emitido", value: brl(total) },
-          { label: "Pagas", value: brl(totalPaid) },
-          { label: "Pendentes", value: brl(totalPending) },
-          { label: "Atrasadas", value: brl(totalOverdue) },
+          { label: "Total emitido", value: brl(total), trend: invoiceTrend() },
+          { label: "Pagas", value: brl(totalPaid), trend: invoiceTrend("paid") },
+          { label: "Pendentes", value: brl(totalPending), trend: invoiceTrend("pending") },
+          { label: "Atrasadas", value: brl(totalOverdue), trend: invoiceTrend("overdue") },
         ]}
         filters={
           <MultiSelectFilter

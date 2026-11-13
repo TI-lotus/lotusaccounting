@@ -616,23 +616,18 @@ export default function Agents() {
       <div className="space-y-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold">Agentes de IA</h1>
+            <h1 className="text-[28px] font-normal tracking-[-0.035em]">Agentes de IA</h1>
             <p className="text-muted-foreground">
               Gerencie automações inteligentes para sua contabilidade
             </p>
           </div>
-          <div className="flex gap-4">
-            <Card className="px-4 py-2">
-              <div className="text-sm text-muted-foreground">
-                Agentes Ativos
-              </div>
-              <div className="text-2xl font-semibold">{totalActive}</div>
-            </Card>
-            <Card className="px-4 py-2">
-              <div className="text-sm text-muted-foreground">Ações Hoje</div>
-              <div className="text-2xl font-semibold">{totalActions}</div>
-            </Card>
-          </div>
+          <BentoStatStrip
+            className="w-full max-w-md sm:grid-cols-2 xl:grid-cols-2"
+            items={[
+              { label: "Agentes ativos", value: totalActive, icon: Zap },
+              { label: "Ações hoje", value: totalActions, icon: Play },
+            ]}
+          />
         </div>
 
         <Tabs defaultValue="agents">
@@ -703,7 +698,7 @@ export default function Agents() {
                         <Card
                           key={agent.id}
                           className={cn(
-                            "transition-all duration-200",
+                            "transition-[background-color,border-color,box-shadow] duration-200",
                             agent.enabled
                               ? "border-primary/20 bg-card"
                               : "border-border bg-muted/30",
@@ -717,16 +712,7 @@ export default function Agents() {
                           >
                             <div className="flex items-start justify-between gap-3">
                               <div className="flex items-center gap-3">
-                                <div
-                                  className={cn(
-                                    "p-2 rounded-lg",
-                                    agent.enabled
-                                      ? "bg-primary/10 text-primary"
-                                      : "bg-muted text-muted-foreground",
-                                  )}
-                                >
-                                  <Icon className="h-5 w-5" />
-                                </div>
+                                <Icon className="h-5 w-5 text-gilver" aria-hidden="true" title={agent.name} />
                                 <div className="space-y-1">
                                   <CardTitle className="text-base">
                                     {agent.name}

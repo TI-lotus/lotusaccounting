@@ -1,12 +1,14 @@
 import { ReactNode } from "react";
 import { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { KPITrend } from "@/components/dashboard/KPICard";
 
 export interface BentoStat {
   label: string;
   value: ReactNode;
   hint?: ReactNode;
   icon?: LucideIcon;
+  trend?: number[];
 }
 
 interface BentoStatStripProps {
@@ -18,12 +20,13 @@ interface BentoStatStripProps {
 export const BentoStatStrip = ({ items, className }: BentoStatStripProps) => (
   <dl
     className={cn(
-      "grid overflow-hidden rounded-2xl border border-border/70 bg-border/70 sm:grid-cols-2 xl:grid-cols-4",
+      "grid overflow-hidden rounded-2xl border border-border/70 bg-border/70 sm:grid-cols-2 xl:grid-cols-3",
       className,
     )}
   >
     {items.map((item) => {
       const Icon = item.icon;
+      const showTrend = Boolean(item.trend?.length) || typeof item.value === "number";
       return (
         <div key={item.label} className="min-h-28 min-w-0 bg-card p-4 sm:p-5">
           <div className="flex items-start justify-between gap-3">
@@ -36,14 +39,19 @@ export const BentoStatStrip = ({ items, className }: BentoStatStripProps) => (
               </span>
             )}
           </div>
-          <dd className="mt-2 text-xl font-semibold tracking-tight text-foreground">
-            {item.value}
-          </dd>
-          {item.hint && (
-            <dd className="mt-1 text-xs leading-5 text-muted-foreground">
-              {item.hint}
-            </dd>
-          )}
+          <div className="mt-2 flex items-end justify-between gap-3">
+            <div className="min-w-0">
+              <dd className="text-xl font-semibold tracking-tight text-foreground">
+                {item.value}
+              </dd>
+              {item.hint && (
+                <dd className="mt-1 text-xs leading-5 text-muted-foreground">
+                  {item.hint}
+                </dd>
+              )}
+            </div>
+            {showTrend && <KPITrend values={item.trend} className="h-9 w-24 shrink-0" />}
+          </div>
         </div>
       );
     })}

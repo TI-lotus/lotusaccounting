@@ -368,7 +368,7 @@ const Documents = () => {
         >
           <div className="page-header flex items-center justify-between gap-4 animate-fade-in">
             <div>
-              <h1 className="text-2xl font-semibold tracking-tight">
+              <h1 className="text-[28px] font-normal tracking-[-0.035em]">
                 Documentos
               </h1>
               <p className="text-muted-foreground">
@@ -639,7 +639,7 @@ const Documents = () => {
 
           {view !== "calendar" && (
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="rounded-2xl">
+              <TabsList className="segmented-tabs">
                 <TabsTrigger value="recebidos" className="rounded-xl">
                   Recebidos
                 </TabsTrigger>

@@ -3,7 +3,9 @@ import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CheckCircle2, AlertCircle, RefreshCw, XCircle } from "lucide-react";
+import { BentoStatStrip } from "@/components/dashboard/BentoStatStrip";
 import { useData } from "@/contexts/DataContext";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -124,42 +126,19 @@ const Reconciliation = () => {
     <DashboardLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Conciliação</h1>
+          <h1 className="text-[28px] font-normal tracking-[-0.035em]">Conciliação</h1>
           <p className="text-muted-foreground">
             Reconcilie lançamentos com extratos bancários
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-muted-foreground">
-                  A conciliar
-                </span>
-                <AlertCircle className="h-4 w-4 text-amber-500" />
-              </div>
-              <p className="text-2xl font-semibold">{totals.pendCount}</p>
-              <p className="text-xs text-muted-foreground">
-                {brl(totals.pendAmount)}
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-muted-foreground">
-                  Conciliados
-                </span>
-                <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-              </div>
-              <p className="text-2xl font-semibold">{totals.okCount}</p>
-              <p className="text-xs text-muted-foreground">
-                {brl(totals.okAmount)}
-              </p>
-            </CardContent>
-          </Card>
-        </div>
+        <BentoStatStrip
+          className="sm:grid-cols-2"
+          items={[
+            { label: "A conciliar", value: totals.pendCount, hint: brl(totals.pendAmount), icon: AlertCircle },
+            { label: "Conciliados", value: totals.okCount, hint: brl(totals.okAmount), icon: CheckCircle2 },
+          ]}
+        />
 
         <Card>
           <CardHeader>
@@ -174,18 +153,18 @@ const Reconciliation = () => {
                 </p>
               </div>
               <div className="flex gap-2">
-                <select
-                  className="h-9 rounded-md border bg-background px-3 text-sm"
-                  value={selectedConnection}
-                  onChange={(event) => setSelectedConnection(event.target.value)}
-                >
-                  <option value="">Selecione a conexão</option>
-                  {interConnections.map((connection) => (
-                    <option key={connection.id} value={connection.id}>
-                      {connection.account_label ?? "Banco Inter"}
-                    </option>
-                  ))}
-                </select>
+                <Select value={selectedConnection} onValueChange={setSelectedConnection}>
+                  <SelectTrigger className="h-9 min-w-[190px] rounded-xl">
+                    <SelectValue placeholder="Selecione a conexão" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {interConnections.map((connection) => (
+                      <SelectItem key={connection.id} value={connection.id}>
+                        {connection.account_label ?? "Banco Inter"}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <Button size="sm" variant="outline" onClick={() => void refreshBankData()}>
                   <RefreshCw className="mr-2 h-4 w-4" />
                   Atualizar
@@ -196,20 +175,14 @@ const Reconciliation = () => {
               </div>
             </div>
 
-            <div className="grid gap-3 md:grid-cols-3">
-              <div className="rounded-lg border p-3">
-                <p className="text-xs text-muted-foreground">Contas conectadas</p>
-                <p className="text-xl font-semibold">{accounts.length}</p>
-              </div>
-              <div className="rounded-lg border p-3">
-                <p className="text-xs text-muted-foreground">Transações importadas</p>
-                <p className="text-xl font-semibold">{transactions.length}</p>
-              </div>
-              <div className="rounded-lg border p-3">
-                <p className="text-xs text-muted-foreground">Sugestões pendentes</p>
-                <p className="text-xl font-semibold">{suggestedMatches.length}</p>
-              </div>
-            </div>
+            <BentoStatStrip
+              className="sm:grid-cols-3"
+              items={[
+                { label: "Contas conectadas", value: accounts.length },
+                { label: "Transações importadas", value: transactions.length },
+                { label: "Sugestões pendentes", value: suggestedMatches.length },
+              ]}
+            />
 
             {suggestedMatches.length > 0 && (
               <div className="space-y-2">

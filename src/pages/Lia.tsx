@@ -11,37 +11,34 @@ const capabilities = [
 
 const Lia = () => (
   <DashboardLayout>
-    <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="p-3 rounded-2xl bg-gilver/20 text-gilver"><Sparkles className="h-6 w-6" /></div>
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Lia</h1>
-          <p className="text-muted-foreground">Sua assistente contábil inteligente</p>
-        </div>
+      <div className="mx-auto w-full max-w-[1100px] space-y-8">
+        <div className="page-header">
+          <p className="mb-2 text-xs font-medium uppercase tracking-[0.16em] text-gilver">Assistente da plataforma</p>
+          <h1 className="text-[30px] font-normal leading-tight tracking-[-0.035em]">Lia</h1>
+          <p className="mt-2 max-w-2xl text-[13px] leading-6 text-muted-foreground">Sua assistente contábil inteligente, disponível sobre a página para orientar decisões e acelerar tarefas.</p>
       </div>
 
-      <Card>
-        <CardContent className="pt-6">
-          <p className="text-sm text-muted-foreground">
-            A janela da Lia aparece sobre a página, no canto direito, para você continuar navegando enquanto conversa. Ela pode responder perguntas sobre seus
-            dados, gerar relatórios rápidos e acionar automações no n8n.
-          </p>
-        </CardContent>
-      </Card>
+        <Card className="page-section">
+          <CardContent className="space-y-3">
+            <div className="flex items-center gap-3">
+              <Sparkles className="h-5 w-5 text-gilver" aria-hidden="true" title="Lia" />
+              <p className="text-base font-medium">Converse enquanto trabalha</p>
+            </div>
+            <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
+              A janela da Lia aparece sobre a página, no canto direito, para você continuar navegando enquanto conversa. Ela pode responder perguntas sobre seus dados, gerar relatórios rápidos e acionar automações no n8n.
+            </p>
+          </CardContent>
+        </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid gap-px overflow-hidden rounded-2xl border border-border/70 bg-border/70 sm:grid-cols-2">
         {capabilities.map(c => {
           const Icon = c.icon;
           return (
-            <Card key={c.title}>
-              <CardContent className="pt-6">
-                <div className="flex items-start gap-3">
-                  <div className="p-2 rounded-xl bg-primary/10 text-primary"><Icon className="h-5 w-5" /></div>
-                  <div>
-                    <p className="font-medium">{c.title}</p>
-                    <p className="text-sm text-muted-foreground">{c.desc}</p>
-                  </div>
-                </div>
+            <Card key={c.title} className="rounded-none border-0">
+              <CardContent className="min-h-36 space-y-3 p-5 sm:p-6">
+                <Icon className="h-5 w-5 text-gilver" aria-hidden="true" title={c.title} />
+                <p className="font-medium">{c.title}</p>
+                <p className="text-sm leading-6 text-muted-foreground">{c.desc}</p>
               </CardContent>
             </Card>
           );

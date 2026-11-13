@@ -72,7 +72,7 @@ export const PageShell = ({
         </div>
 
         {kpis && kpis.length > 0 && (
-          <div className="grid overflow-hidden rounded-2xl border border-border/70 bg-border/70 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid overflow-hidden rounded-2xl border border-border/70 bg-border/70 sm:grid-cols-2 lg:grid-cols-2">
             {kpis.map((k, i) => (
               <div key={i} className="min-w-0 bg-card p-4 sm:p-5">
                 <div className="flex items-start justify-between gap-3">

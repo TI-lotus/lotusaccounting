@@ -1,12 +1,5 @@
 import { DashboardLayout } from "@/layouts/DashboardLayout";
-import {
-  Settings as SettingsIcon,
-  User,
-  Bell,
-  Shield,
-  Building,
-  Camera,
-} from "lucide-react";
+import { Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -292,7 +285,7 @@ export const SettingsContent = ({
     <div className="space-y-6 max-w-3xl">
       {showHeader && (
         <div className="animate-fade-in">
-          <h1 className="text-2xl font-semibold tracking-tight">
+          <h1 className="text-[28px] font-normal tracking-[-0.035em]">
             Configurações
           </h1>
           <p className="text-muted-foreground">
@@ -302,10 +295,10 @@ export const SettingsContent = ({
       )}
 
       {/* Profile */}
-      <div className="glass rounded-2xl p-6 animate-fade-in">
-        <div className="flex items-center gap-2 mb-4">
-          <User className="h-5 w-5 text-primary" />
-          <h3 className="font-semibold">Perfil</h3>
+      <div className="page-section animate-fade-in">
+        <div className="mb-5">
+          <h2 className="text-base font-medium">Perfil</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Dados pessoais e identificação de acesso.</p>
         </div>
         <div className="flex items-start gap-6">
           <div className="relative">
@@ -386,10 +379,10 @@ export const SettingsContent = ({
       </div>
 
       {/* Company */}
-      <div className="glass rounded-2xl p-6 animate-fade-in">
-        <div className="flex items-center gap-2 mb-4">
-          <Building className="h-5 w-5 text-primary" />
-          <h3 className="font-semibold">Empresa</h3>
+      <div className="page-section animate-fade-in">
+        <div className="mb-5">
+          <h2 className="text-base font-medium">Empresa</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Identidade e período fiscal do escritório.</p>
         </div>
         <div className="space-y-4">
           <div className="space-y-2">
@@ -422,10 +415,10 @@ export const SettingsContent = ({
       </div>
 
       {/* Preferences */}
-      <div className="glass rounded-2xl p-6 animate-fade-in">
-        <div className="flex items-center gap-2 mb-4">
-          <SettingsIcon className="h-5 w-5 text-primary" />
-          <h3 className="font-semibold">Preferências</h3>
+      <div className="page-section animate-fade-in">
+        <div className="mb-5">
+          <h2 className="text-base font-medium">Preferências</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Ajustes de visualização e moeda.</p>
         </div>
         <div className="space-y-4">
           <div className="flex items-center justify-between">
@@ -466,10 +459,10 @@ export const SettingsContent = ({
       </div>
 
       {/* Notifications */}
-      <div className="glass rounded-2xl p-6 animate-fade-in">
-        <div className="flex items-center gap-2 mb-4">
-          <Bell className="h-5 w-5 text-primary" />
-          <h3 className="font-semibold">Notificações</h3>
+      <div className="page-section animate-fade-in">
+        <div className="mb-5">
+          <h2 className="text-base font-medium">Notificações</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Escolha quais avisos chegam a você.</p>
         </div>
         <div className="space-y-4">
           <div className="flex items-center justify-between">
@@ -558,10 +551,10 @@ export const SettingsContent = ({
       </div>
 
       {/* Automations */}
-      <div className="glass rounded-2xl p-6 animate-fade-in">
-        <div className="flex items-center gap-2 mb-4">
-          <SettingsIcon className="h-5 w-5 text-primary" />
-          <h3 className="font-semibold">Automações</h3>
+      <div className="page-section animate-fade-in">
+        <div className="mb-5">
+          <h2 className="text-base font-medium">Automações</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Regras que ajudam o escritório a manter o ciclo em dia.</p>
         </div>
         <div className="space-y-4">
           {(
@@ -603,10 +596,10 @@ export const SettingsContent = ({
       </div>
 
       {/* Security */}
-      <div className="glass rounded-2xl p-6 animate-fade-in">
-        <div className="flex items-center gap-2 mb-4">
-          <Shield className="h-5 w-5 text-primary" />
-          <h3 className="font-semibold">Segurança</h3>
+      <div className="page-section animate-fade-in">
+        <div className="mb-5">
+          <h2 className="text-base font-medium">Segurança</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Proteja sua conta e seus dados de trabalho.</p>
         </div>
         <div className="space-y-4">
           <div className="flex items-center justify-between">
