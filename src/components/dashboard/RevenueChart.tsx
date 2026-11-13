@@ -13,12 +13,16 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useData } from "@/contexts/DataContext";
 import { monthlyCashflow, type DateRange } from "@/lib/financialMetrics";
+import type { Database } from "@/integrations/supabase/types";
+
+type PaymentRow = Database["public"]["Tables"]["payments"]["Row"];
 
 type Mode = "revenue" | "expenses" | "profit";
 
 interface RevenueChartProps {
   className?: string;
   dateRange?: DateRange;
+  payments?: PaymentRow[];
 }
 
 const formatBRL = (value: number) => `R$ ${(value / 1000).toLocaleString("pt-BR")}k`;
@@ -26,8 +30,9 @@ const GREEN = "hsl(142, 70%, 45%)";
 const RED = "hsl(0, 72%, 51%)";
 const YELLOW = "hsl(30, 41%, 60%)"; // brand gold #d2b58a
 
-export const RevenueChart = ({ className, dateRange }: RevenueChartProps) => {
-  const { payments } = useData();
+export const RevenueChart = ({ className, dateRange, payments: providedPayments }: RevenueChartProps) => {
+  const { payments: contextPayments } = useData();
+  const payments = providedPayments ?? contextPayments;
   const [mode, setMode] = useState<Mode>("revenue");
 
   const chartData = useMemo(() => {

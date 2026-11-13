@@ -5,14 +5,13 @@ import {
   Download,
   Calendar,
   TrendingUp,
-  PieChart,
   DollarSign,
   FileText,
   Users,
   LayoutDashboard,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { RevenueChart } from "@/components/dashboard/RevenueChart";
@@ -22,6 +21,7 @@ import { useData } from "@/contexts/DataContext";
 import { useViewMode } from "@/contexts/ViewModeContext";
 import { withinDateRange } from "@/lib/financialMetrics";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { FilterPopover } from "@/components/FilterPopover";
 import {
   Select,
@@ -58,6 +58,14 @@ const currentMonthRange = () => {
 };
 
 type ReportPeriod = "month" | "quarter" | "year" | "custom";
+type ReportType = "overview" | "financial" | "tax" | "analytics";
+
+const reportTypeOptions: { value: ReportType; label: string }[] = [
+  { value: "overview", label: "Visão financeira" },
+  { value: "financial", label: "DRE e fluxo de caixa" },
+  { value: "tax", label: "Indicadores fiscais" },
+  { value: "analytics", label: "Indicadores operacionais" },
+];
 
 const reportPeriodRange = (period: Exclude<ReportPeriod, "custom">) => {
   const now = new Date();
@@ -90,15 +98,27 @@ const Reports = () => {
   const [view, setView] = useState<"dashboard" | "calendar">("dashboard");
   const [dateRange, setDateRange] = useState(currentMonthRange);
   const [periodPreset, setPeriodPreset] = useState<ReportPeriod>("month");
+  const [reportType, setReportType] = useState<ReportType>("overview");
+  const [clientFilter, setClientFilter] = useState("all");
   const handlePeriodChange = (period: ReportPeriod) => {
     setPeriodPreset(period);
     if (period !== "custom") setDateRange(reportPeriodRange(period));
   };
-  const documents = useMemo(() => allDocuments.filter((doc) => withinDateRange(doc.createdAt, dateRange)), [allDocuments, dateRange]);
-  const invoices = useMemo(() => allInvoices.filter((invoice) => withinDateRange(invoice.issued_at ?? invoice.created_at, dateRange)), [allInvoices, dateRange]);
-  const payments = useMemo(() => allPayments.filter((payment) => withinDateRange(payment.paid_at ?? payment.created_at, dateRange)), [allPayments, dateRange]);
-  const tasks = useMemo(() => allTasks.filter((task) => withinDateRange(task.completedAt ?? task.createdAt, dateRange)), [allTasks, dateRange]);
-  const fiscalObligations = useMemo(() => allFiscalObligations.filter((obligation) => withinDateRange(obligation.due_date, dateRange)), [allFiscalObligations, dateRange]);
+  const documents = useMemo(() => allDocuments.filter((doc) =>
+    (clientFilter === "all" || doc.clientId === clientFilter) && withinDateRange(doc.createdAt, dateRange),
+  ), [allDocuments, clientFilter, dateRange]);
+  const invoices = useMemo(() => allInvoices.filter((invoice) =>
+    (clientFilter === "all" || invoice.company_id === clientFilter) && withinDateRange(invoice.issued_at ?? invoice.created_at, dateRange),
+  ), [allInvoices, clientFilter, dateRange]);
+  const payments = useMemo(() => allPayments.filter((payment) =>
+    (clientFilter === "all" || payment.company_id === clientFilter) && withinDateRange(payment.paid_at ?? payment.created_at, dateRange),
+  ), [allPayments, clientFilter, dateRange]);
+  const tasks = useMemo(() => allTasks.filter((task) =>
+    (clientFilter === "all" || task.clientId === clientFilter) && withinDateRange(task.completedAt ?? task.createdAt, dateRange),
+  ), [allTasks, clientFilter, dateRange]);
+  const fiscalObligations = useMemo(() => allFiscalObligations.filter((obligation) =>
+    (clientFilter === "all" || obligation.company_id === clientFilter) && withinDateRange(obligation.due_date, dateRange),
+  ), [allFiscalObligations, clientFilter, dateRange]);
 
   const paidRevenue = useMemo(
     () =>
@@ -189,7 +209,7 @@ const Reports = () => {
       withinDateRange(date, dateRange);
 
     return [
-      ...allInvoices
+      ...invoices
         .filter((invoice) => isInRange(invoice.due_date))
         .map((invoice) => ({
           day: eventDay(invoice.due_date as string),
@@ -198,7 +218,7 @@ const Reports = () => {
           amount: formatCurrency(Number(invoice.amount ?? 0)),
           status: invoice.status === "paid" ? "Recebida" : invoice.status === "overdue" ? "Vencida" : "A receber",
         })),
-      ...allPayments
+      ...payments
         .filter((payment) => isInRange(payment.due_date ?? payment.paid_at ?? payment.created_at))
         .map((payment) => {
           const date = (payment.due_date ?? payment.paid_at ?? payment.created_at) as string;
@@ -210,7 +230,7 @@ const Reports = () => {
             status: payment.status === "completed" ? "Concluido" : payment.status ?? "Pendente",
           };
         }),
-      ...allTasks
+      ...tasks
         .filter((task) => isInRange(task.dueDate))
         .map((task) => ({
           day: eventDay(task.dueDate),
@@ -218,7 +238,7 @@ const Reports = () => {
           subtitle: task.clientName ?? "Sem cliente",
           status: task.status === "completed" ? "Concluida" : task.status === "overdue" ? "Atrasada" : "Tarefa",
         })),
-      ...allDocuments
+      ...documents
         .filter((document) => isInRange(document.createdAt))
         .map((document) => ({
           day: eventDay(document.createdAt),
@@ -226,7 +246,7 @@ const Reports = () => {
           subtitle: document.clientName ?? "Sem cliente",
           status: document.status === "processed" ? "Processado" : "Documento",
         })),
-      ...allFiscalObligations
+      ...fiscalObligations
         .filter((obligation) => isInRange(obligation.due_date))
         .map((obligation) => ({
           day: eventDay(obligation.due_date),
@@ -235,7 +255,7 @@ const Reports = () => {
           status: obligation.status === "completed" ? "Entregue" : "Obrigacao fiscal",
         })),
     ];
-  }, [allDocuments, allFiscalObligations, allInvoices, allPayments, allTasks, clients, dateRange]);
+  }, [clients, dateRange, documents, fiscalObligations, invoices, payments, tasks]);
   const kpiData = [
     {
       label: "Receita Total",
@@ -366,14 +386,32 @@ const Reports = () => {
         </div>
 
         <div className="filter-toolbar flex flex-wrap items-center justify-between gap-3 animate-fade-in">
-          <p className="text-sm text-muted-foreground">
-            Período: <span className="font-medium text-foreground">{formatDate(dateRange.start)} — {formatDate(dateRange.end)}</span>
-          </p>
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="report-type" className="sr-only">Tipo de relatório</Label>
+              <Select value={reportType} onValueChange={(value: ReportType) => setReportType(value)}>
+                <SelectTrigger id="report-type" className="h-10 w-[220px] rounded-xl">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {reportTypeOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Período: <span className="font-medium text-foreground">{formatDate(dateRange.start)} — {formatDate(dateRange.end)}</span>
+            </p>
+          </div>
           <FilterPopover
             title="Filtros do relatório"
-            description="Escolha um período pronto ou informe um intervalo personalizado."
-            activeCount={periodPreset === "month" ? 0 : 1}
-            onClear={() => handlePeriodChange("month")}
+            description="Escolha período e cliente sem abrir uma barra extensa de filtros."
+            activeCount={[periodPreset !== "month", clientFilter !== "all"].filter(Boolean).length}
+            onClear={() => {
+              handlePeriodChange("month");
+              setClientFilter("all");
+            }}
           >
             <div className="space-y-1.5">
               <p className="text-xs font-medium text-muted-foreground">Período</p>
@@ -413,6 +451,20 @@ const Reports = () => {
                 </label>
               </div>
             )}
+            <div className="space-y-1.5">
+              <Label htmlFor="report-client">Cliente</Label>
+              <Select value={clientFilter} onValueChange={setClientFilter}>
+                <SelectTrigger id="report-client" className="w-full rounded-xl">
+                  <SelectValue placeholder="Todos os clientes" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os clientes</SelectItem>
+                  {clients.filter((client) => client.status === "active").map((client) => (
+                    <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </FilterPopover>
         </div>
         {view === "calendar" && (
@@ -451,30 +503,12 @@ const Reports = () => {
               })}
             </div>
 
-            <Tabs defaultValue="overview" className="animate-fade-in">
-              <TabsList>
-                <TabsTrigger value="overview" className="gap-2">
-                  <BarChart3 className="h-4 w-4" />
-                  Visão Geral
-                </TabsTrigger>
-                <TabsTrigger value="financial" className="gap-2">
-                  <DollarSign className="h-4 w-4" />
-                  Financeiro
-                </TabsTrigger>
-                <TabsTrigger value="tax" className="gap-2">
-                  <FileText className="h-4 w-4" />
-                  Fiscal
-                </TabsTrigger>
-                <TabsTrigger value="analytics" className="gap-2">
-                  <PieChart className="h-4 w-4" />
-                  Analítico
-                </TabsTrigger>
-              </TabsList>
+            <Tabs value={reportType} onValueChange={(value) => setReportType(value as ReportType)} className="animate-fade-in">
 
               <TabsContent value="overview" className="space-y-6 mt-6">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  <RevenueChart className="lg:col-span-2" dateRange={dateRange} />
-                  <QuickStats dateRange={dateRange} />
+                  <RevenueChart className="lg:col-span-2" dateRange={dateRange} payments={payments} />
+                  <QuickStats dateRange={dateRange} payments={payments} />
                 </div>
               </TabsContent>
 

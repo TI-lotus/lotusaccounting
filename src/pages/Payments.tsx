@@ -8,8 +8,6 @@ import {
   QrCode,
   CreditCard,
   Clock3,
-  ArrowDownCircle,
-  ArrowUpCircle,
   Copy,
   CheckCircle2,
   RotateCcw,
@@ -67,6 +65,19 @@ const currentMonthRange = () => {
   };
 };
 
+const currentQuarterRange = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const quarterStartMonth = Math.floor(now.getMonth() / 3) * 3;
+  return {
+    start: `${year}-${String(quarterStartMonth + 1).padStart(2, "0")}-01`,
+    end: new Date(year, quarterStartMonth + 3, 0).toISOString().slice(0, 10),
+  };
+};
+
+type PaymentStatusFilter = "all" | "completed" | "pending";
+type PaymentDateFilter = "all" | "month" | "quarter" | "custom";
+
 const Payments = () => {
   const { viewMode } = useViewMode();
   const {
@@ -82,6 +93,8 @@ const Payments = () => {
   const [typeFilter, setTypeFilter] = useState<"all" | "income" | "expense">(
     "all",
   );
+  const [statusFilter, setStatusFilter] = useState<PaymentStatusFilter>("all");
+  const [dateFilter, setDateFilter] = useState<PaymentDateFilter>("all");
   const [view, setView] = useState<"list" | "calendar" | "timeline">("list");
   const [dateRange, setDateRange] = useState(currentMonthRange);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -93,6 +106,12 @@ const Payments = () => {
     companyId: "",
     invoiceId: "",
   });
+
+  const handleDateFilterChange = (next: PaymentDateFilter) => {
+    setDateFilter(next);
+    if (next === "month") setDateRange(currentMonthRange());
+    if (next === "quarter") setDateRange(currentQuarterRange());
+  };
 
   const fmt = (iso: string | null) =>
     new Date(iso ?? Date.now()).toLocaleDateString("pt-BR", {
@@ -131,6 +150,12 @@ const Payments = () => {
 
   const filteredPayments = payments
     .filter((p) => typeFilter === "all" || p.type === typeFilter)
+    .filter((p) => statusFilter === "all" || p.status === statusFilter)
+    .filter((p) => {
+      if (dateFilter === "all") return true;
+      if (!p.rawDate) return false;
+      return p.rawDate.slice(0, 10) >= dateRange.start && p.rawDate.slice(0, 10) <= dateRange.end;
+    })
     .slice()
     .sort((a, b) => {
       if (valueSort === "asc") return a.amount - b.amount;
@@ -378,38 +403,86 @@ const Payments = () => {
             })}
           </div>
           <FilterPopover
-            activeCount={typeFilter === "all" ? 0 : 1}
-            onClear={() => setTypeFilter("all")}
+            title="Filtrar e ordenar pagamentos"
+            description="Combine tipo, status, período e ordenação em um único controle."
+            activeCount={[typeFilter !== "all", statusFilter !== "all", dateFilter !== "all", valueSort !== "none", dateSort !== "newest"].filter(Boolean).length}
+            onClear={() => {
+              setTypeFilter("all");
+              setStatusFilter("all");
+              handleDateFilterChange("all");
+              setValueSort("none");
+              setDateSort("newest");
+            }}
           >
-            <Button
-              type="button"
-              variant={typeFilter === "all" ? "default" : "ghost"}
-              size="sm"
-              className="rounded-xl"
-              onClick={() => setTypeFilter("all")}
-            >
-              Todos
-            </Button>
-            <Button
-              type="button"
-              variant={typeFilter === "income" ? "default" : "ghost"}
-              size="sm"
-              className="rounded-xl"
-              onClick={() => setTypeFilter("income")}
-            >
-              <ArrowDownCircle className="h-4 w-4" />
-              Entradas
-            </Button>
-            <Button
-              type="button"
-              variant={typeFilter === "expense" ? "default" : "ghost"}
-              size="sm"
-              className="rounded-xl"
-              onClick={() => setTypeFilter("expense")}
-            >
-              <ArrowUpCircle className="h-4 w-4" />
-              Saídas
-            </Button>
+            <div className="space-y-1.5">
+              <Label htmlFor="payment-type-filter">Tipo</Label>
+              <Select value={typeFilter} onValueChange={(value: typeof typeFilter) => setTypeFilter(value)}>
+                <SelectTrigger id="payment-type-filter" className="w-full rounded-xl"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Entradas e saídas</SelectItem>
+                  <SelectItem value="income">Entradas</SelectItem>
+                  <SelectItem value="expense">Saídas</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="payment-status-filter">Status</Label>
+              <Select value={statusFilter} onValueChange={(value: PaymentStatusFilter) => setStatusFilter(value)}>
+                <SelectTrigger id="payment-status-filter" className="w-full rounded-xl"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os status</SelectItem>
+                  <SelectItem value="completed">Concluídos</SelectItem>
+                  <SelectItem value="pending">Pendentes</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="payment-date-filter">Período</Label>
+              <Select value={dateFilter} onValueChange={(value: PaymentDateFilter) => handleDateFilterChange(value)}>
+                <SelectTrigger id="payment-date-filter" className="w-full rounded-xl"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os períodos</SelectItem>
+                  <SelectItem value="month">Mês atual</SelectItem>
+                  <SelectItem value="quarter">Trimestre atual</SelectItem>
+                  <SelectItem value="custom">Personalizado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {dateFilter === "custom" && (
+              <div className="grid grid-cols-2 gap-2">
+                <label className="space-y-1 text-xs font-medium text-muted-foreground" htmlFor="payment-date-start">
+                  Início
+                  <Input id="payment-date-start" type="date" value={dateRange.start} max={dateRange.end} onChange={(event) => event.target.value && setDateRange({ ...dateRange, start: event.target.value })} />
+                </label>
+                <label className="space-y-1 text-xs font-medium text-muted-foreground" htmlFor="payment-date-end">
+                  Fim
+                  <Input id="payment-date-end" type="date" value={dateRange.end} min={dateRange.start} onChange={(event) => event.target.value && setDateRange({ ...dateRange, end: event.target.value })} />
+                </label>
+              </div>
+            )}
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="payment-value-sort">Valor</Label>
+                <Select value={valueSort} onValueChange={(value: typeof valueSort) => setValueSort(value)}>
+                  <SelectTrigger id="payment-value-sort" className="w-full rounded-xl"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Sem ordenação</SelectItem>
+                    <SelectItem value="desc">Maior valor</SelectItem>
+                    <SelectItem value="asc">Menor valor</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="payment-date-sort">Data</Label>
+                <Select value={dateSort} onValueChange={(value: typeof dateSort) => setDateSort(value)}>
+                  <SelectTrigger id="payment-date-sort" className="w-full rounded-xl"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="newest">Mais novo</SelectItem>
+                    <SelectItem value="oldest">Mais antigo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </FilterPopover>
         </div>
 
@@ -450,7 +523,7 @@ const Payments = () => {
         {view === "timeline" && (
           <TimelineView
             title="Timeline financeira"
-            events={payments.map((payment, index) => ({
+            events={filteredPayments.map((payment, index) => ({
               day: payment.rawDate ? new Date(payment.rawDate).getDate() : 1,
               title: payment.description,
               subtitle: payment.category,
@@ -466,7 +539,7 @@ const Payments = () => {
             title="Calendário financeiro"
             dateRange={dateRange}
             onDateRangeChange={setDateRange}
-            events={payments.map((payment) => ({
+            events={filteredPayments.map((payment) => ({
               day: payment.rawDate ? new Date(payment.rawDate).getDate() : 1,
               title: payment.description,
               subtitle: payment.category,
@@ -481,35 +554,7 @@ const Payments = () => {
           <div className="glass rounded-2xl p-6 animate-fade-in">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold">Pagamentos Recentes</h3>
-              <div className="flex gap-2">
-                <Select
-                  value={valueSort}
-                  onValueChange={(value: typeof valueSort) =>
-                    setValueSort(value)
-                  }
-                >
-                  <SelectTrigger className="h-9 w-[170px] rounded-lg">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Valor</SelectItem>
-                    <SelectItem value="desc">Maior valor</SelectItem>
-                    <SelectItem value="asc">Menor valor</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select
-                  value={dateSort}
-                  onValueChange={(value: typeof dateSort) => setDateSort(value)}
-                >
-                  <SelectTrigger className="h-9 w-[150px] rounded-lg">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="newest">Mais novo</SelectItem>
-                    <SelectItem value="oldest">Mais antigo</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              <Badge variant="secondary">{filteredPayments.length} registros</Badge>
             </div>
             <div className="space-y-3">
               {filteredPayments.length === 0 ? (

@@ -2,16 +2,21 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { cn } from "@/lib/utils";
 import { useData } from "@/contexts/DataContext";
 import { expenseDistribution, type DateRange } from "@/lib/financialMetrics";
+import type { Database } from "@/integrations/supabase/types";
+
+type PaymentRow = Database["public"]["Tables"]["payments"]["Row"];
 
 const colors = ["#d2b58a", "#849c8a", "#888888", "#b77575", "#8195a6"];
 
 interface QuickStatsProps {
   className?: string;
   dateRange?: DateRange;
+  payments?: PaymentRow[];
 }
 
-export const QuickStats = ({ className, dateRange }: QuickStatsProps) => {
-  const { payments } = useData();
+export const QuickStats = ({ className, dateRange, payments: providedPayments }: QuickStatsProps) => {
+  const { payments: contextPayments } = useData();
+  const payments = providedPayments ?? contextPayments;
   const expenseData = expenseDistribution(payments, dateRange).map((item, index) => ({ ...item, color: colors[index % colors.length] }));
   const total = expenseData.reduce((sum, item) => sum + item.value, 0);
   return (
