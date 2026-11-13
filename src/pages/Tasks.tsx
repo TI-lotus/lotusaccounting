@@ -571,7 +571,8 @@ const Tasks = () => {
               </div>
             )}
             {viewType === "grid" ? (
-          <div className="grid min-w-0 grid-cols-1 gap-4 animate-fade-in md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
+          <div className="custom-scroll min-w-0 overflow-x-auto pb-2">
+            <div className="grid min-w-[1180px] grid-cols-5 gap-4 animate-fade-in">
             {(
               [
                 {
@@ -658,6 +659,7 @@ const Tasks = () => {
                 </div>
               );
             })}
+            </div>
           </div>
         ) : (
           /* List View */
