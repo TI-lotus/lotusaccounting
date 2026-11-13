@@ -368,6 +368,7 @@ const Payments = () => {
                   variant={view === item.value ? "default" : "ghost"}
                   size="sm"
                   className="rounded-xl"
+                  aria-pressed={view === item.value}
                   onClick={() => setView(item.value as typeof view)}
                 >
                   <Icon className="h-4 w-4" />

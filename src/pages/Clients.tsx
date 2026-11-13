@@ -39,6 +39,7 @@ import { ClientData } from "@/types";
 import type { ClientPeriodStatus } from "@/types";
 import { cn } from "@/lib/utils";
 import { useWorkspaceMembers } from "@/hooks/useWorkspaceMembers";
+import { FilterPopover } from "@/components/FilterPopover";
 
 const taxRegimeLabels: Record<string, string> = {
   simples_nacional: "Simples Nacional",
@@ -309,41 +310,94 @@ const Clients = () => {
           <div className="filter-toolbar mb-6 flex flex-wrap items-center gap-3">
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Buscar por nome, email ou CNPJ..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10 rounded-xl" />
+              <Input
+                name="client-search"
+                autoComplete="off"
+                aria-label="Buscar clientes"
+                placeholder="Buscar por nome, e-mail ou CNPJ…"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 rounded-xl"
+              />
             </div>
-            <div className="filter-control flex items-center gap-2 rounded-xl border border-input/80 bg-card/70 px-2 py-1">
-              <span className="text-xs text-muted-foreground">Honorários</span>
-              <Input inputMode="numeric" pattern="[0-9]*" value={feeRange.min} onChange={(e) => setFeeRange({ ...feeRange, min: e.target.value.replace(/\D/g, "") })} placeholder="Mín." className="h-8 w-20 rounded-lg" />
-              <Input inputMode="numeric" pattern="[0-9]*" value={feeRange.max} onChange={(e) => setFeeRange({ ...feeRange, max: e.target.value.replace(/\D/g, "") })} placeholder="Máx." className="h-8 w-20 rounded-lg" />
-            </div>
-            <Select value={sizeFilter} onValueChange={setSizeFilter}>
-              <SelectTrigger className="w-[170px] rounded-xl"><SelectValue placeholder="Porte" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos portes</SelectItem>
-                <SelectItem value="MEI">MEI</SelectItem>
-                <SelectItem value="ME">ME</SelectItem>
-                <SelectItem value="EPP">EPP</SelectItem>
-                <SelectItem value="Médio porte">Médio porte</SelectItem>
-                <SelectItem value="Grande porte">Grande porte</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={contractSort} onValueChange={setContractSort}>
-              <SelectTrigger className="w-[180px] rounded-xl"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="contract-desc">Contrato mais novo</SelectItem>
-                <SelectItem value="contract-asc">Contrato mais antigo</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={responsibleFilter} onValueChange={setResponsibleFilter}>
-              <SelectTrigger className="w-[190px] rounded-xl"><SelectValue placeholder="Responsável" /></SelectTrigger>
-              <SelectContent><SelectItem value="all">Todos responsáveis</SelectItem>{responsibles.map((name) => <SelectItem key={name} value={name}>{name}</SelectItem>)}</SelectContent>
-            </Select>
+            <FilterPopover
+              title="Filtrar clientes"
+              description="Refine por honorários, porte, responsável ou ordem da lista."
+              activeCount={[
+                Boolean(feeRange.min),
+                Boolean(feeRange.max),
+                sizeFilter !== "all",
+                responsibleFilter !== "all",
+                contractSort !== "contract-desc",
+              ].filter(Boolean).length}
+              onClear={() => {
+                setFeeRange({ min: "", max: "" });
+                setSizeFilter("all");
+                setResponsibleFilter("all");
+                setContractSort("contract-desc");
+              }}
+            >
+              <div className="space-y-1.5">
+                <Label htmlFor="client-fee-min">Honorários</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <Input
+                    id="client-fee-min"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={feeRange.min}
+                    onChange={(e) => setFeeRange({ ...feeRange, min: e.target.value.replace(/\D/g, "") })}
+                    placeholder="Mínimo…"
+                    className="rounded-xl"
+                  />
+                  <Input
+                    id="client-fee-max"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={feeRange.max}
+                    onChange={(e) => setFeeRange({ ...feeRange, max: e.target.value.replace(/\D/g, "") })}
+                    placeholder="Máximo…"
+                    className="rounded-xl"
+                  />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="client-size-filter">Porte</Label>
+                <Select value={sizeFilter} onValueChange={setSizeFilter}>
+                  <SelectTrigger id="client-size-filter" className="w-full rounded-xl"><SelectValue placeholder="Todos portes" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos portes</SelectItem>
+                    <SelectItem value="MEI">MEI</SelectItem>
+                    <SelectItem value="ME">ME</SelectItem>
+                    <SelectItem value="EPP">EPP</SelectItem>
+                    <SelectItem value="Médio porte">Médio porte</SelectItem>
+                    <SelectItem value="Grande porte">Grande porte</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="client-sort">Ordenar por</Label>
+                <Select value={contractSort} onValueChange={setContractSort}>
+                  <SelectTrigger id="client-sort" className="w-full rounded-xl"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="contract-desc">Contrato mais novo</SelectItem>
+                    <SelectItem value="contract-asc">Contrato mais antigo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="client-responsible-filter">Responsável</Label>
+                <Select value={responsibleFilter} onValueChange={setResponsibleFilter}>
+                  <SelectTrigger id="client-responsible-filter" className="w-full rounded-xl"><SelectValue placeholder="Todos responsáveis" /></SelectTrigger>
+                  <SelectContent><SelectItem value="all">Todos responsáveis</SelectItem>{responsibles.map((name) => <SelectItem key={name} value={name}>{name}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            </FilterPopover>
             <Badge variant="secondary" className="px-3 py-1.5">
               {filteredClients.length} clientes
             </Badge>
             <div className="ml-auto flex rounded-xl border border-border bg-card p-1">
-              <Button variant={viewMode === "grid" ? "default" : "ghost"} size="sm" className="rounded-lg" onClick={() => setViewMode("grid")}><Grid2X2 className="h-4 w-4" />Grade</Button>
-              <Button variant={viewMode === "list" ? "default" : "ghost"} size="sm" className="rounded-lg" onClick={() => setViewMode("list")}><List className="h-4 w-4" />Lista</Button>
+              <Button variant={viewMode === "grid" ? "default" : "ghost"} size="sm" className="rounded-lg" aria-pressed={viewMode === "grid"} onClick={() => setViewMode("grid")}><Grid2X2 className="h-4 w-4" />Grade</Button>
+              <Button variant={viewMode === "list" ? "default" : "ghost"} size="sm" className="rounded-lg" aria-pressed={viewMode === "list"} onClick={() => setViewMode("list")}><List className="h-4 w-4" />Lista</Button>
             </div>
           </div>
 

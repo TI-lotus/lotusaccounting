@@ -489,14 +489,22 @@ const Staff = () => {
               <div className="filter-toolbar mb-6 flex flex-wrap items-center gap-3">
                 <div className="relative flex-1 max-w-sm">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input placeholder="Buscar por nome, cargo ou papel..." value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} className="pl-10 rounded-xl" />
+                  <Input
+                    name="staff-search"
+                    autoComplete="off"
+                    aria-label="Buscar colaboradores"
+                    placeholder="Buscar por nome, cargo ou papel…"
+                    value={searchTerm}
+                    onChange={(event) => setSearchTerm(event.target.value)}
+                    className="pl-10 rounded-xl"
+                  />
                 </div>
                 <Badge variant="secondary" className="px-3 py-1.5">{filteredMembers.length} membros</Badge>
                 <div className="ml-auto flex rounded-xl border border-border bg-card p-1">
-                  <Button variant={peopleViewMode === "grid" ? "default" : "ghost"} size="sm" className="h-8 rounded-lg gap-1.5" onClick={() => setPeopleViewMode("grid")}>
+                  <Button variant={peopleViewMode === "grid" ? "default" : "ghost"} size="sm" className="h-8 rounded-lg gap-1.5" aria-pressed={peopleViewMode === "grid"} onClick={() => setPeopleViewMode("grid")}>
                     <Grid2X2 className="h-3.5 w-3.5" />Grade
                   </Button>
-                  <Button variant={peopleViewMode === "list" ? "default" : "ghost"} size="sm" className="h-8 rounded-lg gap-1.5" onClick={() => setPeopleViewMode("list")}>
+                  <Button variant={peopleViewMode === "list" ? "default" : "ghost"} size="sm" className="h-8 rounded-lg gap-1.5" aria-pressed={peopleViewMode === "list"} onClick={() => setPeopleViewMode("list")}>
                     <List className="h-3.5 w-3.5" />Lista
                   </Button>
                 </div>

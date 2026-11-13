@@ -333,6 +333,8 @@ const Tasks = () => {
                 variant={viewType === "list" ? "default" : "ghost"}
                 size="sm"
                 className="rounded-none rounded-l-xl"
+                aria-label="Exibir tarefas em lista"
+                aria-pressed={viewType === "list"}
                 onClick={() => setViewType("list")}
               >
                 <LayoutList className="h-4 w-4" />
@@ -341,6 +343,8 @@ const Tasks = () => {
                 variant={viewType === "grid" ? "default" : "ghost"}
                 size="sm"
                 className="rounded-none rounded-r-xl"
+                aria-label="Exibir tarefas em grade"
+                aria-pressed={viewType === "grid"}
                 onClick={() => setViewType("grid")}
               >
                 <Columns3 className="h-4 w-4" />
@@ -349,6 +353,8 @@ const Tasks = () => {
                 variant={viewType === "calendar" ? "default" : "ghost"}
                 size="sm"
                 className="rounded-none"
+                aria-label="Exibir tarefas no calendário"
+                aria-pressed={viewType === "calendar"}
                 onClick={() => setViewType("calendar")}
               >
                 <Calendar className="h-4 w-4" />
