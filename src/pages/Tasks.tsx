@@ -17,7 +17,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import {
   Dialog,
@@ -245,7 +244,8 @@ const Tasks = () => {
   };
 
   const KanbanCard = ({ task }: { task: TaskData }) => (
-    <div
+    <button
+      type="button"
       draggable={viewMode !== "client"}
       onDragStart={(event) => {
         if (viewMode === "client") return;
@@ -258,73 +258,25 @@ const Tasks = () => {
         setDragOverStatus(null);
       }}
       onClick={() => setSelectedTask(task)}
+      aria-label={`Abrir detalhes de ${task.title}`}
       className={cn(
-        "rounded-2xl border border-border/70 bg-card p-3 space-y-2.5 cursor-grab transition-[transform,background-color,border-color] duration-200 hover:-translate-y-0.5 hover:border-gilver/50 hover:bg-accent/25 active:cursor-grabbing",
+        "block w-full rounded-xl border border-border/70 bg-background/70 p-3 text-left transition-[transform,background-color,border-color] duration-200 hover:-translate-y-0.5 hover:border-gilver/50 hover:bg-accent/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
+        viewMode !== "client" ? "cursor-grab active:cursor-grabbing" : "cursor-pointer",
         draggedTaskId === task.id && "opacity-45",
-        (task.status === "overdue" || task.status === "blocked") && "border border-red-500/30 bg-red-500/5",
+        (task.status === "overdue" || task.status === "blocked") && "border-red-500/30 bg-red-500/5",
       )}
     >
-      <div className="flex items-start justify-between gap-2">
-        <h4
-          className={cn(
-            "text-sm font-medium leading-tight",
-            task.status === "completed" && "line-through text-muted-foreground",
-          )}
-        >
-          {task.title}
-        </h4>
-        {getPriorityBadge(task.priority)}
-      </div>
-      {task.description && (
-        <p className="text-xs text-muted-foreground line-clamp-2">
-          {task.description}
-        </p>
-      )}
-      {task.blockedReason && (
-        <p className="rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-xs text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
-          {task.blockedReason}
-        </p>
-      )}
-      <div className="flex items-center gap-1.5 flex-wrap">
-        {task.clientName && (
-          <Badge variant="outline" className="text-[10px] py-0 px-1.5">
-            {task.clientName}
-          </Badge>
-        )}
-        {getTypeBadge(task.type)}
-      </div>
-      <div className="flex items-center justify-between pt-1.5 border-t border-border/50">
-        <div className="flex items-center gap-1.5">
-          <Avatar className="h-5 w-5">
-            <AvatarImage src={activeAssignees.find((member) => member.user_id === task.assignedToId)?.avatar_url ?? undefined} />
-            <AvatarFallback className="text-[9px] font-medium text-muted-foreground">{task.assignedToName?.charAt(0)}</AvatarFallback>
-          </Avatar>
-          <span className="text-[11px] text-muted-foreground">
-            {task.assignedToName}
-          </span>
-        </div>
-        <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-          <Calendar className="h-2.5 w-2.5" />
+      <span className="block truncate text-sm font-medium leading-tight">
+        {task.title}
+      </span>
+      <span className="mt-2 flex items-center justify-between gap-2 border-t border-border/50 pt-2 text-[11px] text-muted-foreground">
+        <span className="min-w-0 truncate">{task.clientName || "Sem cliente"}</span>
+        <span className="flex shrink-0 items-center gap-1 whitespace-nowrap">
+          <Calendar className="h-3 w-3" aria-hidden="true" />
           {new Date(task.dueDate).toLocaleDateString("pt-BR")}
         </span>
-      </div>
-      {task.status !== "completed" && (
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-full text-xs h-7 rounded-lg"
-          onClick={(event) => {
-            event.stopPropagation();
-            if (task.status === "pending" || task.status === "overdue" || task.status === "blocked")
-              updateTaskStatus(task.id, "in_progress");
-            else if (task.status === "in_progress")
-              updateTaskStatus(task.id, "completed");
-          }}
-        >
-          {task.status === "in_progress" ? "✓ Concluir" : "▶ Iniciar"}
-        </Button>
-      )}
-    </div>
+      </span>
+    </button>
   );
 
   const taskViewControls = (
@@ -672,30 +624,33 @@ const Tasks = () => {
                     void moveTaskToStatus(col.key);
                   }}
                   className={cn(
-                    "min-h-[300px] space-y-3 rounded-2xl border border-border/70 bg-card p-3 transition-[border-color,background-color,box-shadow] duration-200",
+                    "min-h-[360px] rounded-2xl border border-border/70 bg-card p-4 transition-[border-color,background-color,box-shadow] duration-200",
                     dragOverStatus === col.key && "border-gilver bg-gilver/10",
                     draggedTaskId && "shadow-sm",
                   )}
                 >
-                  <div
-                    className={cn(
-                      "flex items-center justify-between rounded-xl px-3 py-2",
-                      col.bg,
-                    )}
-                  >
-                    <h3 className={cn("text-sm font-semibold", col.color)}>
-                      {col.label}
-                    </h3>
-                    <Badge variant="secondary" className="rounded-full text-xs">
+                  <div className="flex items-start justify-between gap-3 border-b border-border/70 pb-3">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-xl", col.bg, col.color)}>
+                        {getStatusIcon(col.key)}
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className={cn("truncate text-xs font-medium uppercase tracking-[0.12em]", col.color)}>
+                          {col.label}
+                        </h3>
+                        <p className="mt-1 text-xs text-muted-foreground">Tarefas neste estágio</p>
+                      </div>
+                    </div>
+                    <span className="text-2xl font-semibold tabular-nums tracking-tight">
                       {colTasks.length}
-                    </Badge>
+                    </span>
                   </div>
-                  <div className="space-y-2">
+                  <div className="custom-scroll mt-3 max-h-[min(58vh,560px)] space-y-2 overflow-y-auto pr-1">
                     {colTasks.map((task) => (
                       <KanbanCard key={task.id} task={task} />
                     ))}
                     {colTasks.length === 0 && (
-                      <p className="text-xs text-muted-foreground text-center py-6">
+                      <p className="rounded-xl border border-dashed border-border/70 px-3 py-8 text-center text-xs text-muted-foreground">
                         Vazio
                       </p>
                     )}
