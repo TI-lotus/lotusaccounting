@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { useNavigate } from "react-router-dom";
-import { KPICard } from "@/components/dashboard/KPICard";
+import { BentoMetric } from "@/components/dashboard/KPICard";
 import { PendingRisksPanel } from "@/components/dashboard/PendingRisksPanel";
 import { OperationalIndicatorsPanel } from "@/components/dashboard/OperationalIndicatorsPanel";
 import { useViewMode } from "@/contexts/ViewModeContext";
@@ -895,23 +895,20 @@ const ClientDashboard = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {clientMetrics.map((metric) => (
-          <KPICard
+      <div className="grid overflow-hidden rounded-[28px] border border-border/70 bg-border/70 grid-cols-1 md:grid-cols-2 lg:grid-cols-4 animate-fade-in">
+        {clientMetrics.map((metric, index) => (
+          <BentoMetric
             key={metric.id}
             title={metric.title}
             value={metric.value}
+            description={metric.description}
             trend={metric.points.week.map((point) => point.value)}
-            changeLabel={
-              metric.id === "client-open-tasks"
-                ? "Pendentes no seu painel"
-                : metric.id === "client-completed-tasks"
-                  ? "Histórico da conta"
-                  : metric.id === "client-documents"
-                    ? "Documentos cadastrados"
-                    : "Documentos a revisar"
-            }
             icon={metric.icon}
+            featured={index === 0}
+            className={cn(
+              index === 0 && "md:col-span-2 lg:col-span-2 lg:row-span-2",
+              index === 3 && "md:col-span-2 lg:col-span-2",
+            )}
             onClick={() => setSelectedMetric(metric)}
           />
         ))}
@@ -1149,9 +1146,6 @@ const Index = () => {
       ),
   );
   const openTasks = filteredTasks.filter((task) => task.status !== "completed");
-  const overdueTasks = filteredTasks.filter(
-    (task) => task.status === "overdue",
-  );
   const pendingDocuments = filteredDocuments.filter(
     (doc) => doc.status === "pending" || doc.status === "unread",
   );
@@ -1164,11 +1158,6 @@ const Index = () => {
     (sum, payment) => sum + Number(payment.amount || 0),
     0,
   );
-  const pendingFinancialCount =
-    filteredPayments.filter((payment) => payment.status === "pending").length +
-    filteredInvoices.filter(
-      (invoice) => invoice.status === "pending" || invoice.status === "overdue",
-    ).length;
   const activePeriod = useMemo(() => currentOperationalPeriod(), []);
   const currentPeriods = useMemo(
     () =>
@@ -1399,23 +1388,20 @@ const Index = () => {
 
         <LiaInsights />
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {officeMetrics.map((metric) => (
-            <KPICard
+        <div className="grid overflow-hidden rounded-[28px] border border-border/70 bg-border/70 grid-cols-1 md:grid-cols-2 lg:grid-cols-4 animate-fade-in">
+          {officeMetrics.map((metric, index) => (
+            <BentoMetric
               key={metric.id}
               title={metric.title}
               value={metric.value}
+              description={metric.description}
               trend={metric.points[dashboardPeriod].map((point) => point.value)}
-              changeLabel={
-                metric.id === "revenue"
-                  ? `${pendingFinancialCount} pendência(s) financeira(s)`
-                  : metric.id === "open-tasks"
-                    ? `${overdueTasks.length} atrasada(s)`
-                    : metric.id === "active-clients"
-                      ? `${clients.length} cadastrados`
-                      : `${filteredDocuments.length} documentos`
-              }
               icon={metric.icon}
+              featured={index === 0}
+              className={cn(
+                index === 0 && "md:col-span-2 lg:col-span-2 lg:row-span-2",
+                index === 3 && "md:col-span-2 lg:col-span-2",
+              )}
               onClick={() => setSelectedMetric(metric)}
             />
           ))}
@@ -1438,30 +1424,30 @@ const Index = () => {
               Abrir ciclo mensal
             </Button>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-            <div className="rounded-xl bg-muted p-4">
-              <p className="text-xs text-muted-foreground">Criadas</p>
-              <p className="mt-1 text-2xl font-semibold">
+          <dl className="grid gap-y-4 border-y border-border/70 py-5 sm:grid-cols-2 sm:divide-x sm:divide-border/70 lg:grid-cols-5">
+            <div className="px-1 lg:pl-0">
+              <dt className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">Criadas</dt>
+              <dd className="mt-2 text-xl font-semibold tracking-tight text-foreground">
                 {currentPeriodStats.created}/{activeClientsForPeriod.length}
-              </p>
+              </dd>
             </div>
-            <div className="rounded-xl bg-muted p-4">
-              <p className="text-xs text-muted-foreground">Progresso médio</p>
-              <p className="mt-1 text-2xl font-semibold">{currentPeriodStats.averageProgress}%</p>
+            <div className="px-1 sm:px-4">
+              <dt className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">Progresso médio</dt>
+              <dd className="mt-2 text-xl font-semibold tracking-tight text-foreground">{currentPeriodStats.averageProgress}%</dd>
             </div>
-            <div className="rounded-xl bg-muted p-4">
-              <p className="text-xs text-muted-foreground">Aguardando docs</p>
-              <p className="mt-1 text-2xl font-semibold text-amber-600">{currentPeriodStats.waiting}</p>
+            <div className="px-1 sm:px-4">
+              <dt className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">Aguardando docs</dt>
+              <dd className="mt-2 text-xl font-semibold tracking-tight text-foreground">{currentPeriodStats.waiting}</dd>
             </div>
-            <div className="rounded-xl bg-muted p-4">
-              <p className="text-xs text-muted-foreground">Em revisão</p>
-              <p className="mt-1 text-2xl font-semibold text-violet-600">{currentPeriodStats.review}</p>
+            <div className="px-1 sm:px-4">
+              <dt className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">Em revisão</dt>
+              <dd className="mt-2 text-xl font-semibold tracking-tight text-foreground">{currentPeriodStats.review}</dd>
             </div>
-            <div className="rounded-xl bg-muted p-4">
-              <p className="text-xs text-muted-foreground">Bloqueadas</p>
-              <p className="mt-1 text-2xl font-semibold text-red-600">{currentPeriodStats.blocked}</p>
+            <div className="px-1 sm:px-4 lg:pr-0">
+              <dt className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">Bloqueadas</dt>
+              <dd className="mt-2 text-xl font-semibold tracking-tight text-foreground">{currentPeriodStats.blocked}</dd>
             </div>
-          </div>
+          </dl>
           <div className="mt-5 grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
             <div className="space-y-2">
               {currentPeriodRisks.length === 0 ? (
@@ -1551,26 +1537,20 @@ const Index = () => {
                 </div>
               </div>
             ) : (
-              <div className="grid gap-3 sm:grid-cols-3">
-                <div className="rounded-xl bg-muted p-4">
-                  <p className="text-xs text-muted-foreground">Recebido</p>
-                  <p className="mt-1 text-lg font-semibold">
-                    {brl(totalRevenue)}
-                  </p>
+              <dl className="grid gap-y-4 divide-y divide-border/70 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+                <div className="pb-4 sm:pb-0 sm:pr-4">
+                  <dt className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">Recebido</dt>
+                  <dd className="mt-2 text-lg font-semibold tracking-tight text-foreground">{brl(totalRevenue)}</dd>
                 </div>
-                <div className="rounded-xl bg-muted p-4">
-                  <p className="text-xs text-muted-foreground">Faturas</p>
-                  <p className="mt-1 text-lg font-semibold">
-                    {filteredInvoices.length}
-                  </p>
+                <div className="py-4 sm:px-4 sm:py-0">
+                  <dt className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">Faturas</dt>
+                  <dd className="mt-2 text-lg font-semibold tracking-tight text-foreground">{filteredInvoices.length}</dd>
                 </div>
-                <div className="rounded-xl bg-muted p-4">
-                  <p className="text-xs text-muted-foreground">Pagamentos</p>
-                  <p className="mt-1 text-lg font-semibold">
-                    {filteredPayments.length}
-                  </p>
+                <div className="pt-4 sm:pl-4 sm:pt-0">
+                  <dt className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">Pagamentos</dt>
+                  <dd className="mt-2 text-lg font-semibold tracking-tight text-foreground">{filteredPayments.length}</dd>
                 </div>
-              </div>
+              </dl>
             )}
           </div>
           <div className="glass rounded-2xl p-6 animate-fade-in">

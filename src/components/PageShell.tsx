@@ -1,6 +1,5 @@
 import { ReactNode } from "react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
-import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { FilterPopover } from "@/components/FilterPopover";
@@ -73,20 +72,18 @@ export const PageShell = ({
         </div>
 
         {kpis && kpis.length > 0 && (
-          <div className="grid gap-3 grid-cols-2 lg:grid-cols-3">
+          <div className="grid overflow-hidden rounded-2xl border border-border/70 bg-border/70 sm:grid-cols-2 lg:grid-cols-4">
             {kpis.map((k, i) => (
-              <Card key={i} className="kpi-card">
-                <CardContent className="pt-4 pb-3">
-                  <div className="flex items-end justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-xs text-muted-foreground">{k.label}</p>
-                      <p className="text-lg font-semibold mt-1">{k.value}</p>
-                      {k.hint && <p className="text-xs text-muted-foreground mt-0.5">{k.hint}</p>}
-                    </div>
-                    <KPITrend values={k.trend} />
+              <div key={i} className="min-w-0 bg-card p-4 sm:p-5">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">{k.label}</p>
+                    <p className="mt-2 text-xl font-semibold tracking-tight text-foreground">{k.value}</p>
+                    {k.hint && <p className="mt-1 text-xs text-muted-foreground">{k.hint}</p>}
                   </div>
-                </CardContent>
-              </Card>
+                  <KPITrend values={k.trend} className="h-9 w-24 min-w-0" />
+                </div>
+              </div>
             ))}
           </div>
         )}

@@ -14,7 +14,6 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useData } from "@/contexts/DataContext";
 import { computeOperationalMetrics } from "@/lib/operationalMetrics";
-import { cn } from "@/lib/utils";
 
 const statusLabels: Record<string, string> = {
   not_started: "Nao iniciada",
@@ -31,25 +30,21 @@ const statCards = [
     key: "clientsOnTrack",
     label: "Clientes em dia",
     icon: CheckCircle2,
-    tone: "text-emerald-600 bg-emerald-500/10",
   },
   {
     key: "clientsWithClientPending",
     label: "Pendencia do cliente",
     icon: FileWarning,
-    tone: "text-amber-600 bg-amber-500/10",
   },
   {
     key: "lateCompetencies",
     label: "Competencias em risco",
     icon: ShieldAlert,
-    tone: "text-red-600 bg-red-500/10",
   },
   {
     key: "pendingReviews",
     label: "Em revisao",
     icon: Clock,
-    tone: "text-violet-600 bg-violet-500/10",
   },
 ] as const;
 
@@ -114,22 +109,20 @@ export const OperationalIndicatorsPanel = () => {
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-y-5 border-y border-border/70 py-5 sm:grid-cols-2 sm:divide-x sm:divide-border/70 xl:grid-cols-4">
         {statCards.map((card) => {
           const Icon = card.icon;
           const value = metrics[card.key];
           return (
-            <div key={card.key} className="rounded-xl border border-border bg-background/60 p-4">
-              <div className="flex min-w-0 items-center gap-3">
-                <span className={cn("rounded-lg p-2", card.tone)}>
-                  <Icon className="h-4 w-4" />
+            <div key={card.key} className="group min-w-0 px-1 sm:px-5 first:pl-0 xl:first:pl-1 last:pr-0">
+              <div className="flex items-start justify-between gap-3">
+                <p className="truncate text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">{card.label}</p>
+                <span className="shrink-0 text-gilver" title={card.label}>
+                  <Icon className="h-4 w-4 transition-transform duration-200 group-hover:scale-110" aria-hidden="true" />
                 </span>
-                <div className="min-w-0">
-                  <p className="text-2xl font-semibold">{value}</p>
-                  <p className="text-xs text-muted-foreground">{card.label}</p>
-                </div>
               </div>
-            </div>
+              <p className="mt-2 text-2xl font-semibold tracking-tight text-foreground">{value}</p>
+              </div>
           );
         })}
       </div>
