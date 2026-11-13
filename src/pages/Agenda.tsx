@@ -250,7 +250,7 @@ const Agenda = () => {
           </FilterPopover>
           </div>
 
-        <div className="grid items-stretch grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.65fr)]">
+        <div className="grid items-stretch grid-cols-1 gap-4 lg:grid-cols-2">
           <Card className="page-section h-full min-h-[600px] animate-fade-in">
             <CardContent className="flex h-full flex-col p-4 sm:p-5">
               <Calendar
@@ -274,8 +274,8 @@ const Agenda = () => {
                 className="w-full max-w-none p-0"
                 classNames={largeCalendarClassNames}
                 captionLayout="dropdown"
-                fromYear={2000}
-                toYear={2100}
+                fromYear={2010}
+                toYear={new Date().getFullYear() + 5}
               />
             </CardContent>
           </Card>

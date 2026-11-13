@@ -84,8 +84,8 @@ export const CalendarRangeControls = ({ dateRange, onDateRangeChange }: Pick<Cal
           numberOfMonths={2}
           defaultMonth={range?.from}
           captionLayout="dropdown"
-          fromYear={2000}
-          toYear={2100}
+          fromYear={2010}
+          toYear={new Date().getFullYear() + 5}
         />
       </PopoverContent>
     </Popover>
@@ -138,7 +138,7 @@ export const CalendarEventView = ({ title, events, dateRange, onDateRangeChange,
         </div>
       </div>
 
-      <div className="grid items-stretch gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.65fr)]">
+      <div className="grid items-stretch gap-4 lg:grid-cols-2">
         <div className="flex h-full min-h-[600px] flex-col rounded-2xl border border-border/70 bg-card p-4 sm:p-5">
           <Calendar
             mode="single"
@@ -160,8 +160,8 @@ export const CalendarEventView = ({ title, events, dateRange, onDateRangeChange,
             className="w-full max-w-none p-0"
             classNames={largeCalendarClassNames}
             captionLayout="dropdown"
-            fromYear={2000}
-            toYear={2100}
+            fromYear={2010}
+            toYear={new Date().getFullYear() + 5}
           />
           <div className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-border/70 pt-3 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-gilver" />Com eventos</span>
