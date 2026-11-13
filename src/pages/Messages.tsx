@@ -210,7 +210,7 @@ const Messages = () => {
   };
 
   return (
-    <DashboardLayout className="h-[calc(100dvh-3rem)] min-h-0 overflow-hidden p-3 sm:p-4 lg:h-[calc(100dvh-3.5rem)] lg:p-5">
+    <DashboardLayout className="min-h-0 overflow-hidden p-3 sm:p-4 lg:p-5">
       <div className="grid h-full min-h-0 grid-cols-1 grid-rows-[minmax(180px,0.42fr)_minmax(280px,1fr)] gap-3 overflow-hidden lg:gap-4 xl:grid-cols-[minmax(280px,360px)_minmax(0,1fr)] xl:grid-rows-1">
           <aside className="flex min-h-0 flex-col overflow-hidden rounded-[24px] border border-border/70 bg-card/90 p-3 shadow-[inset_0_1px_0_hsl(var(--foreground)/0.025)] backdrop-blur-xl sm:p-4">
             <div className="mb-3 flex shrink-0 items-center gap-2 border-b border-border/70 pb-3">
