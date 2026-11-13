@@ -36,14 +36,16 @@ export const DashboardLayout = ({ children, className }: DashboardLayoutProps) =
       <AppSidebar />
       <main
         className={cn(
-          "flex-1 px-4 py-5 sm:px-6 sm:py-6 lg:pr-8 lg:transition-[padding] lg:duration-300",
+          "min-w-0 flex-1 overflow-x-hidden px-4 py-5 sm:px-6 sm:py-6 lg:pr-8 lg:transition-[padding] lg:duration-300",
           isCollapsed ? "lg:pl-[5.5rem]" : "lg:pl-[17rem]",
           chatState === "open" && "lg:pr-[396px]",
           chatState === "minimized" && "lg:pr-20",
           className
         )}
       >
-        {children}
+        <div className="page-frame mx-auto h-full min-h-0 w-full min-w-0 max-w-[1440px]">
+          {children}
+        </div>
       </main>
       <ChatBox state={chatState} onStateChange={setChatState} />
     </div>

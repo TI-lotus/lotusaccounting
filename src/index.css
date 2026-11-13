@@ -142,6 +142,10 @@
 }
 
 @layer base {
+  html {
+    scrollbar-gutter: stable;
+  }
+
   * {
     @apply border-border;
   }
@@ -150,6 +154,14 @@
     @apply bg-background text-foreground font-sans antialiased;
     font-family: 'Inter', system-ui, sans-serif;
     min-width: 320px;
+    overflow-x: hidden;
+  }
+
+  /* Radix locks body scroll while dialogs are open. The root reserves the
+     scrollbar track, so the lock must not add a second right-side offset. */
+  body[data-scroll-locked][data-scroll-locked] {
+    margin-right: 0 !important;
+    padding-right: 0 !important;
   }
 
   ::selection {
@@ -164,6 +176,12 @@
 }
 
 @layer components {
+  .page-frame {
+    width: 100%;
+    min-width: 0;
+    margin-inline: auto;
+  }
+
   :root:not(.dark) [data-slot="button"][data-variant="outline"] {
     border-color: hsl(var(--border) / 0.9);
   }
