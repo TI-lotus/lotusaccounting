@@ -420,17 +420,17 @@ const Staff = () => {
               </DialogHeader>
               <div className="dialog-body custom-scroll grid gap-4">
                 <div className="grid gap-2">
-                  <Label>Nome</Label>
-                  <Input value={inviteForm.fullName} onChange={(event) => setInviteForm({ ...inviteForm, fullName: event.target.value })} placeholder="Nome completo" className="rounded-xl" />
+                  <Label htmlFor="invite-full-name">Nome</Label>
+                  <Input id="invite-full-name" name="full-name" autoComplete="name" value={inviteForm.fullName} onChange={(event) => setInviteForm({ ...inviteForm, fullName: event.target.value })} placeholder="Nome completo" className="rounded-xl" />
                 </div>
                 <div className="grid gap-2">
-                  <Label>Email</Label>
-                  <Input type="email" value={inviteForm.email} onChange={(event) => setInviteForm({ ...inviteForm, email: event.target.value })} placeholder="email@empresa.com" className="rounded-xl" />
+                  <Label htmlFor="invite-email">E-mail</Label>
+                  <Input id="invite-email" name="email" autoComplete="email" type="email" value={inviteForm.email} onChange={(event) => setInviteForm({ ...inviteForm, email: event.target.value })} placeholder="email@empresa.com" className="rounded-xl" />
                 </div>
                 <div className="grid gap-2">
-                  <Label>Tipo de acesso</Label>
+                  <Label htmlFor="invite-account-type">Tipo de acesso</Label>
                   <Select value={inviteForm.accountType} onValueChange={(value: InviteForm["accountType"]) => setInviteForm({ ...inviteForm, accountType: value, companyId: "" })}>
-                    <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+                    <SelectTrigger id="invite-account-type" className="rounded-xl"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="collaborator">Colaborador</SelectItem>
                       <SelectItem value="client">Cliente</SelectItem>
@@ -439,9 +439,9 @@ const Staff = () => {
                 </div>
                 {inviteForm.accountType === "client" && (
                   <div className="grid gap-2">
-                    <Label>Empresa vinculada</Label>
+                    <Label htmlFor="invite-company">Empresa vinculada</Label>
                     <Select value={inviteForm.companyId} onValueChange={(value) => setInviteForm({ ...inviteForm, companyId: value })}>
-                      <SelectTrigger className="rounded-xl"><SelectValue placeholder="Selecione um cliente" /></SelectTrigger>
+                      <SelectTrigger id="invite-company" className="rounded-xl"><SelectValue placeholder="Selecione um cliente" /></SelectTrigger>
                       <SelectContent>
                         {clients.filter((client) => client.status === "active").map((client) => <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>)}
                       </SelectContent>
@@ -646,9 +646,9 @@ const Staff = () => {
             <div className="glass rounded-2xl p-6 space-y-5">
               <div className="flex flex-wrap items-end justify-between gap-4">
                 <div className="space-y-2 min-w-[240px]">
-                  <Label>Colaborador</Label>
+                  <Label htmlFor="permission-member">Colaborador</Label>
                   <Select value={permissionMember?.user_id ?? ""} onValueChange={setPermissionMemberId}>
-                    <SelectTrigger className="rounded-xl"><SelectValue placeholder="Selecione um colaborador" /></SelectTrigger>
+                    <SelectTrigger id="permission-member" className="rounded-xl"><SelectValue placeholder="Selecione um colaborador" /></SelectTrigger>
                     <SelectContent>
                       {collaborators.map((member) => <SelectItem key={member.user_id} value={member.user_id}>{member.full_name || "Sem nome"}</SelectItem>)}
                     </SelectContent>
@@ -792,9 +792,9 @@ const Staff = () => {
               <DialogDescription>Atualize os dados profissionais do membro da equipe.</DialogDescription>
             </DialogHeader>
             <div className="dialog-body custom-scroll grid gap-4">
-              <div className="grid gap-2"><Label>Nome completo</Label><Input value={editForm.fullName} onChange={(event) => setEditForm({ ...editForm, fullName: event.target.value })} className="rounded-xl" /></div>
-              <div className="grid gap-2"><Label>Cargo</Label><Input value={editForm.jobTitle} onChange={(event) => setEditForm({ ...editForm, jobTitle: event.target.value })} className="rounded-xl" /></div>
-              <div className="grid gap-2"><Label>Telefone</Label><Input value={editForm.phone} onChange={(event) => setEditForm({ ...editForm, phone: event.target.value })} className="rounded-xl" /></div>
+              <div className="grid gap-2"><Label htmlFor="edit-member-name">Nome completo</Label><Input id="edit-member-name" name="full-name" autoComplete="name" value={editForm.fullName} onChange={(event) => setEditForm({ ...editForm, fullName: event.target.value })} className="rounded-xl" /></div>
+              <div className="grid gap-2"><Label htmlFor="edit-member-job">Cargo</Label><Input id="edit-member-job" name="organization-title" value={editForm.jobTitle} onChange={(event) => setEditForm({ ...editForm, jobTitle: event.target.value })} className="rounded-xl" /></div>
+              <div className="grid gap-2"><Label htmlFor="edit-member-phone">Telefone</Label><Input id="edit-member-phone" name="tel" autoComplete="tel" type="tel" value={editForm.phone} onChange={(event) => setEditForm({ ...editForm, phone: event.target.value })} className="rounded-xl" /></div>
             </div>
             <DialogFooter className="dialog-footer"><Button variant="outline" className="rounded-xl" onClick={() => setEditDialogOpen(false)}>Cancelar</Button><Button className="rounded-xl" onClick={() => void saveMemberDetails()}>Salvar dados</Button></DialogFooter>
           </DialogContent>
@@ -808,9 +808,9 @@ const Staff = () => {
             </DialogHeader>
             <div className="dialog-body custom-scroll grid gap-4">
               <div className="grid gap-2">
-                <Label>Papel</Label>
+                <Label htmlFor="access-role">Papel</Label>
                 <Select value={accessRole} onValueChange={(value: "admin" | "collaborator") => setAccessRole(value)}>
-                  <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+                  <SelectTrigger id="access-role" className="rounded-xl"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="admin">Administrador</SelectItem>
                     <SelectItem value="collaborator">Colaborador</SelectItem>

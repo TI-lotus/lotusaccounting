@@ -257,9 +257,9 @@ const Clients = () => {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
-                    <Label>Regime Tributário</Label>
+                    <Label htmlFor="client-tax-regime">Regime Tributário</Label>
                     <Select value={newClient.taxRegime} onValueChange={(v: ClientData["taxRegime"]) => setNewClient({ ...newClient, taxRegime: v })}>
-                      <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+                      <SelectTrigger id="client-tax-regime" className="rounded-xl"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="simples_nacional">Simples Nacional</SelectItem>
                         <SelectItem value="lucro_presumido">Lucro Presumido</SelectItem>
