@@ -330,12 +330,12 @@ const Tasks = () => {
             </p>
           </div>
           <div className="flex gap-2">
-            <div className="flex border border-border rounded-xl overflow-hidden">
+            <div className="flex gap-1 rounded-full border border-border bg-card p-1">
               <IconTooltipButton
                 icon={LayoutList}
                 label="Lista"
                 variant={viewType === "list" ? "default" : "ghost"}
-                className="rounded-none rounded-l-xl"
+                className="rounded-full"
                 aria-pressed={viewType === "list"}
                 onClick={() => setViewType("list")}
               />
@@ -343,7 +343,7 @@ const Tasks = () => {
                 icon={Columns3}
                 label="Kanban"
                 variant={viewType === "grid" ? "default" : "ghost"}
-                className="rounded-none rounded-r-xl"
+                className="rounded-full"
                 aria-pressed={viewType === "grid"}
                 onClick={() => setViewType("grid")}
               />
@@ -351,7 +351,7 @@ const Tasks = () => {
                 icon={Calendar}
                 label="Calendário"
                 variant={viewType === "calendar" ? "default" : "ghost"}
-                className="rounded-none"
+                className="rounded-full"
                 aria-pressed={viewType === "calendar"}
                 onClick={() => setViewType("calendar")}
               />

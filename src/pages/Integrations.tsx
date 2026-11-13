@@ -237,6 +237,8 @@ const Integrations = () => {
                             variant="ghost"
                             size="icon"
                             className="rounded-xl"
+                            aria-label={`Configurar ${integration.name}`}
+                            title={`Configurar ${integration.name}`}
                             onClick={() =>
                               navigate(`/integrations/${integration.id}`)
                             }

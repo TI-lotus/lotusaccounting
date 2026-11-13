@@ -493,7 +493,7 @@ const Staff = () => {
                   />
                 </div>
                 <Badge variant="secondary" className="px-3 py-1.5">{filteredMembers.length} membros</Badge>
-                <div className="ml-auto flex rounded-xl border border-border bg-card p-1">
+                <div className="ml-auto flex rounded-full border border-border bg-card p-1">
                   <IconTooltipButton icon={Grid2X2} label="Grade" variant={peopleViewMode === "grid" ? "default" : "ghost"} aria-pressed={peopleViewMode === "grid"} onClick={() => setPeopleViewMode("grid")} />
                   <IconTooltipButton icon={List} label="Lista" variant={peopleViewMode === "list" ? "default" : "ghost"} aria-pressed={peopleViewMode === "list"} onClick={() => setPeopleViewMode("list")} />
                 </div>

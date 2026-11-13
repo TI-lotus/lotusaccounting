@@ -574,7 +574,7 @@ const Documents = () => {
           )}
 
           <div className="flex flex-wrap items-center justify-between gap-3 animate-fade-in">
-            <div className="flex rounded-2xl border border-border bg-card p-1">
+            <div className="flex rounded-full border border-border bg-card p-1">
               {[
                 {
                   value: "dashboard",
@@ -591,7 +591,7 @@ const Documents = () => {
                     icon={Icon}
                     label={item.label}
                     variant={view === item.value ? "default" : "ghost"}
-                    className="rounded-xl"
+                    className="rounded-full"
                     aria-pressed={view === item.value}
                     onClick={() => setView(item.value as typeof view)}
                   />
@@ -801,6 +801,8 @@ const Documents = () => {
                                   variant="ghost"
                                   size="icon"
                                   className="h-8 w-8"
+                                  aria-label={`Visualizar ${doc.name}`}
+                                  title={`Visualizar ${doc.name}`}
                                   onClick={() => void openDocumentInViewer(doc)}
                                 >
                                   <Eye className="h-4 w-4" />
@@ -809,6 +811,8 @@ const Documents = () => {
                                   variant="ghost"
                                   size="icon"
                                   className="h-8 w-8"
+                                  aria-label={`Baixar ${doc.name}`}
+                                  title={`Baixar ${doc.name}`}
                                   onClick={() =>
                                     void handleDownloadDocument(doc)
                                   }
@@ -821,6 +825,8 @@ const Documents = () => {
                                       variant="ghost"
                                       size="icon"
                                       className="h-8 w-8"
+                                      aria-label={`Mais ações para ${doc.name}`}
+                                      title={`Mais ações para ${doc.name}`}
                                     >
                                       <MoreHorizontal className="h-4 w-4" />
                                     </Button>

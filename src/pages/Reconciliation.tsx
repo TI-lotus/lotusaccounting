@@ -3,7 +3,7 @@ import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Scale, CheckCircle2, AlertCircle, Landmark, RefreshCw, XCircle } from "lucide-react";
+import { CheckCircle2, AlertCircle, RefreshCw, XCircle } from "lucide-react";
 import { useData } from "@/contexts/DataContext";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -163,10 +163,7 @@ const Reconciliation = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Landmark className="h-4 w-4" />
-              Banco Inter
-            </CardTitle>
+            <CardTitle className="text-base">Banco Inter</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -249,10 +246,7 @@ const Reconciliation = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Scale className="h-4 w-4" />
-              Lançamentos
-            </CardTitle>
+            <CardTitle className="text-base">Lançamentos</CardTitle>
           </CardHeader>
           <CardContent>
             {payments.length === 0 ? (

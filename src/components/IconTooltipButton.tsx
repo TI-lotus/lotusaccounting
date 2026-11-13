@@ -27,7 +27,7 @@ export const IconTooltipButton = ({
         size="icon"
         aria-label={label}
         title={label}
-        className={cn("rounded-xl", className)}
+        className={cn("rounded-full", className)}
       >
         <Icon className="h-4 w-4" aria-hidden="true" />
       </Button>

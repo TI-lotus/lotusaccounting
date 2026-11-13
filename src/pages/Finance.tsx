@@ -95,10 +95,7 @@ const Finance = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Receipt className="h-4 w-4" />
-              Últimos lançamentos
-            </CardTitle>
+            <CardTitle className="text-base">Últimos lançamentos</CardTitle>
           </CardHeader>
           <CardContent>
             {payments.length === 0 ? (

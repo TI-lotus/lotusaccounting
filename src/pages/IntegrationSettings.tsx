@@ -350,6 +350,8 @@ const IntegrationSettings = () => {
           <Button
             variant="ghost"
             size="icon"
+            aria-label="Voltar para integrações"
+            title="Voltar para integrações"
             onClick={() => navigate("/integrations")}
             className="rounded-xl"
           >
@@ -552,10 +554,7 @@ const IntegrationSettings = () => {
           <TabsContent value="config" className="space-y-6 mt-6">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Key className="h-5 w-5" />
-                  Chaves e Tokens
-                </CardTitle>
+                <CardTitle>Chaves e Tokens</CardTitle>
                 <CardDescription>
                   Configure as credenciais de acesso para {integration.name}
                 </CardDescription>
@@ -587,6 +586,8 @@ const IntegrationSettings = () => {
                             variant="ghost"
                             size="icon"
                             className="absolute right-0 top-0 h-full rounded-r-xl"
+                            aria-label={showSecret[field.key] ? `Ocultar ${field.label}` : `Mostrar ${field.label}`}
+                            title={showSecret[field.key] ? `Ocultar ${field.label}` : `Mostrar ${field.label}`}
                             onClick={() =>
                               setShowSecret({
                                 ...showSecret,
@@ -606,6 +607,8 @@ const IntegrationSettings = () => {
                         variant="outline"
                         size="icon"
                         className="rounded-xl"
+                        aria-label={`Copiar ${field.label}`}
+                        title={`Copiar ${field.label}`}
                         onClick={() =>
                           copyToClipboard(fieldValues[field.key] || "")
                         }
@@ -737,6 +740,8 @@ const IntegrationSettings = () => {
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 rounded-lg"
+                          aria-label="Copiar referência"
+                          title="Copiar referência"
                           onClick={() => copyToClipboard(cred.keyHint)}
                         >
                           <Copy className="h-3 w-3" />

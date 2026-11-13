@@ -510,6 +510,8 @@ const ClientDetail = () => {
           <Button
             variant="ghost"
             size="icon"
+            aria-label="Voltar para clientes"
+            title="Voltar para clientes"
             onClick={() => navigate("/clients")}
             className="rounded-xl"
           >

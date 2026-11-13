@@ -73,6 +73,8 @@ export const DocumentViewer = ({ document, onClose }: DocumentViewerProps) => {
             variant="ghost"
             size="icon"
             className="h-8 w-8 rounded-lg"
+            aria-label="Baixar documento"
+            title="Baixar documento"
             disabled={!document.downloadUrl}
             onClick={() =>
               document.downloadUrl &&
@@ -85,6 +87,8 @@ export const DocumentViewer = ({ document, onClose }: DocumentViewerProps) => {
             variant="ghost"
             size="icon"
             className="h-8 w-8 rounded-lg"
+            aria-label={isFullScreen ? "Sair da tela cheia" : "Tela cheia"}
+            title={isFullScreen ? "Sair da tela cheia" : "Tela cheia"}
             onClick={() => setIsFullScreen(!isFullScreen)}
           >
             {isFullScreen ? (
@@ -97,6 +101,8 @@ export const DocumentViewer = ({ document, onClose }: DocumentViewerProps) => {
             variant="ghost"
             size="icon"
             className="h-8 w-8 rounded-lg"
+            aria-label="Fechar visualizador"
+            title="Fechar visualizador"
             onClick={onClose}
           >
             <X className="h-4 w-4" />

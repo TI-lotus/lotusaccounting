@@ -396,7 +396,7 @@ const Clients = () => {
             <Badge variant="secondary" className="px-3 py-1.5">
               {filteredClients.length} clientes
             </Badge>
-            <div className="ml-auto flex rounded-xl border border-border bg-card p-1">
+            <div className="ml-auto flex rounded-full border border-border bg-card p-1">
               <IconTooltipButton icon={Grid2X2} label="Grade" variant={viewMode === "grid" ? "default" : "ghost"} aria-pressed={viewMode === "grid"} onClick={() => setViewMode("grid")} />
               <IconTooltipButton icon={List} label="Lista" variant={viewMode === "list" ? "default" : "ghost"} aria-pressed={viewMode === "list"} onClick={() => setViewMode("list")} />
             </div>
@@ -461,7 +461,7 @@ const Clients = () => {
                   <div><p className="font-semibold text-sm">R$ {client.serviceFee.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p><p className="text-[10px] text-muted-foreground">{client.city}/{client.state}</p></div>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button aria-label={`Ações de ${client.name}`} variant="ghost" size="icon" className="rounded-lg" onClick={(event) => event.stopPropagation()}>
+                    <Button aria-label={`Ações de ${client.name}`} title={`Ações de ${client.name}`} variant="ghost" size="icon" className="rounded-lg" onClick={(event) => event.stopPropagation()}>
                       <MoreHorizontal className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>

@@ -369,12 +369,12 @@ const Reports = () => {
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-3 animate-fade-in">
-          <div className="flex rounded-2xl border border-border bg-card p-1">
+          <div className="flex rounded-full border border-border bg-card p-1">
             <IconTooltipButton
               icon={LayoutDashboard}
               label="Dashboard"
               variant={view === "dashboard" ? "default" : "ghost"}
-              className="rounded-xl"
+              className="rounded-full"
               aria-pressed={view === "dashboard"}
               onClick={() => setView("dashboard")}
             />
@@ -382,7 +382,7 @@ const Reports = () => {
               icon={Calendar}
               label="Calendário"
               variant={view === "calendar" ? "default" : "ghost"}
-              className="rounded-xl"
+              className="rounded-full"
               aria-pressed={view === "calendar"}
               onClick={() => setView("calendar")}
             />
@@ -811,6 +811,7 @@ const Reports = () => {
                       size="icon"
                       className="rounded-lg shrink-0"
                       aria-label={`Exportar ${report.name}`}
+                      title={`Exportar ${report.name}`}
                       onClick={() =>
                         handleExportCsv(
                           report.name.toLowerCase().replace(/\s+/g, "-"),

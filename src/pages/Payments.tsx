@@ -381,7 +381,7 @@ const Payments = () => {
         </div>
 
         <div className="filter-toolbar flex flex-wrap items-center gap-3 animate-fade-in">
-          <div className="flex rounded-2xl border border-border bg-card p-1">
+          <div className="flex rounded-full border border-border bg-card p-1">
             {[
               { value: "list", label: "Lista", icon: List },
               { value: "calendar", label: "Calendário", icon: Calendar },
@@ -393,7 +393,7 @@ const Payments = () => {
                   icon={item.icon}
                   label={item.label}
                   variant={view === item.value ? "default" : "ghost"}
-                  className="rounded-xl"
+                  className="rounded-full"
                   aria-pressed={view === item.value}
                   onClick={() => setView(item.value as typeof view)}
                 />

@@ -8,7 +8,6 @@ import {
   ExternalLink,
   FileQuestion,
   Inbox,
-  ListChecks,
   LockKeyhole,
   MessageSquare,
   Play,
@@ -953,10 +952,7 @@ const WorkQueue = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <ListChecks className="h-4 w-4 text-muted-foreground" />
-              Critério operacional da fila
-            </CardTitle>
+            <CardTitle className="text-base">Critério operacional da fila</CardTitle>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground">
             A fila combina tarefas atribuídas, clientes sob responsabilidade,

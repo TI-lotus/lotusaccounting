@@ -660,12 +660,12 @@ export default function Agents() {
               A biblioteca de agentes é uma camada de configuração visual. Ativações e execuções reais dependem de providers e jobs conectados; alterações nesta tela ficam apenas nesta sessão.
             </div>
             <div className="flex justify-end">
-              <div className="flex rounded-xl border border-border bg-card p-1">
+              <div className="flex rounded-full border border-border bg-card p-1">
                 <IconTooltipButton
                   icon={LayoutGrid}
                   label="Grade"
                   variant={agentView === "grid" ? "default" : "ghost"}
-                  className="rounded-lg"
+                  className="rounded-full"
                   aria-pressed={agentView === "grid"}
                   onClick={() => setAgentView("grid")}
                 />
@@ -673,7 +673,7 @@ export default function Agents() {
                   icon={List}
                   label="Lista"
                   variant={agentView === "list" ? "default" : "ghost"}
-                  className="rounded-lg"
+                  className="rounded-full"
                   aria-pressed={agentView === "list"}
                   onClick={() => setAgentView("list")}
                 />
@@ -751,6 +751,8 @@ export default function Agents() {
                                   variant="ghost"
                                   size="icon"
                                   className="h-7 w-7"
+                                  aria-label={`Editar ${agent.name}`}
+                                  title={`Editar ${agent.name}`}
                                   onClick={() => openEdit(agent)}
                                 >
                                   <Pencil className="h-3.5 w-3.5" />
@@ -905,6 +907,8 @@ export default function Agents() {
                           variant="ghost"
                           size="icon"
                           className="h-7 w-7 shrink-0"
+                          aria-label="Tentar novamente"
+                          title="Tentar novamente"
                         >
                           <RotateCcw className="h-3.5 w-3.5" />
                         </Button>

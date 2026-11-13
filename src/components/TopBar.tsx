@@ -59,6 +59,7 @@ import { integrationCatalog } from "@/lib/integrationCatalog";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { getTenantSubscription, type TenantSubscription } from "@/services/commercialMvp";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface SearchResult {
   category: string;
@@ -444,8 +445,8 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
       <header
         data-theme={theme}
         className={cn(
-          "topbar-shell h-14 transition-all duration-500 lg:h-[4.25rem]",
-          "flex items-center justify-between px-3 md:px-8 gap-2 md:gap-6 sticky top-0 lg:transition-[margin] lg:duration-300",
+          "topbar-shell h-12 transition-[background-color,border-color,margin] duration-300 lg:h-14",
+          "flex items-center justify-between px-2.5 md:px-6 gap-2 md:gap-5 sticky top-0 lg:transition-[margin] lg:duration-300",
           isCollapsed ? "lg:ml-[4.5rem]" : "lg:ml-64",
           "isolate border-b backdrop-blur-[28px] backdrop-saturate-150",
           isDropdownVisible ? "z-50" : "z-40",
@@ -459,7 +460,7 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
             title={isCollapsed ? "Expandir menu" : "Recolher menu"}
             onClick={() => setIsCollapsed(!isCollapsed)}
             className={cn(
-              "rounded-xl p-2 transition-colors",
+              "rounded-full p-2 transition-[background-color,color]",
               theme === "dark" ? "text-white/60 hover:bg-white/10 hover:text-white" : "text-muted-foreground hover:bg-black/5 hover:text-foreground",
             )}
           >
@@ -527,6 +528,8 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
                       setQuery("");
                       setShowResults(false);
                     }}
+                    aria-label="Limpar busca"
+                    title="Limpar busca"
                     className="topbar-search-clear text-muted-foreground hover:text-foreground"
                   >
                     <X className="h-4 w-4" />
@@ -613,27 +616,41 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
           </Popover>
         </div>
         <div className="flex items-center gap-1 md:gap-2 shrink-0">
-          <Button
-            variant="ghost"
-            size="icon"
-            className={cn("h-9 w-9 rounded-xl", theme === "dark" ? "text-white hover:bg-white/15 hover:text-white" : "text-foreground hover:bg-black/5")}
-            onClick={() => navigate("/messages")}
-          >
-            <MessageSquare className="h-4 w-4" />
-          </Button>
-          <Popover open={notificationOpen} onOpenChange={setNotificationOpen}>
-            <PopoverTrigger asChild>
+          <Tooltip>
+            <TooltipTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
-                className={cn("relative h-9 w-9 rounded-xl", theme === "dark" ? "text-white hover:bg-white/15 hover:text-white" : "text-foreground hover:bg-black/5")}
+                aria-label="Mensagens"
+                title="Mensagens"
+                className={cn("h-8 w-8 rounded-full", theme === "dark" ? "text-white hover:bg-white/15 hover:text-white" : "text-foreground hover:bg-black/5")}
+                onClick={() => navigate("/messages")}
               >
-                <Bell className="h-4 w-4" />
-                {unreadCount > 0 && (
-                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-destructive rounded-full" />
-                )}
+                <MessageSquare className="h-4 w-4" aria-hidden="true" />
               </Button>
-            </PopoverTrigger>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" sideOffset={8} className="judex-floating sidebar-tooltip">Mensagens</TooltipContent>
+          </Tooltip>
+          <Popover open={notificationOpen} onOpenChange={setNotificationOpen}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Notificações"
+                    title="Notificações"
+                    className={cn("relative h-8 w-8 rounded-full", theme === "dark" ? "text-white hover:bg-white/15 hover:text-white" : "text-foreground hover:bg-black/5")}
+                  >
+                    <Bell className="h-4 w-4" aria-hidden="true" />
+                    {unreadCount > 0 && (
+                      <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-destructive" />
+                    )}
+                  </Button>
+                </PopoverTrigger>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" sideOffset={8} className="judex-floating sidebar-tooltip">Notificações</TooltipContent>
+            </Tooltip>
             <PopoverContent
               align="end"
               className="legal-notifications judex-floating z-[99999] w-[400px] overflow-hidden p-0"
