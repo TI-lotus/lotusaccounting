@@ -5,7 +5,6 @@ import {
   LayoutDashboard,
   Users,
   UserCog,
-  MessageSquare,
   CheckSquare,
   ListTodo,
   Calendar,
@@ -21,11 +20,8 @@ import {
   Workflow,
   Plug,
   BarChart3,
-  Gift,
   Settings,
-  Crown,
   ChevronDown,
-  Bell,
   SlidersHorizontal,
   CircleHelp,
   ArrowUpRight,
@@ -62,8 +58,6 @@ const officeGroups: NavGroup[] = [
     items: [
       { title: "Clientes", icon: Users, href: "/clients" },
       { title: "Colaboradores", icon: UserCog, href: "/staff" },
-      { title: "Mensagens", icon: MessageSquare, href: "/messages" },
-      { title: "Notificações", icon: Bell, href: "/notifications" },
     ],
   },
   {
@@ -94,8 +88,8 @@ const officeGroups: NavGroup[] = [
       { title: "Integrações", icon: Plug, href: "/integrations" },
     ],
   },
-  { label: "Crescimento", icon: TrendingUp, items: [{ title: "Relatórios", icon: BarChart3, href: "/reports" }, { title: "Afiliados", icon: Gift, href: "/affiliation" }] },
-  { label: "Administração", icon: Settings, items: [{ title: "Configurações", icon: Settings, href: "/settings" }, { title: "Templates", icon: SlidersHorizontal, href: "/settings/templates" }, { title: "Upgrade", icon: Crown, href: "/upgrade" }] },
+  { label: "Crescimento", icon: TrendingUp, items: [{ title: "Relatórios", icon: BarChart3, href: "/reports" }] },
+  { label: "Administração", icon: Settings, items: [{ title: "Configurações", icon: Settings, href: "/settings" }, { title: "Templates", icon: SlidersHorizontal, href: "/settings/templates" }] },
 ];
 
 const clientGroups: NavGroup[] = [
@@ -111,7 +105,6 @@ const clientGroups: NavGroup[] = [
   },
   { label: "Financeiro", icon: Wallet, items: [{ title: "Pagamentos", icon: CreditCard, href: "/payments" }, { title: "Faturas", icon: Receipt, href: "/invoices" }] },
   { label: "Crescimento", icon: TrendingUp, items: [{ title: "Relatórios", icon: BarChart3, href: "/reports" }] },
-  { label: "Relacionamento", icon: MessageSquare, items: [{ title: "Mensagens", icon: MessageSquare, href: "/messages" }, { title: "Notificações", icon: Bell, href: "/notifications" }] },
 ];
 
 const groupHasPath = (group: NavGroup, pathname: string) =>

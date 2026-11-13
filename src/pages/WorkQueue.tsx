@@ -7,7 +7,6 @@ import {
   Clock3,
   ExternalLink,
   FileQuestion,
-  Filter,
   Inbox,
   ListChecks,
   LockKeyhole,
@@ -45,6 +44,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useData } from "@/contexts/DataContext";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { FilterPopover } from "@/components/FilterPopover";
 import {
   ClientData,
   ClientPeriodChecklistItemData,
@@ -866,27 +866,36 @@ const WorkQueue = () => {
             </p>
           </div>
           <div className="filter-toolbar flex flex-wrap items-center gap-2">
-            <div className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm text-muted-foreground">
-              <Filter className="h-4 w-4" />
-              <span>{selectedMemberLabel}</span>
-            </div>
-            <Select
-              value={selectedMemberId}
-              onValueChange={setSelectedMemberId}
-              disabled={!isAdmin}
-            >
-              <SelectTrigger className="w-[220px] rounded-xl">
-                <SelectValue placeholder="Colaborador" />
-              </SelectTrigger>
-              <SelectContent>
-                {isAdmin && <SelectItem value="all">Todos colaboradores</SelectItem>}
-                {members.map((member) => (
-                  <SelectItem key={member.user_id} value={member.user_id}>
-                    {member.full_name || "Sem nome"}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {isAdmin ? (
+              <FilterPopover
+                title="Responsável da fila"
+                description="Alterne a visão da fila entre todos os colaboradores ou uma pessoa específica."
+                activeCount={selectedMemberId === "all" ? 0 : 1}
+                onClear={() => setSelectedMemberId("all")}
+              >
+                <div className="space-y-1.5">
+                  <Label htmlFor="queue-member">Colaborador</Label>
+                  <Select value={selectedMemberId} onValueChange={setSelectedMemberId}>
+                    <SelectTrigger id="queue-member" className="w-full rounded-xl">
+                      <SelectValue placeholder="Todos colaboradores" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos colaboradores</SelectItem>
+                      {members.map((member) => (
+                        <SelectItem key={member.user_id} value={member.user_id}>
+                          {member.full_name || "Sem nome"}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </FilterPopover>
+            ) : (
+              <div className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm text-muted-foreground">
+                <UserCheck className="h-4 w-4" aria-hidden="true" />
+                <span>{selectedMemberLabel}</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -1001,18 +1010,22 @@ const WorkQueue = () => {
           </DialogHeader>
           <div className="grid gap-4 py-2">
             <div className="grid gap-2">
-              <Label>Título</Label>
+              <Label htmlFor="queue-request-title">Título</Label>
               <Input
+                id="queue-request-title"
+                name="document-request-title"
                 value={newRequest.title}
                 onChange={(event) =>
                   setNewRequest((prev) => ({ ...prev, title: event.target.value }))
                 }
-                placeholder="Ex.: Extrato bancário do mês"
+                placeholder="Ex.: Extrato bancário do mês…"
               />
             </div>
             <div className="grid gap-2">
-              <Label>Descrição</Label>
+              <Label htmlFor="queue-request-description">Descrição</Label>
               <Textarea
+                id="queue-request-description"
+                name="document-request-description"
                 value={newRequest.description}
                 onChange={(event) =>
                   setNewRequest((prev) => ({
@@ -1020,13 +1033,15 @@ const WorkQueue = () => {
                     description: event.target.value,
                   }))
                 }
-                placeholder="Detalhe o arquivo esperado"
+                placeholder="Detalhe o arquivo esperado…"
               />
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="grid gap-2">
-                <Label>Tipo</Label>
+                <Label htmlFor="queue-request-type">Tipo</Label>
                 <Input
+                  id="queue-request-type"
+                  name="document-request-type"
                   value={newRequest.documentType}
                   onChange={(event) =>
                     setNewRequest((prev) => ({
@@ -1037,8 +1052,10 @@ const WorkQueue = () => {
                 />
               </div>
               <div className="grid gap-2">
-                <Label>Vencimento</Label>
+                <Label htmlFor="queue-request-due-date">Vencimento</Label>
                 <Input
+                  id="queue-request-due-date"
+                  name="document-request-due-date"
                   type="date"
                   value={newRequest.dueDate}
                   onChange={(event) =>
