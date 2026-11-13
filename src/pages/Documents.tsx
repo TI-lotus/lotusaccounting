@@ -50,6 +50,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useViewMode } from "@/contexts/ViewModeContext";
 import { BentoStatStrip } from "@/components/dashboard/BentoStatStrip";
 import { IconTooltipButton } from "@/components/IconTooltipButton";
+import { SortToggle } from "@/components/SortToggle";
 import { BentoDataTable } from "@/components/BentoDataTable";
 import { RowActions } from "@/components/RowActions";
 
@@ -169,6 +170,7 @@ const Documents = () => {
   } = useData();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [filterStatuses, setFilterStatuses] = useState<string[]>([]);
+  const [filterTypes, setFilterTypes] = useState<string[]>([]);
   const [filterMonth, setFilterMonth] = useState<string>(String(currentMonth));
   const [filterYear, setFilterYear] = useState<string>(String(currentYear));
   const [filterClient, setFilterClient] = useState<string>("all");
@@ -186,6 +188,7 @@ const Documents = () => {
   const [view, setView] = useState<"dashboard" | "list" | "calendar">(
     "dashboard",
   );
+  const [documentSort, setDocumentSort] = useState<"asc" | "desc">("desc");
   const [dateRange, setDateRange] = useState({
     start: currentMonthStart,
     end: currentMonthEnd,
@@ -194,10 +197,15 @@ const Documents = () => {
 
   const filteredDocuments = documents.filter((doc) => {
     const statusMatch = filterStatuses.length === 0 || filterStatuses.includes(doc.status);
+    const typeMatch = filterTypes.length === 0 || filterTypes.includes(doc.documentType);
     const monthMatch = doc.month === parseInt(filterMonth);
     const yearMatch = doc.year === parseInt(filterYear);
     const clientMatch = filterClient === "all" || doc.clientId === filterClient;
-    return statusMatch && monthMatch && yearMatch && clientMatch;
+    return statusMatch && typeMatch && monthMatch && yearMatch && clientMatch;
+  }).sort((a, b) => {
+    const first = documentSort === "asc" ? new Date(a.createdAt).getTime() : new Date(b.createdAt).getTime();
+    const second = documentSort === "asc" ? new Date(b.createdAt).getTime() : new Date(a.createdAt).getTime();
+    return first - second;
   });
   const visibleDocumentRequests = documentRequests.filter((request) =>
     filterClient === "all" || request.companyId === filterClient,
@@ -341,6 +349,29 @@ const Documents = () => {
     fileInputRef.current?.click();
   };
 
+  const documentViewControls = (
+    <div className="flex rounded-full border border-border bg-card p-1">
+      {[
+        { value: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+        { value: "list", label: "Lista", icon: List },
+        { value: "calendar", label: "Calendário", icon: Calendar },
+      ].map((item) => {
+        const Icon = item.icon;
+        return (
+          <IconTooltipButton
+            key={item.value}
+            icon={Icon}
+            label={item.label}
+            variant={view === item.value ? "default" : "ghost"}
+            className="rounded-full"
+            aria-pressed={view === item.value}
+            onClick={() => setView(item.value as typeof view)}
+          />
+        );
+      })}
+    </div>
+  );
+
   return (
     <DashboardLayout>
       <div className="flex h-full">
@@ -480,26 +511,6 @@ const Documents = () => {
                   </DialogContent>
                 </Dialog>
               )}
-              <div className="flex rounded-full border border-border bg-card p-1">
-                {[
-                  { value: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-                  { value: "list", label: "Lista", icon: List },
-                  { value: "calendar", label: "Calendário", icon: Calendar },
-                ].map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <IconTooltipButton
-                      key={item.value}
-                      icon={Icon}
-                      label={item.label}
-                      variant={view === item.value ? "default" : "ghost"}
-                      className="rounded-full"
-                      aria-pressed={view === item.value}
-                      onClick={() => setView(item.value as typeof view)}
-                    />
-                  );
-                })}
-              </div>
             </div>
           </div>
 
@@ -578,28 +589,37 @@ const Documents = () => {
           )}
 
           {view === "dashboard" && (
-            <BentoStatStrip
-              className="animate-fade-in"
-              items={[
-                { label: "Documentos", value: documents.length, icon: FileText, compact: true },
-                {
-                  label: "Pendentes",
-                  value: documents.filter((doc) => doc.status === "pending").length,
-                  icon: Clock,
-                  compact: true,
-                },
-                {
-                  label: "Período",
-                  value: months.find((m) => m.value === filterMonth)?.label,
-                  icon: Calendar,
-                },
-              ]}
-            />
+            <section className="page-section space-y-4 animate-fade-in">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-base font-medium">Resumo de documentos</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">Acompanhe o volume e os pendentes do período selecionado.</p>
+                </div>
+                {documentViewControls}
+              </div>
+              <BentoStatStrip
+                items={[
+                  { label: "Documentos", value: documents.length, icon: FileText, compact: true },
+                  {
+                    label: "Pendentes",
+                    value: documents.filter((doc) => doc.status === "pending").length,
+                    icon: Clock,
+                    compact: true,
+                  },
+                  {
+                    label: "Período",
+                    value: months.find((m) => m.value === filterMonth)?.label,
+                    icon: Calendar,
+                  },
+                ]}
+              />
+            </section>
           )}
 
           {view === "calendar" && (
             <CalendarEventView
               title="Calendário de documentos"
+              headerActions={documentViewControls}
               dateRange={dateRange}
               onDateRangeChange={setDateRange}
               events={documents.map((doc) => ({
@@ -645,22 +665,27 @@ const Documents = () => {
                         : `${filterStatuses.length} status selecionado(s)`}
                     </span>
                   </div>
-                  <FilterPopover
-                    title="Filtrar documentos"
-                    description="Ajuste status, competência e cliente."
-                    activeCount={
-                      filterStatuses.length +
-                      (filterClient === "all" ? 0 : 1) +
-                      (filterMonth === String(currentMonth) ? 0 : 1) +
-                      (filterYear === String(currentYear) ? 0 : 1)
-                    }
-                    onClear={() => {
-                      setFilterStatuses([]);
-                      setFilterClient("all");
-                      setFilterMonth(String(currentMonth));
-                      setFilterYear(String(currentYear));
-                    }}
-                  >
+                  <div className="flex flex-wrap items-center justify-end gap-2">
+                    {documentViewControls}
+                    <SortToggle label="data do documento" direction={documentSort} onChange={setDocumentSort} />
+                    <FilterPopover
+                      title="Filtrar documentos"
+                      description="Ajuste status, competência e cliente."
+                      activeCount={
+                        filterStatuses.length +
+                        filterTypes.length +
+                        (filterClient === "all" ? 0 : 1) +
+                        (filterMonth === String(currentMonth) ? 0 : 1) +
+                        (filterYear === String(currentYear) ? 0 : 1)
+                      }
+                      onClear={() => {
+                        setFilterStatuses([]);
+                        setFilterTypes([]);
+                        setFilterClient("all");
+                        setFilterMonth(String(currentMonth));
+                        setFilterYear(String(currentYear));
+                      }}
+                    >
                     <MultiSelectFilter
                       label="Status"
                       options={["pending", "paid", "overdue", "unread"].map((status) => ({
@@ -670,6 +695,16 @@ const Documents = () => {
                       }))}
                       value={filterStatuses}
                       onChange={setFilterStatuses}
+                    />
+                    <MultiSelectFilter
+                      label="Tipo"
+                      options={lotusDocumentTypes.map((type) => ({
+                        value: type,
+                        label: documentTypeLabels[type] ?? type,
+                        count: documents.filter((doc) => doc.documentType === type).length,
+                      }))}
+                      value={filterTypes}
+                      onChange={setFilterTypes}
                     />
                     {viewMode !== "client" && (
                       <div className="space-y-1.5">
@@ -701,7 +736,8 @@ const Documents = () => {
                         </Select>
                       </div>
                     </div>
-                  </FilterPopover>
+                    </FilterPopover>
+                  </div>
                 </div>
 
                 <div className="table-surface animate-fade-in">

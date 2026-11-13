@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { PageShell } from "@/components/PageShell";
 import { MultiSelectFilter } from "@/components/MultiSelectFilter";
+import { FilterPopover } from "@/components/FilterPopover";
 import { EmptyState, LoadingState } from "@/components/PageStates";
 import { DetailSheet } from "@/components/DetailSheet";
 import { Button } from "@/components/ui/button";
@@ -22,7 +23,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Plus, Receipt, Eye, ExternalLink, CheckCircle2, Trash2 } from "lucide-react";
+import { Plus, Receipt, Eye, ExternalLink, CheckCircle2, Trash2, Search } from "lucide-react";
 import { useData } from "@/contexts/DataContext";
 import { useViewMode } from "@/contexts/ViewModeContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -309,27 +310,36 @@ const Invoices = () => {
           { label: "Pendentes", value: brl(totalPending), trend: invoiceTrend("pending") },
           { label: "Atrasadas", value: brl(totalOverdue), trend: invoiceTrend("overdue") },
         ]}
-        filters={
-          <MultiSelectFilter
-            label="Status"
-            options={statusOptions}
-            value={statusFilters}
-            onChange={setStatusFilters}
-          />
-        }
-        filterCount={statusFilters.length}
-        onClearFilters={() => setStatusFilters([])}
-        searchValue={search}
-        onSearchChange={setSearch}
-        searchPlaceholder="Buscar por número ou cliente…"
       >
         <section className="page-section space-y-4 p-0 overflow-hidden">
-          <div className="flex flex-wrap items-center justify-between gap-3 px-5 pt-5 sm:px-6 sm:pt-6">
+          <div className="flex flex-wrap items-start justify-between gap-4 px-5 pt-5 sm:px-6 sm:pt-6">
             <div>
               <h2 className="text-base font-medium">Faturas emitidas</h2>
               <p className="mt-1 text-sm text-muted-foreground">Referências, vencimentos, status e valores do período.</p>
             </div>
-            <Badge variant="secondary">{filtered.length} registros</Badge>
+            <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto">
+              <div className="relative min-w-[220px] flex-1 sm:max-w-[280px]">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+                <Input
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Buscar faturas…"
+                  name="invoice-search"
+                  autoComplete="off"
+                  aria-label="Buscar faturas por número ou cliente"
+                  className="h-10 rounded-xl border-border/70 bg-card/80 pl-9"
+                />
+              </div>
+              <FilterPopover activeCount={statusFilters.length} onClear={() => setStatusFilters([])}>
+                <MultiSelectFilter
+                  label="Status"
+                  options={statusOptions}
+                  value={statusFilters}
+                  onChange={setStatusFilters}
+                />
+              </FilterPopover>
+              <Badge variant="secondary">{filtered.length} registros</Badge>
+            </div>
           </div>
           {loading ? (
             <div className="px-5 pb-5 sm:px-6 sm:pb-6"><LoadingState /></div>

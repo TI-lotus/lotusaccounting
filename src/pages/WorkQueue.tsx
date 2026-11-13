@@ -865,7 +865,14 @@ const WorkQueue = () => {
               Execução diária por colaborador, cliente e competência.
             </p>
           </div>
-          <div className="filter-toolbar flex flex-wrap items-center gap-2">
+        </div>
+
+        <section className="page-section space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-base font-medium">Execução da fila</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Acompanhe os indicadores e os itens filtrados no mesmo contexto.</p>
+            </div>
             {isAdmin ? (
               <FilterPopover
                 title="Responsável da fila"
@@ -897,19 +904,18 @@ const WorkQueue = () => {
               </div>
             )}
           </div>
-        </div>
 
-        <BentoStatStrip
-          className="animate-fade-in"
-          items={[
-            { label: "Concluídas hoje", value: stats.completedToday, icon: CheckCircle2, compact: true },
-            { label: "Atrasadas", value: stats.overdue, icon: AlertTriangle, compact: true },
-            { label: "Em revisão", value: stats.review, icon: LockKeyhole, compact: true },
-            { label: "Clientes sob responsabilidade", value: stats.clients, icon: UserCheck, compact: true },
-          ]}
-        />
+          <BentoStatStrip
+            className="animate-fade-in"
+            items={[
+              { label: "Concluídas hoje", value: stats.completedToday, icon: CheckCircle2, compact: true },
+              { label: "Atrasadas", value: stats.overdue, icon: AlertTriangle, compact: true },
+              { label: "Em revisão", value: stats.review, icon: LockKeyhole, compact: true },
+              { label: "Clientes sob responsabilidade", value: stats.clients, icon: UserCheck, compact: true },
+            ]}
+          />
 
-        <div className="grid gap-4 xl:grid-cols-2">
+          <div className="grid gap-4 xl:grid-cols-2">
           {(Object.keys(sectionMeta) as QueueSectionKey[]).map((section) => {
             const meta = sectionMeta[section];
             const Icon = meta.icon;
@@ -948,7 +954,8 @@ const WorkQueue = () => {
               </Card>
             );
           })}
-        </div>
+          </div>
+        </section>
 
         <Card>
           <CardHeader>

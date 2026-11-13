@@ -347,6 +347,104 @@ const Reports = () => {
     URL.revokeObjectURL(url);
   };
 
+  const reportControls = (
+    <div className="flex flex-wrap items-center justify-end gap-2">
+      <div className="space-y-1.5">
+        <Label htmlFor="report-type" className="sr-only">Tipo de relatório</Label>
+        <Select value={reportType} onValueChange={(value: ReportType) => setReportType(value)}>
+          <SelectTrigger id="report-type" className="h-10 w-[220px] rounded-xl">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {reportTypeOptions.map((option) => (
+              <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <FilterPopover
+        title="Filtros do relatório"
+        description="Escolha período e cliente sem abrir uma barra extensa de filtros."
+        activeCount={[periodPreset !== "month", clientFilter !== "all"].filter(Boolean).length}
+        onClear={() => {
+          handlePeriodChange("month");
+          setClientFilter("all");
+        }}
+      >
+        <div className="space-y-1.5">
+          <p className="text-xs font-medium text-muted-foreground">Período</p>
+          <Select value={periodPreset} onValueChange={(value) => handlePeriodChange(value as ReportPeriod)}>
+            <SelectTrigger className="w-full rounded-xl">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="month">Mês atual</SelectItem>
+              <SelectItem value="quarter">Trimestre atual</SelectItem>
+              <SelectItem value="year">Ano atual</SelectItem>
+              <SelectItem value="custom">Personalizado</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        {periodPreset === "custom" && (
+          <div className="grid grid-cols-2 gap-2">
+            <label className="space-y-1 text-xs font-medium text-muted-foreground" htmlFor="report-start">
+              Início
+              <Input
+                id="report-start"
+                type="date"
+                value={dateRange.start}
+                max={dateRange.end}
+                onChange={(event) => event.target.value && setDateRange({ ...dateRange, start: event.target.value })}
+              />
+            </label>
+            <label className="space-y-1 text-xs font-medium text-muted-foreground" htmlFor="report-end">
+              Fim
+              <Input
+                id="report-end"
+                type="date"
+                value={dateRange.end}
+                min={dateRange.start}
+                onChange={(event) => event.target.value && setDateRange({ ...dateRange, end: event.target.value })}
+              />
+            </label>
+          </div>
+        )}
+        <div className="space-y-1.5">
+          <Label htmlFor="report-client">Cliente</Label>
+          <Select value={clientFilter} onValueChange={setClientFilter}>
+            <SelectTrigger id="report-client" className="w-full rounded-xl">
+              <SelectValue placeholder="Todos os clientes" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os clientes</SelectItem>
+              {clients.filter((client) => client.status === "active").map((client) => (
+                <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </FilterPopover>
+      <div className="flex rounded-full border border-border bg-card p-1">
+        <IconTooltipButton
+          icon={LayoutDashboard}
+          label="Dashboard"
+          variant={view === "dashboard" ? "default" : "ghost"}
+          className="rounded-full"
+          aria-pressed={view === "dashboard"}
+          onClick={() => setView("dashboard")}
+        />
+        <IconTooltipButton
+          icon={Calendar}
+          label="Calendário"
+          variant={view === "calendar" ? "default" : "ghost"}
+          className="rounded-full"
+          aria-pressed={view === "calendar"}
+          onClick={() => setView("calendar")}
+        />
+      </div>
+    </div>
+  );
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -368,117 +466,25 @@ const Reports = () => {
           </Button>
         </div>
 
-        <div className="filter-toolbar flex flex-wrap items-center justify-between gap-3 animate-fade-in">
-          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="report-type" className="sr-only">Tipo de relatório</Label>
-              <Select value={reportType} onValueChange={(value: ReportType) => setReportType(value)}>
-                <SelectTrigger id="report-type" className="h-10 w-[220px] rounded-xl">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {reportTypeOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Período: <span className="font-medium text-foreground">{formatDate(dateRange.start)} — {formatDate(dateRange.end)}</span>
-            </p>
-          </div>
-          <FilterPopover
-            title="Filtros do relatório"
-            description="Escolha período e cliente sem abrir uma barra extensa de filtros."
-            activeCount={[periodPreset !== "month", clientFilter !== "all"].filter(Boolean).length}
-            onClear={() => {
-              handlePeriodChange("month");
-              setClientFilter("all");
-            }}
-          >
-            <div className="space-y-1.5">
-              <p className="text-xs font-medium text-muted-foreground">Período</p>
-              <Select value={periodPreset} onValueChange={(value) => handlePeriodChange(value as ReportPeriod)}>
-                <SelectTrigger className="w-full rounded-xl">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="month">Mês atual</SelectItem>
-                  <SelectItem value="quarter">Trimestre atual</SelectItem>
-                  <SelectItem value="year">Ano atual</SelectItem>
-                  <SelectItem value="custom">Personalizado</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            {periodPreset === "custom" && (
-              <div className="grid grid-cols-2 gap-2">
-                <label className="space-y-1 text-xs font-medium text-muted-foreground" htmlFor="report-start">
-                  Início
-                  <Input
-                    id="report-start"
-                    type="date"
-                    value={dateRange.start}
-                    max={dateRange.end}
-                    onChange={(event) => event.target.value && setDateRange({ ...dateRange, start: event.target.value })}
-                  />
-                </label>
-                <label className="space-y-1 text-xs font-medium text-muted-foreground" htmlFor="report-end">
-                  Fim
-                  <Input
-                    id="report-end"
-                    type="date"
-                    value={dateRange.end}
-                    min={dateRange.start}
-                    onChange={(event) => event.target.value && setDateRange({ ...dateRange, end: event.target.value })}
-                  />
-                </label>
-              </div>
-            )}
-            <div className="space-y-1.5">
-              <Label htmlFor="report-client">Cliente</Label>
-              <Select value={clientFilter} onValueChange={setClientFilter}>
-                <SelectTrigger id="report-client" className="w-full rounded-xl">
-                  <SelectValue placeholder="Todos os clientes" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos os clientes</SelectItem>
-                  {clients.filter((client) => client.status === "active").map((client) => (
-                    <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </FilterPopover>
-          <div className="flex rounded-full border border-border bg-card p-1">
-            <IconTooltipButton
-              icon={LayoutDashboard}
-              label="Dashboard"
-              variant={view === "dashboard" ? "default" : "ghost"}
-              className="rounded-full"
-              aria-pressed={view === "dashboard"}
-              onClick={() => setView("dashboard")}
-            />
-            <IconTooltipButton
-              icon={Calendar}
-              label="Calendário"
-              variant={view === "calendar" ? "default" : "ghost"}
-              className="rounded-full"
-              aria-pressed={view === "calendar"}
-              onClick={() => setView("calendar")}
-            />
-          </div>
-        </div>
         {view === "calendar" && (
           <CalendarEventView
             title="Calendário operacional"
             dateRange={dateRange}
             onDateRangeChange={setDateRange}
             events={calendarEvents}
+            headerActions={reportControls}
           />
         )}
 
         {view === "dashboard" && (
-          <>
+          <section className="page-section space-y-4 animate-fade-in">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="text-base font-medium">Visão do relatório</h2>
+                <p className="mt-1 text-sm text-muted-foreground">Escolha o tipo, período e filtros no mesmo espaço dos dados.</p>
+              </div>
+              {reportControls}
+            </div>
             <BentoStatStrip
               className="animate-fade-in md:grid-cols-2 xl:grid-cols-3"
               items={kpiData.map((kpi) => ({
@@ -822,7 +828,7 @@ const Reports = () => {
                 ))}
               </div>
             </div>
-          </>
+          </section>
         )}
       </div>
     </DashboardLayout>

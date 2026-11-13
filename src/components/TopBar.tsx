@@ -447,7 +447,7 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
         className={cn(
           "topbar-shell h-12 transition-[background-color,border-color,margin] duration-300 lg:h-14",
           "flex items-center justify-between px-2.5 md:px-6 gap-2 md:gap-5 sticky top-0 lg:transition-[margin] lg:duration-300",
-          isCollapsed ? "lg:ml-[4.5rem]" : "lg:ml-64",
+          isCollapsed ? "lg:ml-[3.75rem]" : "lg:ml-64",
           "isolate border-b backdrop-blur-[28px] backdrop-saturate-150",
           isDropdownVisible ? "z-50" : "z-40",
           className,

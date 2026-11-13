@@ -46,8 +46,10 @@ import { useViewMode } from "@/contexts/ViewModeContext";
 import { CalendarEventView } from "@/components/CalendarEventView";
 import { useWorkspacePermission } from "@/hooks/useWorkspacePermission";
 import { FilterPopover } from "@/components/FilterPopover";
+import { MultiSelectFilter } from "@/components/MultiSelectFilter";
 import { BentoStatStrip } from "@/components/dashboard/BentoStatStrip";
 import { IconTooltipButton } from "@/components/IconTooltipButton";
+import { SortToggle } from "@/components/SortToggle";
 
 const currentMonthRange = () => {
   const now = new Date();
@@ -70,10 +72,11 @@ const Tasks = () => {
     resource: "tasks",
     action: "delete",
   });
-  const [statusFilter, setStatusFilter] = useState<TaskStatus | "all">("all");
+  const [statusFilters, setStatusFilters] = useState<TaskStatus[]>([]);
   const [clientFilter, setClientFilter] = useState<string>("all");
   const [assigneeFilter, setAssigneeFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [taskSort, setTaskSort] = useState<"asc" | "desc">("asc");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [viewType, setViewType] = useState<"list" | "grid" | "calendar">(
     viewMode === "client" ? "grid" : "list",
@@ -116,11 +119,16 @@ const Tasks = () => {
     : user?.id ? [[user.id, currentUserName] as [string, string]] : [];
 
   const filteredTasks = filterTasks(tasks, {
-    status: statusFilter,
+    status: "all",
     clientId: clientFilter,
     assignedToId: assigneeFilter,
     type: typeFilter,
-  });
+  }).filter((task) => statusFilters.length === 0 || statusFilters.includes(task.status))
+    .sort((a, b) => {
+      const first = new Date(a.dueDate).getTime();
+      const second = new Date(b.dueDate).getTime();
+      return taskSort === "asc" ? first - second : second - first;
+    });
 
   const toggleTaskStatus = (taskId: string) => {
     const task = tasks.find((t) => t.id === taskId);
@@ -249,7 +257,7 @@ const Tasks = () => {
       }}
       onClick={() => setSelectedTask(task)}
       className={cn(
-        "glass rounded-xl p-3 space-y-2.5 cursor-grab active:cursor-grabbing",
+        "rounded-2xl border border-border/70 bg-card p-3 space-y-2.5 cursor-grab transition-[transform,background-color,border-color] duration-200 hover:-translate-y-0.5 hover:border-gilver/50 hover:bg-accent/25 active:cursor-grabbing",
         draggedTaskId === task.id && "opacity-45",
         (task.status === "overdue" || task.status === "blocked") && "border border-red-500/30 bg-red-500/5",
       )}
@@ -317,6 +325,90 @@ const Tasks = () => {
     </div>
   );
 
+  const taskViewControls = (
+    <div className="flex flex-wrap items-center justify-end gap-2">
+      <div className="flex gap-1 rounded-full border border-border bg-card p-1">
+        {[
+          { icon: LayoutList, label: "Lista", value: "list" },
+          { icon: Columns3, label: "Kanban", value: "grid" },
+          { icon: Calendar, label: "Calendário", value: "calendar" },
+        ].map((item) => (
+          <IconTooltipButton
+            key={item.value}
+            icon={item.icon}
+            label={item.label}
+            variant={viewType === item.value ? "default" : "ghost"}
+            className="rounded-full"
+            aria-pressed={viewType === item.value}
+            onClick={() => setViewType(item.value as typeof viewType)}
+          />
+        ))}
+      </div>
+      <FilterPopover
+        title="Filtrar tarefas"
+        activeCount={[statusFilters.length > 0, typeFilter !== "all", clientFilter !== "all", assigneeFilter !== "all"].filter(Boolean).length}
+        description="Combine status, tipo, cliente e responsável."
+        onClear={() => {
+          setStatusFilters([]);
+          setTypeFilter("all");
+          setClientFilter("all");
+          setAssigneeFilter("all");
+        }}
+      >
+        <MultiSelectFilter
+          label="Status"
+          options={[
+            { value: "overdue", label: "Atrasadas" },
+            { value: "blocked", label: "Bloqueadas" },
+            { value: "pending", label: "Pendentes" },
+            { value: "in_progress", label: "Em andamento" },
+            { value: "completed", label: "Concluídas" },
+          ]}
+          value={statusFilters}
+          onChange={(value) => setStatusFilters(value as TaskStatus[])}
+        />
+        <Select value={typeFilter} onValueChange={setTypeFilter}>
+          <SelectTrigger className="w-full text-sm"><SelectValue placeholder="Tipo" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos tipos</SelectItem>
+            <SelectItem value="monthly">Mensal</SelectItem>
+            <SelectItem value="annual">Anual</SelectItem>
+            <SelectItem value="one_time">Única</SelectItem>
+          </SelectContent>
+        </Select>
+        {viewMode !== "client" && (
+          <Select value={clientFilter} onValueChange={setClientFilter}>
+            <SelectTrigger className="w-full text-sm"><SelectValue placeholder="Cliente" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos clientes</SelectItem>
+              {activeClients.map((client) => <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        )}
+        {viewMode !== "client" && (
+          <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
+            <SelectTrigger className="w-full text-sm"><SelectValue placeholder="Responsável" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              {assignees.map(([id, name]) => <SelectItem key={id} value={id}>{name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        )}
+        <div className="space-y-1.5">
+          <p className="text-xs font-medium text-muted-foreground">Ordenar</p>
+          <Select value={taskSort} onValueChange={(value: "asc" | "desc") => setTaskSort(value)}>
+            <SelectTrigger className="w-full text-sm"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="asc">Prazo mais próximo</SelectItem>
+              <SelectItem value="desc">Prazo mais distante</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </FilterPopover>
+      <SortToggle label="prazo" direction={taskSort} onChange={setTaskSort} />
+    </div>
+  );
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -330,32 +422,6 @@ const Tasks = () => {
             </p>
           </div>
           <div className="flex gap-2">
-            <div className="flex gap-1 rounded-full border border-border bg-card p-1">
-              <IconTooltipButton
-                icon={LayoutList}
-                label="Lista"
-                variant={viewType === "list" ? "default" : "ghost"}
-                className="rounded-full"
-                aria-pressed={viewType === "list"}
-                onClick={() => setViewType("list")}
-              />
-              <IconTooltipButton
-                icon={Columns3}
-                label="Kanban"
-                variant={viewType === "grid" ? "default" : "ghost"}
-                className="rounded-full"
-                aria-pressed={viewType === "grid"}
-                onClick={() => setViewType("grid")}
-              />
-              <IconTooltipButton
-                icon={Calendar}
-                label="Calendário"
-                variant={viewType === "calendar" ? "default" : "ghost"}
-                className="rounded-full"
-                aria-pressed={viewType === "calendar"}
-                onClick={() => setViewType("calendar")}
-              />
-            </div>
             {viewMode !== "client" && (
               <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                 <DialogTrigger asChild>
@@ -515,100 +581,10 @@ const Tasks = () => {
           ]}
         />
 
-        {/* Filters */}
-        <div className="filter-toolbar flex items-center justify-between gap-3 animate-fade-in">
-          <div className="flex min-w-0 items-center gap-2">
-            <FilterPopover
-              activeCount={[statusFilter !== "all", typeFilter !== "all", clientFilter !== "all", assigneeFilter !== "all"].filter(Boolean).length}
-              description="Combine status, tipo, cliente e responsável."
-              onClear={() => {
-                setStatusFilter("all");
-                setTypeFilter("all");
-                setClientFilter("all");
-                setAssigneeFilter("all");
-              }}
-            >
-                <div className="space-y-2">
-                  <p className="text-xs font-medium text-muted-foreground">Status</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    {(
-                      [
-                        ["all", "Todas"],
-                        ["overdue", "Atrasadas"],
-                        ["blocked", "Bloqueadas"],
-                        ["pending", "Pendentes"],
-                        ["in_progress", "Em andamento"],
-                        ["completed", "Concluídas"],
-                      ] as const
-                    ).map(([value, label]) => (
-                      <Button
-                        key={value}
-                        type="button"
-                        variant={statusFilter === value ? "default" : "outline"}
-                        size="sm"
-                        className="justify-start"
-                        onClick={() => setStatusFilter(value)}
-                      >
-                        {label}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-full text-sm">
-                <SelectValue placeholder="Tipo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos tipos</SelectItem>
-                <SelectItem value="monthly">Mensal</SelectItem>
-                <SelectItem value="annual">Anual</SelectItem>
-                <SelectItem value="one_time">Única</SelectItem>
-              </SelectContent>
-            </Select>
-            {viewMode !== "client" && (
-              <Select value={clientFilter} onValueChange={setClientFilter}>
-                <SelectTrigger className="w-full text-sm">
-                  <SelectValue placeholder="Cliente" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos clientes</SelectItem>
-                  {activeClients.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-            {viewMode !== "client" && (
-              <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
-                <SelectTrigger className="w-full text-sm">
-                  <SelectValue placeholder="Responsável" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  {assignees.map(([id, name]) => (
-                    <SelectItem key={id} value={id}>
-                      {name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-            </FilterPopover>
-          </div>
-        </div>
-
-        {viewMode === "client" && (
-          <div className="glass rounded-2xl p-4 text-sm text-muted-foreground animate-fade-in">
-            As tarefas do cliente reúnem dados, documentos e pagamentos enviados
-            para a Lotus.
-          </div>
-        )}
-
         {viewType === "calendar" ? (
           <CalendarEventView
             title="Calendário de tarefas"
+            headerActions={taskViewControls}
             dateRange={dateRange}
             onDateRangeChange={setDateRange}
             events={filteredTasks.map((task) => ({
@@ -626,8 +602,22 @@ const Tasks = () => {
                     : "Pendente",
             }))}
           />
-        ) : viewType === "grid" ? (
-          <div className="grid grid-cols-1 gap-4 animate-fade-in md:grid-cols-2 xl:grid-cols-5">
+        ) : (
+          <section className="page-section space-y-4 animate-fade-in">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="text-base font-medium">{viewType === "grid" ? "Kanban de tarefas" : "Lista de tarefas"}</h2>
+                <p className="mt-1 text-sm text-muted-foreground">Acompanhe e atualize as tarefas deste escopo.</p>
+              </div>
+              {taskViewControls}
+            </div>
+            {viewMode === "client" && (
+              <div className="rounded-xl border border-border/70 bg-secondary/35 p-4 text-sm text-muted-foreground">
+                As tarefas do cliente reúnem dados, documentos e pagamentos enviados para a Lotus.
+              </div>
+            )}
+            {viewType === "grid" ? (
+          <div className="grid min-w-0 grid-cols-1 gap-4 animate-fade-in md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
             {(
               [
                 {
@@ -680,8 +670,9 @@ const Tasks = () => {
                     void moveTaskToStatus(col.key);
                   }}
                   className={cn(
-                    "min-h-[300px] space-y-3 rounded-2xl border bg-card/50 p-3 transition-colors",
+                    "min-h-[300px] space-y-3 rounded-2xl border border-border/70 bg-card p-3 transition-[border-color,background-color,box-shadow] duration-200",
                     dragOverStatus === col.key && "border-gilver bg-gilver/10",
+                    draggedTaskId && "shadow-sm",
                   )}
                 >
                   <div
@@ -789,6 +780,8 @@ const Tasks = () => {
               </div>
             )}
           </div>
+            )}
+          </section>
         )}
 
         <Dialog open={Boolean(selectedTask)} onOpenChange={(open) => !open && setSelectedTask(null)}>

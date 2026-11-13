@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { CalendarEventItem } from "./CalendarEventView";
@@ -6,6 +6,7 @@ import type { CalendarEventItem } from "./CalendarEventView";
 interface TimelineViewProps {
   title: string;
   events: CalendarEventItem[];
+  headerActions?: ReactNode;
 }
 
 type TimelineMode = "day" | "week" | "month";
@@ -19,7 +20,7 @@ const parseHour = (time?: string): number => {
   return m ? Math.min(19, Math.max(7, parseInt(m[1], 10))) : 9;
 };
 
-export const TimelineView = ({ title, events }: TimelineViewProps) => {
+export const TimelineView = ({ title, events, headerActions }: TimelineViewProps) => {
   const [mode, setMode] = useState<TimelineMode>("week");
   const [selectedDay, setSelectedDay] = useState<number>(events[0]?.day ?? 1);
 
@@ -68,18 +69,21 @@ export const TimelineView = ({ title, events }: TimelineViewProps) => {
     <div className="glass rounded-2xl p-6 animate-fade-in">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h3 className="text-lg font-semibold">{title}</h3>
-        <div className="flex rounded-xl border border-border bg-card p-1">
-          {(["day", "week", "month"] as TimelineMode[]).map((m) => (
-            <Button
-              key={m}
-              variant={mode === m ? "default" : "ghost"}
-              size="sm"
-              className="rounded-lg"
-              onClick={() => setMode(m)}
-            >
-              {m === "day" ? "Dia" : m === "week" ? "Semana" : "Mês"}
-            </Button>
-          ))}
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {headerActions}
+          <div className="flex rounded-xl border border-border bg-card p-1">
+            {(["day", "week", "month"] as TimelineMode[]).map((m) => (
+              <Button
+                key={m}
+                variant={mode === m ? "default" : "ghost"}
+                size="sm"
+                className="rounded-lg"
+                onClick={() => setMode(m)}
+              >
+                {m === "day" ? "Dia" : m === "week" ? "Semana" : "Mês"}
+              </Button>
+            ))}
+          </div>
         </div>
       </div>
 

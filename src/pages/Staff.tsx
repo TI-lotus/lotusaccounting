@@ -35,6 +35,7 @@ import { BentoStatStrip } from "@/components/dashboard/BentoStatStrip";
 import { getBentoGridClass } from "@/components/dashboard/bentoGrid";
 import { IconTooltipButton } from "@/components/IconTooltipButton";
 import { RowActions } from "@/components/RowActions";
+import { BentoDataTable } from "@/components/BentoDataTable";
 
 type ProfileRow = Pick<Database["public"]["Tables"]["profiles"]["Row"], "id" | "user_id" | "full_name" | "phone" | "job_title" | "avatar_url" | "account_type" | "company_id" | "status" | "created_at">;
 type InviteRow = Pick<Database["public"]["Tables"]["invites"]["Row"], "id" | "email" | "full_name" | "account_type" | "company_id" | "token" | "status" | "expires_at" | "created_at">;
@@ -575,29 +576,58 @@ const Staff = () => {
           </TabsContent>
 
           <TabsContent value="invites" className="mt-4">
-            <div className="glass rounded-2xl p-6 space-y-3">
-              {invites.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-8">Nenhum convite criado ainda.</p>
-              ) : invites.map((invite) => (
-                <div key={invite.id} className="flex flex-col gap-3 rounded-xl border border-border p-4 md:flex-row md:items-center md:justify-between">
-                  <div className="min-w-0">
-                    <p className="font-medium truncate">{invite.full_name || invite.email}</p>
-                    <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Mail className="h-3 w-3" />{invite.email}</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {roleLabel(invite.account_type)}{invite.company_id ? ` · ${clients.find((client) => client.id === invite.company_id)?.name ?? "cliente vinculado"}` : ""}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant={invite.status === "pending" ? "secondary" : "outline"}>{invite.status === "pending" ? "Pendente" : invite.status === "accepted" ? "Aceito" : "Revogado"}</Badge>
-                    {invite.status === "pending" && (
-                      <>
-                        <Button variant="outline" size="sm" className="rounded-xl gap-2" onClick={() => copyInviteLink(invite.token)}><Copy className="h-4 w-4" />Copiar link</Button>
-                        <Button variant="outline" size="sm" className="rounded-xl" onClick={() => revokeInvite(invite.id)}>Revogar</Button>
-                      </>
-                    )}
-                  </div>
+            <div className="glass page-section space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-base font-medium">Convites enviados</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">Acompanhe destinatário, vínculo, status e validade do acesso.</p>
                 </div>
-              ))}
+                <Badge variant="secondary">{invites.length} registros</Badge>
+              </div>
+              <BentoDataTable
+                rows={invites}
+                getRowKey={(invite) => invite.id}
+                empty={<span>Nenhum convite criado ainda.</span>}
+                columns={[
+                  {
+                    key: "recipient",
+                    label: "Destinatário",
+                    render: (invite) => <div className="min-w-0"><p className="max-w-[230px] truncate font-medium">{invite.full_name || invite.email}</p><p className="max-w-[230px] truncate text-xs text-muted-foreground">{invite.email}</p></div>,
+                  },
+                  {
+                    key: "access",
+                    label: "Acesso",
+                    render: (invite) => <span className="text-sm text-muted-foreground">{roleLabel(invite.account_type)}</span>,
+                  },
+                  {
+                    key: "company",
+                    label: "Vínculo",
+                    render: (invite) => <span className="block max-w-[190px] truncate text-sm text-muted-foreground">{invite.company_id ? clients.find((client) => client.id === invite.company_id)?.name ?? "Cliente vinculado" : "Workspace"}</span>,
+                  },
+                  {
+                    key: "status",
+                    label: "Status",
+                    render: (invite) => <Badge variant={invite.status === "pending" ? "secondary" : "outline"}>{invite.status === "pending" ? "Pendente" : invite.status === "accepted" ? "Aceito" : "Revogado"}</Badge>,
+                  },
+                  {
+                    key: "created",
+                    label: "Criado em",
+                    render: (invite) => <span className="whitespace-nowrap text-sm text-muted-foreground">{invite.created_at ? new Date(invite.created_at).toLocaleDateString("pt-BR") : "—"}</span>,
+                  },
+                ]}
+                actions={(invite) => (
+                  <RowActions
+                    primaryLabel={invite.status === "pending" ? "Copiar link do convite" : "Copiar referência"}
+                    primaryIcon={Copy}
+                    onPrimary={() => void copyInviteLink(invite.token)}
+                    primaryDisabled={invite.status !== "pending"}
+                    menuItems={invite.status === "pending" ? [
+                      { label: "Copiar link", icon: Copy, onSelect: () => void copyInviteLink(invite.token) },
+                      { label: "Revogar convite", icon: ShieldAlert, destructive: true, separatorBefore: true, onSelect: () => revokeInvite(invite.id) },
+                    ] : []}
+                  />
+                )}
+              />
             </div>
           </TabsContent>
 

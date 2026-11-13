@@ -165,7 +165,7 @@ export const AppSidebar = () => {
         to={item.href}
         className={cn(
           "flex items-center gap-2 rounded-xl px-3 py-2 text-sm transition-colors duration-200",
-          isCollapsed && "lg:mx-auto lg:h-11 lg:w-11 lg:justify-center lg:rounded-full lg:px-0",
+          isCollapsed && "lg:mx-auto lg:h-10 lg:w-10 lg:justify-center lg:rounded-full lg:px-0",
           active
             ? "bg-white/10 font-medium text-white"
             : "text-white/65 hover:bg-white/10 hover:text-white",
@@ -180,20 +180,20 @@ export const AppSidebar = () => {
   return (
     <nav className={cn(
       "sticky top-14 z-30 flex w-full shrink-0 flex-col border-b border-white/10 bg-black text-white lg:fixed lg:inset-y-0 lg:left-0 lg:border-b-0 lg:border-r lg:border-white/10 lg:transition-[width] lg:duration-300",
-      isCollapsed ? "lg:w-[4.5rem]" : "lg:w-64",
+      isCollapsed ? "lg:w-[3.75rem]" : "lg:w-64",
     )}>
       <div className="hidden h-14 items-center justify-center px-3 lg:flex lg:h-[4.25rem]">
         <LotusLogo
           size="lg"
           iconOnly={isCollapsed}
-          className={isCollapsed ? "[&_img]:h-11" : "[&_img]:h-14"}
+          className={isCollapsed ? "[&_img]:h-10" : "[&_img]:h-14"}
         />
       </div>
 
       <div className={cn(
         "sidebar-nav-scroll flex items-center gap-1 overflow-x-auto px-3 py-2 custom-scroll lg:min-h-0 lg:flex-1 lg:flex-col lg:items-stretch lg:gap-1.5 lg:overflow-x-hidden lg:px-3 lg:py-5",
         hasExpandedGroup ? "lg:overflow-y-auto" : "lg:overflow-y-hidden",
-        isCollapsed ? "lg:px-2" : "",
+        isCollapsed ? "lg:px-1.5" : "",
       )}>
         <div className={cn("shrink-0 lg:w-full", isCollapsed ? "lg:flex lg:justify-center" : "w-[220px]") }>
           <WorkspaceSwitcher compact={isCollapsed} />
@@ -212,7 +212,7 @@ export const AppSidebar = () => {
                   aria-label={isCollapsed ? group.label : undefined}
                   className={cn(
                     "flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium whitespace-nowrap transition-colors duration-200 lg:w-full",
-                    isCollapsed ? "lg:mx-auto lg:h-11 lg:w-11 lg:justify-center lg:rounded-full lg:px-0" : "lg:justify-start",
+                    isCollapsed ? "lg:mx-auto lg:h-10 lg:w-10 lg:justify-center lg:rounded-full lg:px-0" : "lg:justify-start",
                     isActive
                       ? "bg-white/10 text-white"
                       : "text-white/65 hover:bg-white/10 hover:text-white",
@@ -233,7 +233,7 @@ export const AppSidebar = () => {
                     <button
                       aria-label={group.label}
                       className={cn(
-                        "flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium whitespace-nowrap outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-black lg:mx-auto lg:h-11 lg:w-11 lg:justify-center lg:rounded-full lg:px-0",
+                        "flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium whitespace-nowrap outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-black lg:mx-auto lg:h-10 lg:w-10 lg:justify-center lg:rounded-full lg:px-0",
                         isActive ? "bg-white/12 text-white" : "text-white/65 hover:bg-white/10 hover:text-white",
                       )}
                     >
@@ -297,7 +297,7 @@ export const AppSidebar = () => {
             onClick={() => setHelpOpen(true)}
             className={cn(
               "flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-white/65 outline-none transition-colors hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-black",
-              isCollapsed && "lg:mx-auto lg:h-11 lg:w-11 lg:justify-center lg:rounded-full lg:px-0",
+              isCollapsed && "lg:mx-auto lg:h-10 lg:w-10 lg:justify-center lg:rounded-full lg:px-0",
             )}
           >
             <CircleHelp className="h-4 w-4 shrink-0" />

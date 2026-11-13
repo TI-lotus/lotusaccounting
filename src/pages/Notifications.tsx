@@ -161,7 +161,8 @@ const Notifications = () => {
           ]}
         />
 
-        <div className="filter-toolbar flex flex-wrap items-center gap-2">
+        <section className="page-section space-y-4">
+          <div className="filter-toolbar flex flex-wrap items-center gap-2">
           <div className="relative min-w-[220px] flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -194,9 +195,9 @@ const Notifications = () => {
                 </div>
               </div>
           </FilterPopover>
-        </div>
+          </div>
 
-        <div className="space-y-3">
+          <div className="space-y-3">
           {loading && (
             <Card className="rounded-2xl">
               <CardContent className="py-10 text-center text-sm text-muted-foreground">
@@ -266,7 +267,8 @@ const Notifications = () => {
               </Card>
             );
           })}
-        </div>
+          </div>
+        </section>
       </div>
     </DashboardLayout>
   );

@@ -41,6 +41,8 @@ import { cn } from "@/lib/utils";
 import { useWorkspaceMembers } from "@/hooks/useWorkspaceMembers";
 import { FilterPopover } from "@/components/FilterPopover";
 import { IconTooltipButton } from "@/components/IconTooltipButton";
+import { MultiSelectFilter } from "@/components/MultiSelectFilter";
+import { SortToggle } from "@/components/SortToggle";
 import { getBentoGridClass } from "@/components/dashboard/bentoGrid";
 
 const taxRegimeLabels: Record<string, string> = {
@@ -93,6 +95,8 @@ const Clients = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [feeRange, setFeeRange] = useState({ min: "", max: "" });
   const [contractSort, setContractSort] = useState("contract-desc");
+  const [statusFilters, setStatusFilters] = useState<string[]>([]);
+  const [serviceFilters, setServiceFilters] = useState<string[]>([]);
   const [sizeFilter, setSizeFilter] = useState("all");
   const [responsibleFilter, setResponsibleFilter] = useState("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -166,7 +170,9 @@ const Clients = () => {
     const matchesFee = (minFee === null || client.serviceFee >= minFee) && (maxFee === null || client.serviceFee <= maxFee);
     const matchesSize = sizeFilter === "all" || getClientSize(client) === sizeFilter;
     const matchesResponsible = responsibleFilter === "all" || client.responsibleUserName === responsibleFilter;
-    return matchesSearch && matchesFee && matchesSize && matchesResponsible;
+    const matchesStatus = statusFilters.length === 0 || statusFilters.includes(client.status);
+    const matchesServices = serviceFilters.length === 0 || serviceFilters.some((service) => client.serviceAreas.includes(service as ClientData["serviceAreas"][number]));
+    return matchesSearch && matchesFee && matchesSize && matchesResponsible && matchesStatus && matchesServices;
   }).sort((a, b) => {
     if (contractSort === "contract-asc") return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
@@ -331,12 +337,16 @@ const Clients = () => {
                 sizeFilter !== "all",
                 responsibleFilter !== "all",
                 contractSort !== "contract-desc",
+                statusFilters.length > 0,
+                serviceFilters.length > 0,
               ].filter(Boolean).length}
               onClear={() => {
                 setFeeRange({ min: "", max: "" });
                 setSizeFilter("all");
                 setResponsibleFilter("all");
                 setContractSort("contract-desc");
+                setStatusFilters([]);
+                setServiceFilters([]);
               }}
             >
               <div className="space-y-1.5">
@@ -393,10 +403,27 @@ const Clients = () => {
                   <SelectContent><SelectItem value="all">Todos responsáveis</SelectItem>{responsibles.map((name) => <SelectItem key={name} value={name}>{name}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
+              <MultiSelectFilter
+                label="Status"
+                options={[{ value: "active", label: "Ativos" }, { value: "pending", label: "Pendentes" }, { value: "inactive", label: "Inativos" }]}
+                value={statusFilters}
+                onChange={setStatusFilters}
+              />
+              <MultiSelectFilter
+                label="Serviços"
+                options={serviceAreaOptions}
+                value={serviceFilters}
+                onChange={setServiceFilters}
+              />
             </FilterPopover>
             <Badge variant="secondary" className="px-3 py-1.5">
               {filteredClients.length} clientes
             </Badge>
+            <SortToggle
+              label="data de cadastro"
+              direction={contractSort === "contract-asc" ? "asc" : "desc"}
+              onChange={(direction) => setContractSort(direction === "asc" ? "contract-asc" : "contract-desc")}
+            />
             <div className="ml-auto flex rounded-full border border-border bg-card p-1">
               <IconTooltipButton icon={Grid2X2} label="Grade" variant={viewMode === "grid" ? "default" : "ghost"} aria-pressed={viewMode === "grid"} onClick={() => setViewMode("grid")} />
               <IconTooltipButton icon={List} label="Lista" variant={viewMode === "list" ? "default" : "ghost"} aria-pressed={viewMode === "list"} onClick={() => setViewMode("list")} />

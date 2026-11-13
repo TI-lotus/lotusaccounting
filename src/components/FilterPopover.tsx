@@ -49,14 +49,14 @@ export const FilterPopover = ({
     </Tooltip>
     <PopoverContent
       align="end"
-      className={cn("w-[min(380px,calc(100vw-2rem))] rounded-2xl p-4", contentClassName)}
+      className={cn("w-[min(320px,calc(100vw-2rem))] rounded-2xl p-3", contentClassName)}
     >
-      <div className="space-y-4">
+      <div className="space-y-3">
         <div>
           <p className="text-sm font-medium text-foreground">{title}</p>
           {description && <p className="mt-1 text-xs leading-5 text-muted-foreground">{description}</p>}
         </div>
-        <div className="space-y-3">{children}</div>
+        <div className="space-y-2.5">{children}</div>
         {onClear && (
           <div className="flex justify-end border-t border-border/60 pt-3">
             <Button

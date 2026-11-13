@@ -226,8 +226,12 @@ const Agenda = () => {
           </p>
         </div>
 
-        <div className="filter-toolbar flex items-center justify-between gap-3 animate-fade-in">
-          <p className="text-sm text-muted-foreground">Eventos e obrigações</p>
+        <section className="page-section space-y-4 animate-fade-in">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-base font-medium">Eventos e obrigações</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Filtre a agenda sem separar o controle da área que ele atualiza.</p>
+            </div>
           <FilterPopover
             activeCount={activeFilter === "all" ? 0 : 1}
             onClear={() => setActiveFilter("all")}
@@ -247,7 +251,7 @@ const Agenda = () => {
               ))}
             </div>
           </FilterPopover>
-        </div>
+          </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-6">
           <Card className="page-section animate-fade-in">
@@ -366,6 +370,7 @@ const Agenda = () => {
             </CardContent>
           </Card>
         </div>
+        </section>
 
         <Dialog open={Boolean(selectedItem)} onOpenChange={(open) => !open && setSelectedItem(null)}>
           <DialogContent className="sm:max-w-[520px]">

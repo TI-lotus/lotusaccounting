@@ -41,21 +41,21 @@ export const MultiSelectFilter = ({
 
   return (
     <div className={cn("space-y-1.5", className)}>
-      <p className="text-xs font-medium text-muted-foreground">{label}</p>
+      <p className="text-[11px] font-medium text-muted-foreground">{label}</p>
       <Popover>
         <PopoverTrigger asChild>
-          <Button type="button" variant="outline" className="h-10 w-full justify-between rounded-xl font-normal">
+          <Button type="button" variant="outline" className="h-9 w-full justify-between rounded-lg px-3 text-xs font-normal">
             <span className="truncate">{triggerLabel}</span>
             <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent align="start" className="w-[min(300px,calc(100vw-2rem))] rounded-2xl p-2">
+        <PopoverContent align="start" className="w-[min(260px,calc(100vw-2rem))] rounded-xl p-1.5">
           <div className="space-y-1">
             {options.map((option) => (
               <label
                 key={option.value}
                 className={cn(
-                  "flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors hover:bg-muted/70",
+                  "flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs transition-colors hover:bg-muted/70",
                   option.disabled && "cursor-not-allowed opacity-50",
                 )}
               >

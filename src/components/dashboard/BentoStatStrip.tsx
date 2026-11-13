@@ -19,15 +19,18 @@ interface BentoStatStripProps {
 }
 
 /** Faixa de dados compacta para substituir grades repetitivas de KPIs. */
-export const BentoStatStrip = ({ items, className }: BentoStatStripProps) => (
-  <dl
-    className={cn(
-      "grid overflow-hidden rounded-2xl border border-border/70 bg-border/70 sm:grid-cols-2 xl:grid-cols-3",
-      className,
-      getBentoGridClass(items.length),
-    )}
-  >
-    {items.map((item) => {
+export const BentoStatStrip = ({ items, className }: BentoStatStripProps) => {
+  const visibleItems = items.slice(0, 6);
+
+  return (
+    <dl
+      className={cn(
+        "grid overflow-hidden rounded-2xl border border-border/70 bg-border/70 sm:grid-cols-2 xl:grid-cols-3",
+        className,
+        getBentoGridClass(visibleItems.length),
+      )}
+    >
+      {visibleItems.map((item) => {
       const Icon = item.icon;
       const showTrend = !item.compact && (Boolean(item.trend?.length) || typeof item.value === "number");
       return (
@@ -57,6 +60,7 @@ export const BentoStatStrip = ({ items, className }: BentoStatStripProps) => (
           </div>
         </div>
       );
-    })}
-  </dl>
-);
+      })}
+    </dl>
+  );
+};

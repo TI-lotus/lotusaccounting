@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, type ReactNode } from "react";
 import { CalendarClock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -22,6 +22,7 @@ interface CalendarEventViewProps {
   events: CalendarEventItem[];
   dateRange: { start: string; end: string };
   onDateRangeChange: (range: { start: string; end: string }) => void;
+  headerActions?: ReactNode;
 }
 
 const weekDays = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
@@ -51,7 +52,7 @@ export const CalendarRangeControls = ({ dateRange, onDateRangeChange }: Pick<Cal
   );
 };
 
-export const CalendarEventView = ({ title, events, dateRange, onDateRangeChange }: CalendarEventViewProps) => {
+export const CalendarEventView = ({ title, events, dateRange, onDateRangeChange, headerActions }: CalendarEventViewProps) => {
   const sanitizedEvents = useMemo(
     () => events.filter((event) => ((event.day - 1) % 7) !== 6),
     [events],
@@ -64,7 +65,10 @@ export const CalendarEventView = ({ title, events, dateRange, onDateRangeChange 
     <div className="glass rounded-2xl p-6 animate-fade-in">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h3 className="text-lg font-semibold">{title}</h3>
-        <CalendarRangeControls dateRange={dateRange} onDateRangeChange={onDateRangeChange} />
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {headerActions}
+          <CalendarRangeControls dateRange={dateRange} onDateRangeChange={onDateRangeChange} />
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,480px)_minmax(0,1fr)]">

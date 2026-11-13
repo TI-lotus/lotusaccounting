@@ -16,6 +16,9 @@ import { Button } from "@/components/ui/button";
 import { BentoStatStrip } from "@/components/dashboard/BentoStatStrip";
 import { getBentoGridClass } from "@/components/dashboard/bentoGrid";
 import { IconTooltipButton } from "@/components/IconTooltipButton";
+import { FilterPopover } from "@/components/FilterPopover";
+import { MultiSelectFilter } from "@/components/MultiSelectFilter";
+import { SortToggle } from "@/components/SortToggle";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -396,6 +399,8 @@ export default function Agents() {
   const [execFilter, setExecFilter] = useState<string>("all");
   const [execStatusFilter, setExecStatusFilter] = useState<string>("all");
   const [agentView, setAgentView] = useState<"grid" | "list">("grid");
+  const [agentStatusFilters, setAgentStatusFilters] = useState<Agent["status"][]>([]);
+  const [agentSort, setAgentSort] = useState<"asc" | "desc">("desc");
   const [activityLogs, setActivityLogs] = useState<ActivityLogRow[]>([]);
 
   useEffect(() => {
@@ -456,15 +461,6 @@ export default function Agents() {
     setEditingAgent(null);
   };
 
-  const groupedAgents = agents.reduce(
-    (acc, agent) => {
-      if (!acc[agent.category]) acc[agent.category] = [];
-      acc[agent.category].push(agent);
-      return acc;
-    },
-    {} as Record<Agent["category"], Agent[]>,
-  );
-
   const totalActive = agents.filter((a) => a.enabled).length;
   const executions = useMemo<Execution[]>(
     () =>
@@ -519,6 +515,20 @@ export default function Agents() {
     ...agent,
     actionsToday: actionsByAgent.get(agent.id) ?? 0,
   }));
+  const groupedAgents = displayedAgents
+    .filter((agent) => agentStatusFilters.length === 0 || agentStatusFilters.includes(agent.status))
+    .sort((a, b) => {
+      if (agentSort === "asc") return a.actionsToday - b.actionsToday;
+      return b.actionsToday - a.actionsToday;
+    })
+    .reduce(
+      (acc, agent) => {
+        if (!acc[agent.category]) acc[agent.category] = [];
+        acc[agent.category].push(agent);
+        return acc;
+      },
+      {} as Record<Agent["category"], typeof displayedAgents>,
+    );
   const totalActions = displayedAgents.reduce(
     (sum, a) => sum + a.actionsToday,
     0,
@@ -669,6 +679,23 @@ export default function Agents() {
                 onClick={() => setAgentView("list")}
               />
             </div>
+            <FilterPopover
+              title="Filtrar agentes"
+              activeCount={agentStatusFilters.length}
+              onClear={() => setAgentStatusFilters([])}
+            >
+              <MultiSelectFilter
+                label="Status"
+                options={[
+                  { value: "active", label: "Ativos" },
+                  { value: "idle", label: "Inativos" },
+                  { value: "learning", label: "Aprendendo" },
+                ]}
+                value={agentStatusFilters}
+                onChange={(value) => setAgentStatusFilters(value as Agent["status"][])}
+              />
+            </FilterPopover>
+            <SortToggle label="ações de hoje" direction={agentSort} onChange={setAgentSort} />
           </div>
 
           <TabsContent value="agents" className="space-y-6 mt-6">
