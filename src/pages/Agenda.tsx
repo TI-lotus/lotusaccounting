@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/dialog";
 import { useData } from "@/contexts/DataContext";
 import { cn } from "@/lib/utils";
-import { format, isSameDay, startOfDay } from "date-fns";
+import { format, isSameDay, startOfDay, startOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -98,6 +98,7 @@ const Agenda = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(
     startOfDay(new Date()),
   );
+  const [visibleMonth, setVisibleMonth] = useState<Date>(startOfMonth(new Date()));
   const [activeFilter, setActiveFilter] = useState<AgendaKind | "all">("all");
   const [selectedItem, setSelectedItem] = useState<AgendaItem | null>(null);
 
@@ -249,13 +250,19 @@ const Agenda = () => {
           </FilterPopover>
           </div>
 
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.65fr)]">
-          <Card className="page-section animate-fade-in">
-            <CardContent className="p-4 sm:p-5">
+        <div className="grid items-stretch grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.65fr)]">
+          <Card className="page-section h-full min-h-[600px] animate-fade-in">
+            <CardContent className="flex h-full flex-col p-4 sm:p-5">
               <Calendar
                 mode="single"
+                month={visibleMonth}
+                onMonthChange={setVisibleMonth}
                 selected={selectedDate}
-                onSelect={(d) => d && setSelectedDate(startOfDay(d))}
+                onSelect={(d) => {
+                  if (!d) return;
+                  setSelectedDate(startOfDay(d));
+                  setVisibleMonth(startOfMonth(d));
+                }}
                 locale={ptBR}
                 modifiers={{
                   hasEvents: (date) => daySet.has(format(date, "yyyy-MM-dd")),
@@ -266,12 +273,15 @@ const Agenda = () => {
                 }}
                 className="w-full max-w-none p-0"
                 classNames={largeCalendarClassNames}
+                captionLayout="dropdown"
+                fromYear={2000}
+                toYear={2100}
               />
             </CardContent>
           </Card>
 
-          <Card className="page-section animate-fade-in">
-            <CardContent className="p-6">
+          <Card className="page-section h-full min-h-[600px] animate-fade-in">
+            <CardContent className="flex h-full min-h-[600px] flex-col p-6">
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h2 className="text-lg font-semibold capitalize">
@@ -291,7 +301,7 @@ const Agenda = () => {
                   <p className="text-sm">Nenhum evento para esta data</p>
                 </div>
               ) : (
-                <div className="custom-scroll max-h-[min(62vh,620px)] space-y-2 overflow-y-auto pr-1">
+                <div className="custom-scroll min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
                   {dayItems.map((item) => {
                     const cfg = kindConfig[item.kind];
                     const Icon = cfg.icon;

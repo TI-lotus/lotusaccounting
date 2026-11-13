@@ -83,6 +83,9 @@ export const CalendarRangeControls = ({ dateRange, onDateRangeChange }: Pick<Cal
           }}
           numberOfMonths={2}
           defaultMonth={range?.from}
+          captionLayout="dropdown"
+          fromYear={2000}
+          toYear={2100}
         />
       </PopoverContent>
     </Popover>
@@ -135,8 +138,8 @@ export const CalendarEventView = ({ title, events, dateRange, onDateRangeChange,
         </div>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.65fr)]">
-        <div className="rounded-2xl border border-border/70 bg-card p-4 sm:p-5">
+      <div className="grid items-stretch gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.65fr)]">
+        <div className="flex h-full min-h-[600px] flex-col rounded-2xl border border-border/70 bg-card p-4 sm:p-5">
           <Calendar
             mode="single"
             month={visibleMonth}
@@ -156,15 +159,18 @@ export const CalendarEventView = ({ title, events, dateRange, onDateRangeChange,
             }}
             className="w-full max-w-none p-0"
             classNames={largeCalendarClassNames}
+            captionLayout="dropdown"
+            fromYear={2000}
+            toYear={2100}
           />
-          <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-border/70 pt-3 text-xs text-muted-foreground">
+          <div className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-border/70 pt-3 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-gilver" />Com eventos</span>
             <span className="inline-flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-primary" />Dia selecionado</span>
             <span className="ml-auto">{isSameMonth(selectedDate, visibleMonth) ? format(visibleMonth, "MMMM yyyy", { locale: ptBR }) : "Outro período"}</span>
           </div>
         </div>
 
-        <aside className="flex min-h-[420px] flex-col rounded-2xl border border-border/70 bg-card p-4 sm:p-5">
+        <aside className="flex h-full min-h-[600px] flex-col rounded-2xl border border-border/70 bg-card p-4 sm:p-5">
           <div className="flex items-start justify-between gap-3 border-b border-border/70 pb-4">
             <div>
               <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">Agenda do dia</p>
