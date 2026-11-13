@@ -130,7 +130,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => { disposed = true; subscription.unsubscribe(); };
   }, [loadProfileForSession]);
 
-  const refreshMfaState = async () => {
+  const refreshMfaState = useCallback(async () => {
     if (!session) {
       setMfaRequired(false);
       return false;
@@ -153,7 +153,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setMfaRequired(false);
       return false;
     }
-  };
+  }, [session]);
 
   const refreshProfile = useCallback(async () => {
     if (!session) {
@@ -219,7 +219,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     },
     refreshMfaState,
     refreshProfile,
-  }), [loading, mfaRequired, profile, profileError, refreshProfile, session]);
+  }), [loading, mfaRequired, profile, profileError, refreshMfaState, refreshProfile, session]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

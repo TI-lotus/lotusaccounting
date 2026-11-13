@@ -96,7 +96,7 @@ const IntegrationSettings = () => {
       limit: integration?.usageLimit ?? 0,
       period: "Ciclo atual",
     };
-  }, [connection?.usage, integration?.usageLimit, isConnected]);
+  }, [connection?.usage, integration?.usageLimit]);
 
   useEffect(() => {
     const config = connection?.config;

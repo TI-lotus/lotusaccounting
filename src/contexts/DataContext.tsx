@@ -1775,7 +1775,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       setFiscalObligations((prev) => prev.map((obligation) => obligation.id === id ? data : obligation));
       return true;
     },
-    [tenantId, invoices],
+    [tenantId],
   );
 
   const generateMonthlyFiscalObligations = useCallback(async () => {

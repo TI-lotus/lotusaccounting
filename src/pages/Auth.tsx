@@ -244,6 +244,7 @@ const Auth = () => {
                 <Label htmlFor="mfaCode">Codigo de seis digitos</Label>
                 <Input
                   id="mfaCode"
+                  name="one-time-code"
                   inputMode="numeric"
                   autoComplete="one-time-code"
                   maxLength={6}
@@ -261,6 +262,8 @@ const Auth = () => {
                   <Label htmlFor="fullName">Nome completo</Label>
                   <Input
                     id="fullName"
+                    name="name"
+                    autoComplete="name"
                     value={form.fullName}
                     onChange={(e) =>
                       setForm({ ...form, fullName: e.target.value })
@@ -275,6 +278,8 @@ const Auth = () => {
                     <Label htmlFor="workspaceName">Nome do escritório</Label>
                     <Input
                       id="workspaceName"
+                      name="organization"
+                      autoComplete="organization"
                       value={form.workspaceName}
                       onChange={(e) =>
                         setForm({ ...form, workspaceName: e.target.value })
@@ -289,6 +294,8 @@ const Auth = () => {
                     <Label htmlFor="cnpj">CNPJ da empresa</Label>
                     <Input
                       id="cnpj"
+                      name="tax-id"
+                      autoComplete="off"
                       value={form.cnpj}
                       onChange={(e) =>
                         setForm({ ...form, cnpj: e.target.value })
@@ -305,7 +312,10 @@ const Auth = () => {
               <Label htmlFor="email">E-mail</Label>
               <Input
                 id="email"
+                name="email"
                 type="email"
+                autoComplete={mode === "signin" ? "username" : "email"}
+                spellCheck={false}
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
                 className={fieldClassName}
@@ -319,7 +329,9 @@ const Auth = () => {
               <div className="relative">
                 <Input
                   id="password"
+                  name="password"
                   type={showPassword ? "text" : "password"}
+                  autoComplete={mode === "signin" ? "current-password" : "new-password"}
                   value={form.password}
                   onChange={(e) =>
                     setForm({ ...form, password: e.target.value })
@@ -330,7 +342,8 @@ const Auth = () => {
                 />
                 <button
                   type="button"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#070f32]/55 dark:text-white/55"
+                  aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-[#070f32]/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7d684b]/50 dark:text-white/55"
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? (
@@ -348,7 +361,9 @@ const Auth = () => {
                 <Label htmlFor="confirmPassword">Confirmar senha</Label>
                 <Input
                   id="confirmPassword"
+                  name="confirm-password"
                   type={showPassword ? "text" : "password"}
+                  autoComplete="new-password"
                   value={form.confirmPassword}
                   onChange={(e) =>
                     setForm({ ...form, confirmPassword: e.target.value })

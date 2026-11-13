@@ -231,7 +231,7 @@ export const SettingsContent = ({
       ...defaultAutomationPreferences,
       ...automations,
     });
-  }, [workspaceSettings]);
+  }, [showHeader, workspaceSettings]);
 
   const handleSaveSettings = async () => {
     if (!isAdmin) {

@@ -240,7 +240,7 @@ export const AppSidebar = () => {
                     <button
                       aria-label={group.label}
                       className={cn(
-                        "flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium whitespace-nowrap outline-none transition-colors duration-200 lg:mx-auto lg:h-11 lg:w-11 lg:justify-center lg:rounded-full lg:px-0",
+                        "flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium whitespace-nowrap outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-black lg:mx-auto lg:h-11 lg:w-11 lg:justify-center lg:rounded-full lg:px-0",
                         isActive ? "bg-white/12 text-white" : "text-white/65 hover:bg-white/10 hover:text-white",
                       )}
                     >
@@ -277,7 +277,7 @@ export const AppSidebar = () => {
                 aria-expanded={isOpen}
                 onClick={() => setOpenGroup(isOpen ? undefined : group.label)}
                 className={cn(
-                  "flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-medium whitespace-nowrap outline-none transition-colors duration-200",
+                  "flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-medium whitespace-nowrap outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-black",
                   isActive ? "bg-white/12 text-white" : "text-white/65 hover:bg-white/10 hover:text-white",
                 )}
               >
@@ -303,7 +303,7 @@ export const AppSidebar = () => {
             aria-label="Ajuda e atalhos"
             onClick={() => setHelpOpen(true)}
             className={cn(
-              "flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-white/65 outline-none transition-colors hover:bg-white/10 hover:text-white",
+              "flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-white/65 outline-none transition-colors hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-black",
               isCollapsed && "lg:mx-auto lg:h-11 lg:w-11 lg:justify-center lg:rounded-full lg:px-0",
             )}
           >
