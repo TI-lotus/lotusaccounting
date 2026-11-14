@@ -35,6 +35,7 @@ import Reconciliation from "./pages/Reconciliation";
 import Lia from "./pages/Lia";
 import Workflows from "./pages/Workflows";
 import NotFound from "./pages/NotFound";
+import { AppErrorBoundary } from "@/components/AppErrorBoundary";
 
 const queryClient = new QueryClient();
 
@@ -97,7 +98,8 @@ const App = () => (
               <Toaster />
               <Sonner />
               <BrowserRouter>
-                <Routes>
+                <AppErrorBoundary>
+                  <Routes>
                   <Route path="/auth" element={<Auth />} />
                   <Route path="/" element={protectedPage(<Index />)} />
                   <Route
@@ -204,7 +206,8 @@ const App = () => (
                     })}
                   />
                   <Route path="*" element={<NotFound />} />
-                </Routes>
+                  </Routes>
+                </AppErrorBoundary>
               </BrowserRouter>
             </TooltipProvider>
         </WorkspaceData>
