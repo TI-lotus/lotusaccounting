@@ -395,7 +395,8 @@ const Reports = () => {
       ["Faturas vencidas", overdueInvoices.length],
       ["Obrigações vencidas", overdueObligations.length],
     ];
-    const csv = rows.map((row) => row.join(";")).join("\n");
+    const escapeCell = (value: string | number) => `"${String(value).replace(/"/g, '""')}"`;
+    const csv = `\uFEFF${rows.map((row) => row.map(escapeCell).join(";")).join("\n")}`;
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
