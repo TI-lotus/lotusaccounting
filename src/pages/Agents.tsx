@@ -79,7 +79,7 @@ interface Agent {
   icon: React.ElementType;
   category: "invoices" | "support" | "reports" | "finance" | "automation";
   enabled: boolean;
-  status: "active" | "idle" | "learning";
+  status: "active" | "idle" | "learning" | "preview";
   actionsToday: number;
   schedule?: string;
   maxRetries?: number;
@@ -309,6 +309,11 @@ const initialAgents: Agent[] = [
   },
 ];
 
+// The agent library is intentionally read-only until providers and worker
+// jobs are part of the product scope. This keeps preview data from being
+// presented as live automation metrics.
+const AGENTS_PREVIEW_ONLY = true;
+
 const categoryLabels: Record<Agent["category"], string> = {
   invoices: "Faturas",
   support: "Suporte",
@@ -383,6 +388,10 @@ const statusConfig: Record<
   learning: {
     label: "Aprendendo",
     className: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+  },
+  preview: {
+    label: "Prévia",
+    className: "bg-muted text-muted-foreground",
   },
 };
 
@@ -463,7 +472,6 @@ export default function Agents() {
     setEditingAgent(null);
   };
 
-  const totalActive = agents.filter((a) => a.enabled).length;
   const executions = useMemo<Execution[]>(
     () =>
       activityLogs.map((log) => {
@@ -515,8 +523,11 @@ export default function Agents() {
 
   const displayedAgents = agents.map((agent) => ({
     ...agent,
-    actionsToday: actionsByAgent.get(agent.id) ?? 0,
+    enabled: AGENTS_PREVIEW_ONLY ? false : agent.enabled,
+    status: AGENTS_PREVIEW_ONLY ? "preview" as const : agent.status,
+    actionsToday: AGENTS_PREVIEW_ONLY ? 0 : actionsByAgent.get(agent.id) ?? 0,
   }));
+  const totalActive = AGENTS_PREVIEW_ONLY ? 0 : displayedAgents.filter((agent) => agent.enabled).length;
   const groupedAgents = displayedAgents
     .filter((agent) => agentStatusFilters.length === 0 || agentStatusFilters.includes(agent.status))
     .sort((a, b) => {
@@ -537,15 +548,16 @@ export default function Agents() {
   );
 
   const filteredExecutions = executions.filter((e) => {
+    if (AGENTS_PREVIEW_ONLY) return false;
     const catMatch = execFilter === "all" || e.category === execFilter;
     const statusMatch =
       execStatusFilter === "all" || e.status === execStatusFilter;
     return catMatch && statusMatch;
   });
 
-  const successCount = executions.filter((e) => e.status === "success").length;
-  const errorCount = executions.filter((e) => e.status === "error").length;
-  const runningCount = executions.filter((e) => e.status === "running").length;
+  const successCount = AGENTS_PREVIEW_ONLY ? 0 : executions.filter((e) => e.status === "success").length;
+  const errorCount = AGENTS_PREVIEW_ONLY ? 0 : executions.filter((e) => e.status === "error").length;
+  const runningCount = AGENTS_PREVIEW_ONLY ? 0 : executions.filter((e) => e.status === "running").length;
   const approvalItems = useMemo<ApprovalItem[]>(() => {
     const clientNameById = new Map(
       clients.map((client) => [client.id, client.name]),
@@ -689,6 +701,7 @@ export default function Agents() {
               <MultiSelectFilter
                 label="Status"
                 options={[
+                  { value: "preview", label: "Prévia" },
                   { value: "active", label: "Ativos" },
                   { value: "idle", label: "Inativos" },
                   { value: "learning", label: "Aprendendo" },
@@ -702,7 +715,9 @@ export default function Agents() {
 
           <TabsContent value="agents" className="space-y-6 mt-6">
             <div className="rounded-2xl border border-gilver/30 bg-gilver/10 px-4 py-3 text-sm text-foreground">
-              A biblioteca de agentes é uma camada de configuração visual. Ativações e execuções reais dependem de providers e jobs conectados; alterações nesta tela ficam apenas nesta sessão.
+              A biblioteca de agentes é uma prévia visual. Ativações, edições,
+              aprovações e execuções reais ainda não estão disponíveis nesta
+              etapa; nenhum número desta tela representa uma automação ativa.
             </div>
             {(Object.keys(groupedAgents) as Agent["category"][]).map(
               (category) => (
@@ -745,7 +760,8 @@ export default function Agents() {
                             primaryLabel={`Editar ${agent.name}`}
                             primaryIcon={Pencil}
                             onPrimary={() => openEdit(agent)}
-                            menuItems={[{ label: agent.enabled ? "Desativar agente" : "Ativar agente", icon: Zap, onSelect: () => toggleAgent(agent.id) }]}
+                            primaryDisabled={AGENTS_PREVIEW_ONLY}
+                            menuItems={AGENTS_PREVIEW_ONLY ? [] : [{ label: agent.enabled ? "Desativar agente" : "Ativar agente", icon: Zap, onSelect: () => toggleAgent(agent.id) }]}
                           />
                         )}
                       />
@@ -807,12 +823,15 @@ export default function Agents() {
                                   aria-label={`Editar ${agent.name}`}
                                   title={`Editar ${agent.name}`}
                                   onClick={() => openEdit(agent)}
+                                  disabled={AGENTS_PREVIEW_ONLY}
                                 >
                                   <Pencil className="h-3.5 w-3.5" />
                                 </Button>
                                 <Switch
                                   checked={agent.enabled}
                                   onCheckedChange={() => toggleAgent(agent.id)}
+                                  disabled={AGENTS_PREVIEW_ONLY}
+                                  aria-label={`${agent.enabled ? "Desativar" : "Ativar"} ${agent.name}`}
                                 />
                               </div>
                             </div>
@@ -907,10 +926,12 @@ export default function Agents() {
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base">
-                  Histórico de Execuções
+                  {AGENTS_PREVIEW_ONLY ? "Histórico de auditoria" : "Histórico de Execuções"}
                 </CardTitle>
                 <CardDescription>
-                  Acompanhe as ações executadas pelos agentes ativos
+                  {AGENTS_PREVIEW_ONLY
+                    ? "Registros operacionais reais; eles não representam execução de agentes conectados."
+                    : "Acompanhe as ações executadas pelos agentes ativos"}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -983,11 +1004,12 @@ export default function Agents() {
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">
-                  Ações aguardando aprovação humana
+                  {AGENTS_PREVIEW_ONLY ? "Sugestões para revisão manual" : "Ações aguardando aprovação humana"}
                 </CardTitle>
                 <CardDescription>
-                  Ações críticas iniciadas por agentes que precisam da
-                  confirmação de um responsável antes de executar.
+                  {AGENTS_PREVIEW_ONLY
+                    ? "Pendências do workspace que podem ser revisadas; nenhum agente executará ações automaticamente nesta etapa."
+                    : "Ações críticas iniciadas por agentes que precisam da confirmação de um responsável antes de executar."}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
