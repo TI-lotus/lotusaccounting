@@ -29,6 +29,9 @@ contabilidade, sem depender de integrações externas nesta etapa.
   build em sequência; execução atual aprovada.
 - CI e deploy do Supabase agora reutilizam esse mesmo gate, evitando divergência
   entre a validação local e a promoção de ambiente.
+- Deploy de staging do Supabase: run GitHub Actions #100 concluído com sucesso
+  no commit `9dc5aaa`; secrets, migrations, configuração e Edge Functions foram
+  aplicados sem erro.
 - `main`: não promovido.
 
 ## Acompanhamento dos 10 pontos
