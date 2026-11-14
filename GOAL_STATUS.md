@@ -6,7 +6,7 @@ contabilidade, sem depender de integrações externas nesta etapa.
 ## Estado atual
 
 - Branch de trabalho: `staging`.
-- Última versão de código enviada: `9de1890`.
+- Última versão de código enviada: `b55a680`.
 - Última validação automatizada: 14/11/2026; typecheck, testes, lint e build
   aprovados no branch `staging` (execução atual: 99 testes aprovados).
 - Staging no Vercel: deployment `lotusaccounting-j8qx2u4j8-lotus-5cd8.vercel.app`
@@ -32,6 +32,8 @@ contabilidade, sem depender de integrações externas nesta etapa.
 - Deploy de staging do Supabase: run GitHub Actions #100 concluído com sucesso
   no commit `9dc5aaa`; secrets, migrations, configuração e Edge Functions foram
   aplicados sem erro.
+- Deploy de staging do Supabase: run GitHub Actions #102 concluído com sucesso
+  no commit `b55a680`; a recuperação de perfil sem logout está publicada.
 - `main`: não promovido.
 
 ## Acompanhamento dos 10 pontos
