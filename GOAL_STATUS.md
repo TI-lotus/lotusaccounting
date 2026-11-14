@@ -8,9 +8,10 @@ contabilidade, sem depender de integrações externas nesta etapa.
 - Branch de trabalho: `staging`.
 - Última versão de código enviada: `9de1890`.
 - Última validação automatizada: 14/11/2026; typecheck, testes, lint e build
-  aprovados no branch `staging`.
-- Staging no Vercel: deployment observado como `READY`; SSO da Vercel foi
-  desativado temporariamente para liberar o QA autenticado.
+  aprovados no branch `staging` (execução atual: 99 testes aprovados).
+- Staging no Vercel: deployment `lotusaccounting-j8qx2u4j8-lotus-5cd8.vercel.app`
+  observado como `READY`, com o alias de staging apontando para a versão atual;
+  SSO da Vercel foi desativado temporariamente para liberar o QA autenticado.
 - Smoke test público: aprovado; o deployment mais recente abre diretamente a
   tela `/auth` da Lotus.
 - Typecheck: aprovado.
@@ -22,6 +23,8 @@ contabilidade, sem depender de integrações externas nesta etapa.
   perfis.
 - Proteção Vercel: SSO temporariamente desativado para o QA; reativar após o
   smoke test final.
+- Última checagem de proteção e deployment: 14/11/2026; não há falha de build
+  ou bloqueio público no staging.
 - `main`: não promovido.
 
 ## Acompanhamento dos 10 pontos
