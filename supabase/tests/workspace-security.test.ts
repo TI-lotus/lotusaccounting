@@ -113,6 +113,7 @@ beforeAll(async () => {
   await db.exec(migration("20261114170000_document_request_integrity.sql"));
   await db.exec(migration("20261114180000_operational_audit_triggers.sql"));
   await db.exec(migration("20261114190000_positive_financial_amounts.sql"));
+  await db.exec(migration("20261114200000_task_recurrences.sql"));
   // Seed auth identities before enabling the onboarding trigger. The initial
   // workspace fixture below owns their public profile/user records directly.
   await db.exec(`INSERT INTO auth.users(id, email) VALUES ('${admin}', 'admin@example.com'), ('${client}', 'client-owner@example.com'), ('${collaborator}', 'collaborator@example.com')`);
@@ -488,6 +489,24 @@ describe("workspace security regression", () => {
     expect(
       (await db.query(`UPDATE tasks SET assigned_to = '${collaborator}', assigned_to_name = 'Colaborador' WHERE id = '${taskId}' RETURNING assigned_to`)).rows,
     ).toEqual([{ assigned_to: collaborator }]);
+  });
+  it("generates monthly task occurrences idempotently from a recurrence", async () => {
+    const sourceTaskId = id(77);
+    await asUser(admin);
+    await db.query(
+      `INSERT INTO tasks(id, tenant_id, company_id, assigned_to, assigned_to_name, title, description, task_type, status, priority, category, due_date)
+       VALUES ('${sourceTaskId}', '${tenant}', '${company}', '${collaborator}', 'Colaborador', 'Conferir documentos', 'Tarefa recorrente', 'monthly', 'completed', 'medium', 'Fiscal', '2026-01-15')`,
+    );
+
+    expect((await db.query("SELECT id FROM public.register_task_recurrence($1)", [sourceTaskId])).rows).toHaveLength(1);
+    expect((await db.query("SELECT public.generate_task_recurrences($1) AS generated", ["2026-03-31"])).rows).toEqual([{ generated: 2 }]);
+    expect((await db.query("SELECT public.generate_task_recurrences($1) AS generated", ["2026-03-31"])).rows).toEqual([{ generated: 0 }]);
+    expect((await db.query<{ title: string; status: string; due_date: string }>(`SELECT title, status, due_date::date::text AS due_date FROM tasks WHERE title = 'Conferir documentos' ORDER BY due_date`)).rows).toEqual([
+      { title: "Conferir documentos", status: "completed", due_date: "2026-01-15" },
+      { title: "Conferir documentos", status: "pending", due_date: "2026-02-15" },
+      { title: "Conferir documentos", status: "pending", due_date: "2026-03-15" },
+    ]);
+    expect((await db.query<{ next_due_date: string }>("SELECT next_due_date::text FROM task_recurrences WHERE source_task_id = $1", [sourceTaskId])).rows).toEqual([{ next_due_date: "2026-04-15" }]);
   });
   it("scopes monthly client periods to the workspace and client company", async () => {
     await asUser(admin);

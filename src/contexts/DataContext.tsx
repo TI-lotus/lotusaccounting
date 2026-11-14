@@ -353,6 +353,7 @@ interface DataContextType {
       blockedReason?: string | null;
     },
   ) => Promise<boolean>;
+  generateRecurringTasks: (targetDate?: string) => Promise<number>;
   updateTask: (id: string, updates: Partial<TaskData>) => Promise<boolean>;
   updateTaskStatus: (id: string, status: TaskStatus, blockedReason?: string | null) => Promise<boolean>;
   deleteTask: (id: string) => Promise<boolean>;
@@ -1175,10 +1176,43 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         const mapped = mapTask(data, clientsById);
         mapped.assignedToName = task.assignedToName;
         setTasks((prev) => sortTasks(computeTaskStatuses([mapped, ...prev])));
+
+        if (task.type === "monthly" || task.type === "annual") {
+          const { error: recurrenceError } = await rpcDb.rpc(
+            "register_task_recurrence",
+            { p_source_task_id: data.id },
+          );
+          if (recurrenceError) {
+            toast.error(
+              "Tarefa criada, mas não foi possível configurar a recorrência: " +
+                recurrenceError.message,
+            );
+          }
+        }
       }
       return Boolean(data);
     },
     [tenantId, user, clients],
+  );
+
+  const generateRecurringTasks = useCallback(
+    async (targetDate = new Date().toISOString().slice(0, 10)) => {
+      if (!tenantId) {
+        toast.error("Tenant não encontrado");
+        return 0;
+      }
+      const { data, error } = await rpcDb.rpc<number>(
+        "generate_task_recurrences",
+        { target_date: targetDate },
+      );
+      if (error) {
+        toast.error("Erro ao gerar recorrências: " + error.message);
+        return 0;
+      }
+      await fetchAll();
+      return Number(data ?? 0);
+    },
+    [fetchAll, tenantId],
   );
 
   const updateTask = useCallback(
@@ -2255,6 +2289,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         taskReviews,
         operationalComments,
         addTask,
+        generateRecurringTasks,
         updateTask,
         updateTaskStatus,
         deleteTask,

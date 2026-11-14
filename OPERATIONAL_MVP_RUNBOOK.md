@@ -28,16 +28,19 @@ ambiente de staging. Integrações externas ficam fora deste roteiro.
    `Dispensado`.
 7. Abrir `Tarefas`, atribuir tarefas pendentes, mover uma tarefa no kanban,
    registrar comentário e enviar uma tarefa crítica para revisão.
-8. Tentar atribuir uma tarefa concluída. O sistema deve bloquear a alteração e
+8. Criar uma tarefa mensal ou anual com prazo e confirmar que ela entra na
+   série recorrente. Ao abrir `Tarefas`, conferir que as próximas ocorrências
+   são geradas sem duplicidade.
+9. Tentar atribuir uma tarefa concluída. O sistema deve bloquear a alteração e
    pedir que a tarefa seja reaberta primeiro.
-9. Aprovar ou reprovar a revisão com comentário. A aprovação conclui o item;
+10. Aprovar ou reprovar a revisão com comentário. A aprovação conclui o item;
    a reprovação devolve a execução para andamento.
-10. Registrar uma receita, uma despesa, uma fatura e uma baixa. Conferir os
+11. Registrar uma receita, uma despesa, uma fatura e uma baixa. Conferir os
     totais em `Financeiro`, o extrato em `Pagamentos` e exportar o resultado
     filtrado em CSV.
-11. Fechar a competência somente depois que pendências, evidências e revisões
+12. Fechar a competência somente depois que pendências, evidências e revisões
     estiverem resolvidas. Confirmar o status `Fechada` e o histórico do cliente.
-12. Verificar `Notificações`, `Agenda`, `Relatórios` e os registros de atividade.
+13. Verificar `Notificações`, `Agenda`, `Relatórios` e os registros de atividade.
 
 ## Roteiro do colaborador
 
@@ -77,6 +80,7 @@ ambiente de staging. Integrações externas ficam fora deste roteiro.
 - [ ] Solicitações de documentos enviadas com prazo.
 - [ ] Documentos recebidos, classificados e vinculados como evidência.
 - [ ] Tarefas distribuídas com prazos e responsáveis ativos.
+- [ ] Tarefas mensais e anuais recorrentes geraram as próximas ocorrências sem duplicidade.
 - [ ] Pendências bloqueadas possuem motivo e responsável.
 - [ ] Itens críticos passaram por revisão.
 - [ ] Receitas, despesas, faturas e baixas conferidas.

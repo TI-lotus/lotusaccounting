@@ -13,6 +13,7 @@ import {
   Columns3,
   Trash2,
   Eye,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,6 +53,7 @@ import { SortToggle } from "@/components/SortToggle";
 import { BentoDataTable } from "@/components/BentoDataTable";
 import { RowActions } from "@/components/RowActions";
 import { ConfirmDestructiveDialog } from "@/components/ConfirmDestructiveDialog";
+import { toast } from "sonner";
 
 const currentMonthRange = () => {
   const now = new Date();
@@ -64,7 +66,7 @@ const currentMonthRange = () => {
 };
 
 const Tasks = () => {
-  const { tasks, addTask, updateTaskStatus, deleteTask, clients, tenantId } = useData();
+  const { tasks, addTask, generateRecurringTasks, updateTaskStatus, deleteTask, clients, tenantId } = useData();
   const { viewMode } = useViewMode();
   const { user, profile } = useAuth();
   const canCreateTasks = useWorkspacePermission({
@@ -104,6 +106,7 @@ const Tasks = () => {
   const [deleteTarget, setDeleteTarget] = useState<TaskData | null>(null);
   const [blockTarget, setBlockTarget] = useState<TaskData | null>(null);
   const [blockReason, setBlockReason] = useState("");
+  const [generatingRecurrences, setGeneratingRecurrences] = useState(false);
   const [activeAssignees, setActiveAssignees] = useState<Array<{ user_id: string; full_name: string | null; avatar_url: string | null }>>([]);
   const [newTask, setNewTask] = useState({
     title: "",
@@ -131,6 +134,13 @@ const Tasks = () => {
       .order("full_name")
       .then(({ data }) => setActiveAssignees(data ?? []));
   }, [tenantId, viewMode]);
+
+  useEffect(() => {
+    if (viewMode !== "client" && canCreateTasks) {
+      void generateRecurringTasks();
+    }
+  }, [canCreateTasks, generateRecurringTasks, viewMode]);
+
   const assignees = activeAssignees.length
     ? activeAssignees.map((member) => [member.user_id, member.full_name || "Sem nome"] as [string, string])
     : user?.id ? [[user.id, currentUserName] as [string, string]] : [];
@@ -190,6 +200,21 @@ const Tasks = () => {
       type: "monthly",
     });
     setDialogOpen(false);
+  };
+
+  const handleGenerateRecurringTasks = async () => {
+    if (!canCreateTasks || generatingRecurrences) return;
+    setGeneratingRecurrences(true);
+    try {
+      const generated = await generateRecurringTasks();
+      toast.success(
+        generated > 0
+          ? `${generated} ocorrência(s) recorrente(s) gerada(s).`
+          : "Nenhuma nova ocorrência recorrente para gerar.",
+      );
+    } finally {
+      setGeneratingRecurrences(false);
+    }
   };
 
   const getStatusIcon = (status: TaskStatus) => {
@@ -394,6 +419,15 @@ const Tasks = () => {
             </p>
           </div>
           <div className="flex gap-2">
+            {viewMode !== "client" && canCreateTasks && (
+              <IconTooltipButton
+                icon={RefreshCw}
+                label="Gerar ocorrências recorrentes"
+                className="rounded-full"
+                onClick={() => void handleGenerateRecurringTasks()}
+                disabled={generatingRecurrences}
+              />
+            )}
             {viewMode !== "client" && canCreateTasks && (
               <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                 <DialogTrigger asChild>
