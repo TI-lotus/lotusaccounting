@@ -64,6 +64,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { getTenantSubscription, type TenantSubscription } from "@/services/commercialMvp";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { toast } from "sonner";
 
 interface SearchResult {
   category: string;
@@ -177,6 +178,7 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
     () => new Set(),
   );
   const [persistentNotifications, setPersistentNotifications] = useState<UserNotificationRow[]>([]);
+  const [persistentLoadError, setPersistentLoadError] = useState(false);
 
   const handleSignOut = async () => {
     setProfileMenuOpen(false);
@@ -187,16 +189,23 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
   useEffect(() => {
     if (!user) {
       setPersistentNotifications([]);
+      setPersistentLoadError(false);
       return;
     }
 
     const loadPersistentNotifications = async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("user_notifications")
         .select("*")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(20);
+      if (error) {
+        setPersistentNotifications([]);
+        setPersistentLoadError(true);
+        return;
+      }
+      setPersistentLoadError(false);
       setPersistentNotifications((data ?? []) as UserNotificationRow[]);
     };
     void loadPersistentNotifications();
@@ -223,12 +232,28 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
     };
   }, [user]);
 
-  const markNotificationRead = (notification: NotificationItem) => {
-    setReadNotificationIds((current) => new Set(current).add(notification.id));
-    if (notification.persistent) {
-      setPersistentNotifications((current) => current.map((item) => item.id === notification.id ? { ...item, read_at: new Date().toISOString() } : item));
-      void supabase.from("user_notifications").update({ read_at: new Date().toISOString() }).eq("id", notification.id);
+  const markNotificationRead = async (notification: NotificationItem) => {
+    if (notification.read) return true;
+    if (!notification.persistent) {
+      setReadNotificationIds((current) => new Set(current).add(notification.id));
+      return true;
     }
+    if (!user) return false;
+
+    const value = new Date().toISOString();
+    const previous = persistentNotifications;
+    setPersistentNotifications((current) => current.map((item) => item.id === notification.id ? { ...item, read_at: value } : item));
+    const { error } = await supabase
+      .from("user_notifications")
+      .update({ read_at: value })
+      .eq("id", notification.id)
+      .eq("user_id", user.id);
+    if (error) {
+      setPersistentNotifications(previous);
+      toast.error("Não foi possível marcar a notificação como lida.");
+      return false;
+    }
+    return true;
   };
 
   const searchData = useMemo<SearchResult[]>(() => {
@@ -693,7 +718,14 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
                 </div>
               </header>
               <div className="legal-notifications-body custom-scroll">
-                {notifications.length === 0 && (
+                {notifications.length === 0 && persistentLoadError && (
+                  <div className="notifications-empty">
+                    <Bell />
+                    <strong>Não foi possível carregar.</strong>
+                    <p>Verifique sua conexão e abra a central de notificações para tentar novamente.</p>
+                  </div>
+                )}
+                {notifications.length === 0 && !persistentLoadError && (
                   <div className="notifications-empty">
                     <Bell />
                     <strong>Tudo em dia.</strong>
@@ -705,8 +737,8 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
                   return (
                     <button
                       key={n.id}
-                      onClick={() => {
-                        markNotificationRead(n);
+                      onClick={async () => {
+                        if (!(await markNotificationRead(n))) return;
                         navigate(n.href);
                         setNotificationOpen(false);
                       }}
