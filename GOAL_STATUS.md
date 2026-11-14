@@ -25,6 +25,8 @@ contabilidade, sem depender de integrações externas nesta etapa.
   smoke test final.
 - Última checagem de proteção e deployment: 14/11/2026; não há falha de build
   ou bloqueio público no staging.
+- Gate repetível disponível com `npm run verify`: typecheck, testes, lint e
+  build em sequência; execução atual aprovada.
 - `main`: não promovido.
 
 ## Acompanhamento dos 10 pontos

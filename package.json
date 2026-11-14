@@ -10,6 +10,7 @@
     "lint": "eslint src supabase vite.config.ts tailwind.config.ts postcss.config.js",
     "typecheck": "tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.node.json",
     "test": "vitest run",
+    "verify": "npm run typecheck && npm test -- --run && npm run lint && npm run build",
     "preview": "vite preview"
   },
   "dependencies": {
