@@ -61,7 +61,7 @@ const ProtectedRoute = ({
   allowClient?: boolean;
   adminOnly?: boolean;
 }) => {
-  const { session, loading, mfaRequired, profile, profileError, signOut } = useAuth();
+  const { session, loading, mfaRequired, profile, profileError, refreshProfile, signOut } = useAuth();
 
   if (loading) {
     return <div className="min-h-screen bg-background" />;
@@ -80,7 +80,17 @@ const ProtectedRoute = ({
       <div className="max-w-sm space-y-4 text-center">
         <h1 className="text-xl font-semibold">Acesso indisponível</h1>
         <p className="text-muted-foreground">{profileError || (profile?.status !== "active" && profile ? "Seu acesso está desativado. Contate o administrador do escritório." : "Seu perfil ainda não está vinculado a um escritório.")}</p>
-        <button className="rounded-md bg-secondary px-4 py-2 hover:brightness-110" onClick={() => void signOut()}>Voltar para o login</button>
+        <div className="flex flex-col justify-center gap-2 sm:flex-row">
+          {profileError && (
+            <button
+              className="rounded-md bg-primary px-4 py-2 text-primary-foreground hover:brightness-110"
+              onClick={() => void refreshProfile()}
+            >
+              Tentar novamente
+            </button>
+          )}
+          <button className="rounded-md bg-secondary px-4 py-2 hover:brightness-110" onClick={() => void signOut()}>Voltar para o login</button>
+        </div>
       </div>
     </main>;
   }
