@@ -1,111 +1,113 @@
-import { ArrowUpRight, ArrowDownLeft } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { useMemo } from "react";
+import { ArrowDownLeft, ArrowRight, ArrowUpRight } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-
-const transactions = [
-  {
-    id: 1,
-    name: "Pagamento Stripe",
-    description: "Fatura #1234 - Acme Corp",
-    amount: 12500,
-    type: "income",
-    date: "Hoje, 14:30",
-  },
-  {
-    id: 2,
-    name: "Material de Escritório",
-    description: "Assinatura mensal",
-    amount: -450,
-    type: "expense",
-    date: "Hoje, 11:15",
-  },
-  {
-    id: 3,
-    name: "Pagamento Cliente",
-    description: "Fatura #1231 - TechStart Inc",
-    amount: 8750,
-    type: "income",
-    date: "Ontem, 16:45",
-  },
-  {
-    id: 4,
-    name: "Licença de Software",
-    description: "Renovação anual - Adobe CC",
-    amount: -899,
-    type: "expense",
-    date: "Ontem, 10:00",
-  },
-  {
-    id: 5,
-    name: "Taxa de Consultoria",
-    description: "Fatura #1228 - Global Finance",
-    amount: 15000,
-    type: "income",
-    date: "10 Jan, 15:20",
-  },
-];
+import { useData } from "@/contexts/DataContext";
+import { cn } from "@/lib/utils";
 
 interface RecentTransactionsProps {
   className?: string;
 }
 
 export const RecentTransactions = ({ className }: RecentTransactionsProps) => {
+  const navigate = useNavigate();
+  const { payments, clients } = useData();
+  const transactions = useMemo(
+    () =>
+      [...payments]
+        .sort((first, second) => {
+          const firstDate = first.paid_at ?? first.created_at ?? first.due_date ?? "";
+          const secondDate = second.paid_at ?? second.created_at ?? second.due_date ?? "";
+          return secondDate.localeCompare(firstDate);
+        })
+        .slice(0, 5)
+        .map((payment) => {
+          const type = payment.direction === "expense" ? "expense" : "income";
+          const dateValue = payment.paid_at ?? payment.created_at ?? payment.due_date;
+          const clientName = clients.find((client) => client.id === payment.company_id)?.name;
+          return {
+            id: payment.id,
+            name: type === "income" ? "Recebimento" : "Despesa",
+            description: [payment.description || "Lançamento financeiro", clientName]
+              .filter(Boolean)
+              .join(" · "),
+            amount: Number(payment.amount ?? 0),
+            type,
+            date: dateValue
+              ? new Date(dateValue).toLocaleDateString("pt-BR", {
+                  day: "2-digit",
+                  month: "short",
+                })
+              : "Sem data",
+          };
+        }),
+    [clients, payments],
+  );
+
   return (
     <div className={cn("glass rounded-2xl p-6 animate-fade-in", className)}>
-      <div className="flex items-center justify-between mb-6">
+      <div className="mb-6 flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold">Transações Recentes</h3>
+          <h3 className="text-lg font-semibold">Transações recentes</h3>
           <p className="text-sm text-muted-foreground">Últimas movimentações financeiras</p>
         </div>
-        <button className="text-sm text-primary font-medium hover:underline">
-          Ver tudo
+        <button
+          type="button"
+          className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+          onClick={() => navigate("/payments")}
+        >
+          Ver tudo <ArrowRight className="h-3.5 w-3.5" />
         </button>
       </div>
-      <div className="space-y-4">
-        {transactions.map((transaction, index) => (
-          <div
-            key={transaction.id}
-            className="flex items-center gap-4 p-3 rounded-xl hover:bg-accent/50 transition-colors"
-            style={{ animationDelay: `${index * 50}ms` }}
-          >
-            <Avatar className="h-10 w-10">
-              <AvatarFallback
-                className={cn(
-                  transaction.type === "income"
-                    ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400"
-                    : "bg-red-100 text-red-600 dark:bg-red-950 dark:text-red-400"
-                )}
-              >
-                {transaction.type === "income" ? (
-                  <ArrowDownLeft className="h-4 w-4" />
-                ) : (
-                  <ArrowUpRight className="h-4 w-4" />
-                )}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1 min-w-0">
-              <p className="font-medium text-sm truncate">{transaction.name}</p>
-              <p className="text-xs text-muted-foreground truncate">
-                {transaction.description}
-              </p>
+      {transactions.length === 0 ? (
+        <p className="py-6 text-center text-sm text-muted-foreground">
+          Ainda não há movimentações financeiras registradas.
+        </p>
+      ) : (
+        <div className="space-y-4">
+          {transactions.map((transaction, index) => (
+            <div
+              key={transaction.id}
+              className="flex items-center gap-4 rounded-xl p-3 transition-colors hover:bg-accent/50"
+              style={{ animationDelay: `${index * 50}ms` }}
+            >
+              <Avatar className="h-10 w-10">
+                <AvatarFallback
+                  className={cn(
+                    transaction.type === "income"
+                      ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400"
+                      : "bg-red-100 text-red-600 dark:bg-red-950 dark:text-red-400",
+                  )}
+                >
+                  {transaction.type === "income" ? (
+                    <ArrowDownLeft className="h-4 w-4" />
+                  ) : (
+                    <ArrowUpRight className="h-4 w-4" />
+                  )}
+                </AvatarFallback>
+              </Avatar>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">{transaction.name}</p>
+                <p className="truncate text-xs text-muted-foreground">{transaction.description}</p>
+              </div>
+              <div className="text-right">
+                <p
+                  className={cn(
+                    "text-sm font-semibold",
+                    transaction.type === "income" && "text-emerald-600 dark:text-emerald-400",
+                  )}
+                >
+                  {transaction.type === "income" ? "+" : "-"}R${" "}
+                  {Math.abs(transaction.amount).toLocaleString("pt-BR", {
+                    minimumFractionDigits: 2,
+                  })}
+                </p>
+                <p className="text-xs text-muted-foreground">{transaction.date}</p>
+              </div>
             </div>
-            <div className="text-right">
-              <p
-                className={cn(
-                  "font-semibold text-sm",
-                  transaction.type === "income"
-                    ? "text-emerald-600 dark:text-emerald-400"
-                    : "text-foreground"
-                )}
-              >
-                {transaction.type === "income" ? "+" : "-"}R${" "}
-                {Math.abs(transaction.amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-              </p>
-              <p className="text-xs text-muted-foreground">{transaction.date}</p>
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
