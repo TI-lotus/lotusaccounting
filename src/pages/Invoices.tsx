@@ -30,7 +30,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspacePermission } from "@/hooks/useWorkspacePermission";
 import type { Database } from "@/integrations/supabase/types";
 import { toast } from "sonner";
-import { toastWithUndo } from "@/lib/toastUndo";
 import { BentoDataTable } from "@/components/BentoDataTable";
 import { RowActions } from "@/components/RowActions";
 import { ConfirmDestructiveDialog } from "@/components/ConfirmDestructiveDialog";
@@ -116,6 +115,7 @@ const Invoices = () => {
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<Invoice | null>(null);
   const [invoiceToCancel, setInvoiceToCancel] = useState<Invoice | null>(null);
+  const [invoiceToDelete, setInvoiceToDelete] = useState<Invoice | null>(null);
   const [form, setForm] = useState({
     number: "",
     amount: "",
@@ -181,15 +181,21 @@ const Invoices = () => {
       toast.error("Seu perfil não tem permissão para remover faturas.");
       return;
     }
-    setSelected(null);
-    toastWithUndo({
-      message: "Remoção de fatura agendada",
-      description: inv.number || inv.id.slice(0, 8),
-      onUndo: () => undefined,
-      onConfirm: async () => {
-        await deleteInvoice(inv.id);
-      },
-    });
+    setInvoiceToDelete(inv);
+  };
+
+  const deleteSelectedInvoice = async () => {
+    if (!invoiceToDelete) return false;
+    if (!canDeleteFinancial) {
+      toast.error("Seu perfil não tem permissão para remover faturas.");
+      return false;
+    }
+    const removed = await deleteInvoice(invoiceToDelete.id);
+    if (!removed) return false;
+    setSelected((current) => current?.id === invoiceToDelete.id ? null : current);
+    setInvoiceToDelete(null);
+    toast.success("Fatura removida");
+    return true;
   };
 
   const registerPaymentFromInvoice = async (inv: Invoice) => {
@@ -569,6 +575,14 @@ const Invoices = () => {
         description="A fatura permanecerá no histórico com o status cancelada e não poderá ser paga ou removida por este fluxo."
         confirmLabel="Cancelar fatura"
         onConfirm={cancelInvoice}
+      />
+      <ConfirmDestructiveDialog
+        open={Boolean(invoiceToDelete)}
+        onOpenChange={(open) => !open && setInvoiceToDelete(null)}
+        title="Remover esta fatura?"
+        description={invoiceToDelete ? `A fatura ${invoiceToDelete.number || invoiceToDelete.id.slice(0, 8)} será removida do workspace. Essa ação não pode ser desfeita.` : "A fatura selecionada será removida do workspace."}
+        confirmLabel="Remover fatura"
+        onConfirm={deleteSelectedInvoice}
       />
     </>
   );

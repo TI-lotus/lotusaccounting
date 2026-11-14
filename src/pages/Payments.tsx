@@ -299,7 +299,7 @@ const Payments = () => {
         payment.type === "income" ? "Receita" : "Despesa",
         payment.category,
         payment.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-        payment.status === "completed" ? "Concluído" : "Pendente",
+        payment.status === "completed" ? "Concluído" : payment.status === "cancelled" ? "Cancelado" : "Pendente",
       ]),
     ];
     const csv = `\uFEFF${rows.map((row) => row.map(escapeCell).join(";")).join("\n")}`;
