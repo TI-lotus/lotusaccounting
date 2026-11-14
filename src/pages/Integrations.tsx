@@ -8,6 +8,7 @@ import {
   PauseCircle,
   Plug,
   Settings,
+  ShieldAlert,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,8 @@ import { cn } from "@/lib/utils";
 import { BentoStatStrip } from "@/components/dashboard/BentoStatStrip";
 import { getBentoGridClass } from "@/components/dashboard/bentoGrid";
 import { useData } from "@/contexts/DataContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { useWorkspacePermission } from "@/hooks/useWorkspacePermission";
 import {
   integrationCatalog,
   integrationCategoryOrder,
@@ -55,7 +58,15 @@ const StatusIcon = ({ status }: { status: string }) => {
 
 const Integrations = () => {
   const navigate = useNavigate();
+  const { user, profile } = useAuth();
   const { integrationConnections } = useData();
+  const canReadIntegrations = useWorkspacePermission({
+    tenantId: profile?.tenant_id ?? null,
+    userId: user?.id,
+    accountType: profile?.account_type,
+    resource: "integrations",
+    action: "read",
+  });
   const [ops, setOps] = useState<IntegrationOpsSnapshot | null>(null);
   const [opsLoading, setOpsLoading] = useState(true);
   const [opsError, setOpsError] = useState<string | null>(null);
@@ -94,8 +105,25 @@ const Integrations = () => {
   };
 
   useEffect(() => {
-    void loadOps();
-  }, []);
+    if (canReadIntegrations) void loadOps();
+    else setOpsLoading(false);
+  }, [canReadIntegrations]);
+
+  if (!canReadIntegrations) {
+    return (
+      <DashboardLayout>
+        <div className="mx-auto flex min-h-[420px] max-w-xl flex-col items-center justify-center gap-4 text-center">
+          <ShieldAlert className="h-10 w-10 text-muted-foreground" aria-hidden="true" />
+          <div>
+            <h1 className="text-xl font-medium">Acesso restrito</h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Você não tem permissão para visualizar as integrações deste workspace.
+            </p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>

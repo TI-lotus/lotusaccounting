@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactElement } from "react";
+import { useEffect, useMemo, useState, type ReactElement } from "react";
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import {
   Home,
@@ -29,6 +29,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useViewMode } from "@/contexts/ViewModeContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { useWorkspacePermission } from "@/hooks/useWorkspacePermission";
 import { LotusLogo } from "@/components/LotusLogo";
 import { WorkspaceSwitcher } from "@/components/WorkspaceSwitcher";
 import { Button } from "@/components/ui/button";
@@ -131,9 +133,26 @@ const SidebarHint = ({
 
 export const AppSidebar = () => {
   const { viewMode, isCollapsed, setIsCollapsed } = useViewMode();
+  const { user, profile } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-  const groups = viewMode === "office" ? officeGroups : clientGroups;
+  const canReadIntegrations = useWorkspacePermission({
+    tenantId: profile?.tenant_id ?? null,
+    userId: user?.id,
+    accountType: profile?.account_type,
+    resource: "integrations",
+    action: "read",
+  });
+  const groups = useMemo(() => {
+    const source = viewMode === "office" ? officeGroups : clientGroups;
+    if (viewMode !== "office" || canReadIntegrations) return source;
+    return source
+      .map((group) => ({
+        ...group,
+        items: group.items.filter((item) => item.href !== "/integrations"),
+      }))
+      .filter((group) => group.items.length > 0);
+  }, [canReadIntegrations, viewMode]);
   const activeGroup = groups.find((group) => groupHasPath(group, location.pathname))?.label ?? groups[0]?.label;
   const [openGroup, setOpenGroup] = useState<string | undefined>(activeGroup);
   const [helpOpen, setHelpOpen] = useState(false);

@@ -1,4 +1,4 @@
-import { createUserClient } from "./supabase.ts";
+import { createServiceClient, createUserClient } from "./supabase.ts";
 import type { AppRole } from "./types.ts";
 
 export type AuthContext = {
@@ -37,4 +37,39 @@ export const requireWorkspaceManager = (context: AuthContext) => {
   if (context.role !== "admin" && context.role !== "collaborator") {
     throw new Error("forbidden");
   }
+};
+
+/**
+ * Checks the workspace permission that is also enforced by the database RLS
+ * policies. Edge Functions use the service role after authentication, so they
+ * must perform this check explicitly before mutating tenant data.
+ */
+export const requireWorkspacePermission = async (
+  context: AuthContext,
+  resource: string,
+  action: string,
+) => {
+  if (context.role === "admin") return;
+  if (context.role !== "collaborator") throw new Error("forbidden");
+
+  const { data, error } = await createServiceClient()
+    .from("workspace_member_permissions")
+    .select("permissions")
+    .eq("tenant_id", context.tenantId)
+    .eq("user_id", context.userId)
+    .maybeSingle();
+
+  if (error) throw error;
+
+  const permissions = data?.permissions;
+  const allowed =
+    permissions && typeof permissions === "object" && !Array.isArray(permissions)
+      ? (permissions as Record<string, unknown>)[resource]
+      : null;
+  const value =
+    allowed && typeof allowed === "object" && !Array.isArray(allowed)
+      ? (allowed as Record<string, unknown>)[action]
+      : false;
+
+  if (value !== true) throw new Error("forbidden");
 };

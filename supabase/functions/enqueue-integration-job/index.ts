@@ -1,6 +1,6 @@
 import { handleCors } from "../_shared/cors.ts";
 import { errorResponse, jsonResponse } from "../_shared/responses.ts";
-import { requireAuthContext, requireWorkspaceManager } from "../_shared/auth.ts";
+import { requireAuthContext, requireWorkspacePermission } from "../_shared/auth.ts";
 import { createServiceClient } from "../_shared/supabase.ts";
 import { enqueueIntegrationJob } from "../_shared/jobs.ts";
 
@@ -10,7 +10,7 @@ Deno.serve(async (request) => {
   if (request.method !== "POST") return errorResponse("method_not_allowed", 405);
   try {
     const context = await requireAuthContext(request);
-    requireWorkspaceManager(context);
+    await requireWorkspacePermission(context, "integrations", "update");
     const body = await request.json();
     const jobType = typeof body.jobType === "string" ? body.jobType : "health_check";
     const allowedJobTypes = new Set(["health_check", "sync", "statement_import", "cnpj_lookup"]);

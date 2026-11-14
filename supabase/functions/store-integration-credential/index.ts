@@ -1,6 +1,6 @@
 import { handleCors } from "../_shared/cors.ts";
 import { errorResponse, jsonResponse } from "../_shared/responses.ts";
-import { requireAuthContext, requireWorkspaceManager } from "../_shared/auth.ts";
+import { requireAuthContext, requireWorkspacePermission } from "../_shared/auth.ts";
 import { createServiceClient } from "../_shared/supabase.ts";
 import { upsertCredential } from "../_shared/credentials.ts";
 
@@ -29,14 +29,17 @@ Deno.serve(async (request) => {
 
   try {
     const context = await requireAuthContext(request);
-    requireWorkspaceManager(context);
-
     const body = (await request.json()) as Body;
     const provider = body.provider ?? body.integrationId;
     if (!provider) return errorResponse("provider_required", 400);
     if (!hasSecret(body.secretFields)) {
       return errorResponse("secret_fields_required", 400);
     }
+    await requireWorkspacePermission(
+      context,
+      "integrations",
+      body.connectionId ? "update" : "create",
+    );
 
     const supabase = createServiceClient();
     if (body.connectionId) {

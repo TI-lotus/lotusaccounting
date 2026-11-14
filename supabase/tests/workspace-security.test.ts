@@ -366,6 +366,37 @@ describe("workspace security regression", () => {
       (await db.query(`UPDATE fiscal_obligations SET status = 'in_progress' WHERE id = '${obligationId}' RETURNING id`)).rows,
     ).toEqual([{ id: obligationId }]);
   });
+  it("applies read and update permissions to integration connections", async () => {
+    const connectionId = id(71);
+    await asUser(admin);
+    await db.query(
+      `INSERT INTO integration_connections(id, tenant_id, integration_id, provider, status, account_label)
+       VALUES ('${connectionId}', '${tenant}', 'serpro', 'serpro', 'pending', 'SERPRO')`,
+    );
+
+    await asUser(collaborator);
+    expect((await db.query(`SELECT id FROM integration_connections WHERE id = '${connectionId}'`)).rows).toHaveLength(0);
+    expect((await db.query(`UPDATE integration_connections SET status = 'connected' WHERE id = '${connectionId}' RETURNING id`)).rows).toHaveLength(0);
+
+    await asUser(admin);
+    await db.query(
+      `UPDATE workspace_member_permissions
+       SET permissions = jsonb_set(permissions, '{integrations,read}', 'true'::jsonb)
+       WHERE tenant_id = '${tenant}' AND user_id = '${collaborator}'`,
+    );
+    await asUser(collaborator);
+    expect((await db.query(`SELECT id FROM integration_connections WHERE id = '${connectionId}'`)).rows).toEqual([{ id: connectionId }]);
+    expect((await db.query(`UPDATE integration_connections SET status = 'connected' WHERE id = '${connectionId}' RETURNING id`)).rows).toHaveLength(0);
+
+    await asUser(admin);
+    await db.query(
+      `UPDATE workspace_member_permissions
+       SET permissions = jsonb_set(permissions, '{integrations,update}', 'true'::jsonb)
+       WHERE tenant_id = '${tenant}' AND user_id = '${collaborator}'`,
+    );
+    await asUser(collaborator);
+    expect((await db.query(`UPDATE integration_connections SET status = 'connected' WHERE id = '${connectionId}' RETURNING id`)).rows).toEqual([{ id: connectionId }]);
+  });
   it("keeps legacy payment permission data aligned with the financial resource", async () => {
     await asUser(admin);
     await db.query(`UPDATE workspace_member_permissions SET permissions = (permissions - 'financial') || jsonb_build_object('payments', jsonb_build_object('read', true, 'create', true, 'update', false, 'delete', false)) WHERE tenant_id = '${tenant}' AND user_id = '${collaborator}'`);

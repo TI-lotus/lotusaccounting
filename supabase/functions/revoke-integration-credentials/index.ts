@@ -1,6 +1,6 @@
 import { handleCors } from "../_shared/cors.ts";
 import { errorResponse, jsonResponse } from "../_shared/responses.ts";
-import { requireAuthContext, requireWorkspaceManager } from "../_shared/auth.ts";
+import { requireAuthContext, requireWorkspacePermission } from "../_shared/auth.ts";
 import { createServiceClient } from "../_shared/supabase.ts";
 
 Deno.serve(async (request) => {
@@ -9,7 +9,7 @@ Deno.serve(async (request) => {
   if (request.method !== "POST") return errorResponse("method_not_allowed", 405);
   try {
     const context = await requireAuthContext(request);
-    requireWorkspaceManager(context);
+    await requireWorkspacePermission(context, "integrations", "delete");
     const body = (await request.json()) as { connectionId?: unknown };
     if (typeof body.connectionId !== "string") return errorResponse("connection_required", 400);
 

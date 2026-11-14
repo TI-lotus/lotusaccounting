@@ -2,10 +2,12 @@ import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Building2, MapPin, Calendar, FileText, Loader2 } from "lucide-react";
+import { Search, Building2, MapPin, Calendar, FileText, Loader2, ShieldAlert } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { querySerproCnpj } from "@/services/commercialMvp";
+import { useAuth } from "@/contexts/AuthContext";
+import { useWorkspacePermission } from "@/hooks/useWorkspacePermission";
 
 interface CNPJData {
   razao_social?: string;
@@ -28,6 +30,14 @@ interface CNPJData {
 }
 
 const SearchCNPJ = () => {
+  const { user, profile } = useAuth();
+  const canReadIntegrations = useWorkspacePermission({
+    tenantId: profile?.tenant_id ?? null,
+    userId: user?.id,
+    accountType: profile?.account_type,
+    resource: "integrations",
+    action: "read",
+  });
   const [cnpj, setCnpj] = useState("");
   const [loading, setLoading] = useState(false);
   const [companyData, setCompanyData] = useState<CNPJData | null>(null);
@@ -44,6 +54,10 @@ const SearchCNPJ = () => {
   };
 
   const handleSearch = async () => {
+    if (!canReadIntegrations) {
+      toast.error("Você não tem permissão para consultar CNPJs.");
+      return;
+    }
     const cleanCnpj = sanitizeCnpj(cnpj);
     if (cleanCnpj.length !== 14) {
       toast.error("CNPJ deve conter 14 dígitos numéricos");
@@ -88,6 +102,17 @@ const SearchCNPJ = () => {
 
   return (
     <DashboardLayout>
+      {!canReadIntegrations ? (
+        <div className="mx-auto flex min-h-[420px] max-w-xl flex-col items-center justify-center gap-4 text-center">
+          <ShieldAlert className="h-10 w-10 text-muted-foreground" aria-hidden="true" />
+          <div>
+            <h1 className="text-xl font-medium">Acesso restrito</h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Você não tem permissão para consultar dados cadastrais externos.
+            </p>
+          </div>
+        </div>
+      ) : (
       <div className="mx-auto w-full max-w-[1100px] space-y-8 animate-fade-in">
         <div>
           <Search className="mb-3 h-5 w-5 text-gilver" aria-hidden="true" />
@@ -195,6 +220,7 @@ const SearchCNPJ = () => {
           </Card>
         )}
       </div>
+      )}
     </DashboardLayout>
   );
 };

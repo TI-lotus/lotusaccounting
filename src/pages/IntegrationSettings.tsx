@@ -19,6 +19,7 @@ import {
   PowerOff,
   Play,
   Save,
+  ShieldAlert,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,6 +47,8 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useData } from "@/contexts/DataContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { useWorkspacePermission } from "@/hooks/useWorkspacePermission";
 import { getIntegrationCatalogItem } from "@/lib/integrationCatalog";
 import { BentoStatStrip } from "@/components/dashboard/BentoStatStrip";
 import { IconTooltipButton } from "@/components/IconTooltipButton";
@@ -62,12 +65,26 @@ type Credential = PublicCredentialMetadata;
 const IntegrationSettings = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user, profile } = useAuth();
   const { integrationConnections, tenantId, upsertIntegrationConnection, refresh } =
     useData();
   const integration = getIntegrationCatalogItem(id);
   const connection = integrationConnections.find(
     (item) => item.integration_id === id,
   );
+  const permissionParams = {
+    tenantId: tenantId ?? profile?.tenant_id ?? null,
+    userId: user?.id,
+    accountType: profile?.account_type,
+    resource: "integrations" as const,
+  };
+  const canReadIntegrations = useWorkspacePermission({ ...permissionParams, action: "read" });
+  const canCreateIntegrations = useWorkspacePermission({ ...permissionParams, action: "create" });
+  const canUpdateIntegrations = useWorkspacePermission({ ...permissionParams, action: "update" });
+  const canDeleteIntegrations = useWorkspacePermission({ ...permissionParams, action: "delete" });
+  const canManageIntegrations = connection
+    ? canUpdateIntegrations
+    : canCreateIntegrations;
 
   const [showSecret, setShowSecret] = useState<Record<string, boolean>>({});
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
@@ -132,6 +149,11 @@ const IntegrationSettings = () => {
     workflowNodes?: WorkflowNode[];
   }) => {
     if (!id || !integration) return;
+    const canWriteConnection = connection ? canUpdateIntegrations : canCreateIntegrations;
+    if (!canWriteConnection) {
+      toast.error("Você não tem permissão para alterar esta integração.");
+      return null;
+    }
     const currentConfig =
       connection?.config &&
       typeof connection.config === "object" &&
@@ -179,6 +201,10 @@ const IntegrationSettings = () => {
   };
 
   const addWorkflowNode = () => {
+    if (!canManageIntegrations) {
+      toast.error("Você não tem permissão para editar esta integração.");
+      return;
+    }
     setWorkflowNodes((nodes) => [
       ...nodes,
       {
@@ -191,6 +217,7 @@ const IntegrationSettings = () => {
   };
 
   const deleteWorkflowNode = (nodeId: string) => {
+    if (!canUpdateIntegrations) return;
     setWorkflowNodes((nodes) => nodes.filter((node) => node.id !== nodeId));
   };
 
@@ -212,6 +239,10 @@ const IntegrationSettings = () => {
   };
 
   const handleSaveWorkflow = async () => {
+    if (!canUpdateIntegrations) {
+      toast.error("Você não tem permissão para salvar o workflow.");
+      return;
+    }
     if (!await persistConnection({ workflowNodes })) return;
     toast.success("Workflow salvo com sucesso!");
   };
@@ -229,6 +260,22 @@ const IntegrationSettings = () => {
     );
   }
 
+  if (!canReadIntegrations) {
+    return (
+      <DashboardLayout>
+        <div className="mx-auto flex min-h-[420px] max-w-xl flex-col items-center justify-center gap-4 text-center">
+          <ShieldAlert className="h-10 w-10 text-muted-foreground" aria-hidden="true" />
+          <div>
+            <h1 className="text-xl font-medium">Acesso restrito</h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Você não tem permissão para configurar integrações neste workspace.
+            </p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   const usagePercent = usage.limit > 0 ? (usage.calls / usage.limit) * 100 : 0;
 
   const copyToClipboard = (text: string) => {
@@ -238,6 +285,11 @@ const IntegrationSettings = () => {
 
   const handleSaveFields = async () => {
     if (!id) return;
+    const canWriteConnection = connection ? canUpdateIntegrations : canCreateIntegrations;
+    if (!canWriteConnection) {
+      toast.error("Você não tem permissão para salvar esta configuração.");
+      return;
+    }
 
     const publicFields = Object.fromEntries(
       integration.fields
@@ -281,16 +333,22 @@ const IntegrationSettings = () => {
   };
 
   const handleConnect = async () => {
+    if (!canManageIntegrations) return;
     if (!await persistConnection({ status: "pending" })) return;
     toast.info(`${integration.name} aguardando validação de conexão.`);
   };
 
   const handleDisconnect = async () => {
+    if (!canUpdateIntegrations) return;
     if (!await persistConnection({ status: "disconnected" })) return;
     toast.success(`${integration.name} desconectado.`);
   };
 
   const handleTestConnection = async () => {
+    if (!canManageIntegrations) {
+      toast.error("Você não tem permissão para testar esta integração.");
+      return;
+    }
     if (!tenantId || !id) {
       toast.error("Tenant não encontrado para testar a integração");
       return;
@@ -318,12 +376,17 @@ const IntegrationSettings = () => {
   };
 
   const handleCreateCredential = () => {
+    if (!canCreateIntegrations) return;
     setNewCredName("");
     setNewCredDialogOpen(false);
     toast.info("Cadastre os campos secretos na aba Configurações para gravar uma credencial real.");
   };
 
   const handleDeleteCredential = async () => {
+    if (!canDeleteIntegrations) {
+      toast.error("Você não tem permissão para revogar credenciais.");
+      return;
+    }
     if (!connection?.id) {
       toast.error("Não há credencial persistida para remover.");
       return;
@@ -378,13 +441,14 @@ const IntegrationSettings = () => {
                   variant="outline"
                   className="rounded-xl gap-2 text-destructive"
                   onClick={handleDisconnect}
+                  disabled={!canUpdateIntegrations}
                 >
                   <PowerOff className="h-4 w-4" />
                   Desconectar
                 </Button>
               </>
             ) : (
-              <Button className="rounded-xl gap-2" onClick={handleConnect}>
+              <Button className="rounded-xl gap-2" onClick={handleConnect} disabled={!canManageIntegrations}>
                 <Power className="h-4 w-4" />
                 Conectar
               </Button>
@@ -418,6 +482,7 @@ const IntegrationSettings = () => {
                 variant="outline"
                 className="rounded-xl gap-2"
                 onClick={addWorkflowNode}
+                disabled={!canManageIntegrations}
               >
                 <Plus className="h-4 w-4" />
                 Adicionar node
@@ -426,11 +491,12 @@ const IntegrationSettings = () => {
                 variant="outline"
                 className="rounded-xl gap-2"
                 onClick={handleSaveWorkflow}
+                disabled={!canUpdateIntegrations}
               >
                 <Save className="h-4 w-4" />
                 Salvar alterações
               </Button>
-              <Button className="rounded-xl gap-2">
+              <Button className="rounded-xl gap-2" disabled={!canUpdateIntegrations}>
                 <Play className="h-4 w-4" />
                 Executar
               </Button>
@@ -570,6 +636,7 @@ const IntegrationSettings = () => {
                               [field.key]: e.target.value,
                             })
                           }
+                          disabled={!canManageIntegrations}
                           placeholder={`Insira ${field.label.toLowerCase()}`}
                           className="font-mono text-sm rounded-xl pr-10"
                         />
@@ -614,13 +681,14 @@ const IntegrationSettings = () => {
                 <Separator className="my-4" />
 
                 <div className="flex gap-2">
-                  <Button onClick={handleSaveFields} className="rounded-xl">
+                  <Button onClick={handleSaveFields} className="rounded-xl" disabled={!canManageIntegrations}>
                     Salvar Configuração
                   </Button>
                   <Button
                     variant="outline"
                     className="rounded-xl"
                     onClick={handleTestConnection}
+                    disabled={!canManageIntegrations}
                   >
                     Testar Conexão
                   </Button>
@@ -656,7 +724,7 @@ const IntegrationSettings = () => {
                 onOpenChange={setNewCredDialogOpen}
               >
                 <DialogTrigger asChild>
-                  <Button className="rounded-xl gap-2">
+                  <Button className="rounded-xl gap-2" disabled={!canCreateIntegrations}>
                     <Plus className="h-4 w-4" />
                     Nova Credencial
                   </Button>
@@ -763,6 +831,7 @@ const IntegrationSettings = () => {
                         size="sm"
                         className="rounded-lg gap-1 text-destructive"
                         onClick={handleDeleteCredential}
+                        disabled={!canDeleteIntegrations}
                       >
                         <Trash2 className="h-3 w-3" />
                         Remover

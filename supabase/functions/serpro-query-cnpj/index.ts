@@ -1,6 +1,6 @@
 import { handleCors } from "../_shared/cors.ts";
 import { errorResponse, jsonResponse } from "../_shared/responses.ts";
-import { requireAuthContext, requireWorkspaceManager } from "../_shared/auth.ts";
+import { requireAuthContext, requireWorkspacePermission } from "../_shared/auth.ts";
 import { querySerproCnpj } from "../_shared/provider-registry.ts";
 
 Deno.serve(async (request) => {
@@ -10,7 +10,7 @@ Deno.serve(async (request) => {
 
   try {
     const context = await requireAuthContext(request);
-    requireWorkspaceManager(context);
+    await requireWorkspacePermission(context, "integrations", "read");
     const body = await request.json();
     const cnpj = typeof body.cnpj === "string" ? body.cnpj.replace(/\D/g, "") : "";
     if (cnpj.length !== 14) return errorResponse("cnpj_invalid", 400);

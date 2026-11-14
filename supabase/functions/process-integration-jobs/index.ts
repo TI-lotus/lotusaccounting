@@ -1,6 +1,6 @@
 import { handleCors } from "../_shared/cors.ts";
 import { errorResponse, jsonResponse } from "../_shared/responses.ts";
-import { requireAuthContext, requireWorkspaceManager } from "../_shared/auth.ts";
+import { requireAuthContext, requireWorkspacePermission } from "../_shared/auth.ts";
 import { requireScheduler } from "../_shared/scheduler.ts";
 import {
   claimNextIntegrationJob,
@@ -25,7 +25,7 @@ Deno.serve(async (request) => {
       workerId = `scheduler-${crypto.randomUUID()}`;
     } else {
       const context = await requireAuthContext(request);
-      requireWorkspaceManager(context);
+      await requireWorkspacePermission(context, "integrations", "update");
       tenantId = context.tenantId;
       workerId = `manual-${context.userId}`;
     }
