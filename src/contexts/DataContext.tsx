@@ -300,6 +300,7 @@ const mapDocumentRequest = (r: Row): DocumentRequestData => ({
 
 interface DataContextType {
   loading: boolean;
+  dataError: string | null;
   tenantId: string | null;
 
   clients: ClientData[];
@@ -429,6 +430,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   const [profileCompanyId, setProfileCompanyId] = useState<string | null>(null);
   const [accountType, setAccountType] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [dataError, setDataError] = useState<string | null>(null);
 
   const [clients, setClients] = useState<ClientData[]>([]);
   const [clientPeriods, setClientPeriods] = useState<ClientPeriodData[]>([]);
@@ -477,6 +479,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       setTenantId(null);
       setProfileCompanyId(null);
       setAccountType(null);
+      setDataError(null);
       setLoading(false);
       return;
     }
@@ -558,7 +561,10 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     if (revision !== fetchRevision.current) return;
     if (companiesRes.error) {
       console.error("Could not load workspace clients", companiesRes.error);
+      setDataError("Não foi possível carregar os clientes. Atualize os dados para tentar novamente.");
       toast.error("Não foi possível carregar os clientes. Tente atualizar a lista.");
+    } else {
+      setDataError(null);
     }
     const clientList = (companiesRes.data ?? []).map(mapClient);
     const clientsById = new Map(clientList.map((c) => [c.id, c]));
@@ -600,8 +606,10 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     ].filter((result) => result.error);
     if (failures.length) {
       console.error("Some workspace data could not be loaded", failures);
+      setDataError("Alguns dados do workspace não puderam ser carregados. Atualize os dados para tentar novamente.");
       toast.error("Alguns dados do workspace não puderam ser carregados. Tente atualizar a página.");
     }
+    if (!failures.length && !companiesRes.error) setDataError(null);
 
     setClientPeriods((clientPeriodsRes.data ?? []).map(mapClientPeriod));
     setClientPeriodSteps((clientPeriodStepsRes.data ?? []).map(mapClientPeriodStep));
@@ -656,7 +664,10 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       ...prev.filter((item) => item.type !== "integration_alert"),
     ]);
     } catch (error) {
-      if (revision === fetchRevision.current) toast.error("Erro ao carregar dados: " + (error instanceof Error ? error.message : "Tente novamente."));
+      if (revision === fetchRevision.current) {
+        setDataError("O workspace não pôde ser atualizado. Verifique sua conexão e tente novamente.");
+        toast.error("Erro ao carregar dados: " + (error instanceof Error ? error.message : "Tente novamente."));
+      }
     } finally {
       if (revision === fetchRevision.current) setLoading(false);
     }
@@ -666,7 +677,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     const revisionCounter = fetchRevision;
     setClients([]); setTasks([]); setTaskReviews([]); setOperationalComments([]); setDocuments([]); setDocumentRequests([]); setPayments([]); setInvoices([]);
     setClientPeriods([]); setClientPeriodSteps([]); setClientPeriodChecklistItems([]); setFiscalObligations([]); setWorkspaceSettings(null); setIntegrationConnections([]);
-    setNotifications([]); setPipelineHistory([]); setTenantId(null);
+    setNotifications([]); setPipelineHistory([]); setTenantId(null); setDataError(null);
     return () => { ++revisionCounter.current; };
   }, [user?.id, profile?.tenant_id]);
 
@@ -693,6 +704,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       setTenantId(null);
       setProfileCompanyId(null);
       setAccountType(null);
+      setDataError(null);
       setLoading(false);
       return;
     }
@@ -2312,6 +2324,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     <DataContext.Provider
       value={{
         loading,
+        dataError,
         tenantId,
         clients,
         addClient,

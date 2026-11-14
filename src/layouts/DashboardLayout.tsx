@@ -5,7 +5,9 @@ import { TopBar } from "@/components/TopBar";
 import { ChatBox, ChatPanelState } from "@/components/ChatBox";
 import { cn } from "@/lib/utils";
 import { useViewMode } from "@/contexts/ViewModeContext";
-import { WifiOff } from "lucide-react";
+import { AlertTriangle, RefreshCw, WifiOff } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useData } from "@/contexts/DataContext";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -17,6 +19,7 @@ const STORAGE_KEY = "lia-chat-panel-state";
 export const DashboardLayout = ({ children, className }: DashboardLayoutProps) => {
   const location = useLocation();
   const { isCollapsed, setIsCollapsed } = useViewMode();
+  const { dataError, refresh } = useData();
   const isMessagesPage = location.pathname === "/messages";
   const isLiaPage = location.pathname === "/lia";
   const [chatState, setChatState] = useState<ChatPanelState>(() => {
@@ -78,6 +81,19 @@ export const DashboardLayout = ({ children, className }: DashboardLayoutProps) =
           className
         )}
       >
+        {!isMessagesPage && dataError && (
+          <div
+            role="alert"
+            className="mx-auto mb-4 flex w-full max-w-[1440px] flex-wrap items-center gap-3 rounded-2xl border border-gilver/30 bg-gilver/10 px-4 py-3 text-sm text-foreground"
+          >
+            <AlertTriangle className="h-4 w-4 shrink-0 text-gilver" aria-hidden="true" />
+            <p className="min-w-0 flex-1">{dataError}</p>
+            <Button type="button" variant="outline" size="sm" className="rounded-xl" onClick={() => void refresh()}>
+              <RefreshCw className="mr-2 h-3.5 w-3.5" aria-hidden="true" />
+              Atualizar dados
+            </Button>
+          </div>
+        )}
         <div className="page-frame mx-auto h-full min-h-0 w-full min-w-0 max-w-[1440px]">
           {children}
         </div>
