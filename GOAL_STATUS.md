@@ -6,7 +6,7 @@ contabilidade, sem depender de integrações externas nesta etapa.
 ## Estado atual
 
 - Branch de trabalho: `staging`.
-- Último commit enviado: `7deb0e9`.
+- Último commit enviado: `4f88de6`.
 - Última validação automatizada: 14/11/2026; typecheck, testes, lint e build
   aprovados no branch `staging`.
 - Typecheck: aprovado.
@@ -30,7 +30,7 @@ contabilidade, sem depender de integrações externas nesta etapa.
 | 6 | Mensagens, leitura, busca, fixação e arquivamento | Implementado; falta teste autenticado | `src/pages/Messages.tsx` e migrations de mensagens |
 | 7 | Financeiro interno, faturas, baixas, cancelamentos e CSV | Implementado; falta QA financeiro | `src/pages/Payments.tsx`, `src/pages/Invoices.tsx`, `src/pages/Reports.tsx` e migration `20261114230000_linked_payment_integrity.sql` |
 | 8 | UX, responsividade, acessibilidade e estados de erro | Implementado em código; falta inspeção visual | `AppErrorBoundary`, `DashboardLayout`, `MANUAL_QA_EVIDENCE.md` |
-| 9 | Auditoria, alertas, duplicidade e recuperação | Automatizado; falta validar cron no Supabase real | migrations `operational_alert_engine`, `operational_audit`, `linked_payment_integrity` e testes |
+| 9 | Auditoria, alertas, duplicidade e recuperação | Automatizado; falta validar cron no Supabase real | migrations `operational_alert_engine`, `operational_audit`, `linked_payment_integrity`, `payment_history_integrity` e testes |
 | 10 | Onboarding, demonstração, treinamento e smoke test final | Parcialmente implementado | `OPERATIONAL_MVP_RUNBOOK.md` e `OnboardingChecklist` |
 
 ## Gate de encerramento
