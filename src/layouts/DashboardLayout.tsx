@@ -43,9 +43,18 @@ export const DashboardLayout = ({ children, className }: DashboardLayoutProps) =
       "flex min-h-screen w-full flex-col bg-background",
       isMessagesPage && "h-[100dvh] min-h-0 overflow-hidden",
     )}>
+      <a
+        href="#main-content"
+        className="sr-only fixed left-3 top-3 z-[100] rounded-lg bg-foreground px-3 py-2 text-sm font-medium text-background focus:not-sr-only focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+      >
+        Pular para o conteúdo principal
+      </a>
       <TopBar />
       <AppSidebar />
       <main
+        id="main-content"
+        tabIndex={-1}
+        aria-label="Conteúdo principal"
         className={cn(
           "min-h-0 min-w-0 flex-1 overflow-x-hidden px-4 py-5 sm:px-6 sm:py-6 lg:pr-8 lg:transition-[padding] lg:duration-300",
           isCollapsed ? "lg:pl-[5.5rem]" : "lg:pl-[17rem]",

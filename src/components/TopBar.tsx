@@ -496,8 +496,14 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
           <Popover open={showResults} onOpenChange={setShowResults}>
             <PopoverAnchor asChild>
               <div className={cn("topbar-search-field", showResults && "is-open")}>
-                <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
                 <Input
+                  id="global-search"
+                  name="global-search"
+                  aria-label="Buscar na plataforma"
+                  aria-expanded={showResults}
+                  aria-controls="global-search-results"
+                  autoComplete="off"
                   placeholder="Busque clientes, tarefas ou use / para conversar…"
                   className={cn(
                     "topbar-search-input h-auto min-w-0 flex-1 rounded-none border-0 bg-transparent p-0 text-xs shadow-none focus-visible:border-transparent focus-visible:ring-0 md:text-xs",
@@ -554,7 +560,7 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
                     title="Limpar busca"
                     className="topbar-search-clear text-muted-foreground hover:text-foreground"
                   >
-                    <X className="h-4 w-4" />
+                    <X className="h-4 w-4" aria-hidden="true" />
                   </button>
                 )}
               </div>
@@ -565,6 +571,7 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
                 side="bottom"
                 sideOffset={10}
                 collisionPadding={16}
+                id="global-search-results"
                 className="global-search-dropdown judex-floating z-[99999] w-auto max-h-[420px] overflow-hidden p-0"
                 onOpenAutoFocus={(event) => event.preventDefault()}
                 onCloseAutoFocus={(event) => event.preventDefault()}

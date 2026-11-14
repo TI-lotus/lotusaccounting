@@ -53,7 +53,7 @@ export const PageShell = ({
   filters,
   searchValue,
   onSearchChange,
-  searchPlaceholder = "Buscar...",
+  searchPlaceholder = "Buscar…",
   filterCount = 0,
   onClearFilters,
   children,
