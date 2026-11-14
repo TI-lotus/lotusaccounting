@@ -1293,7 +1293,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         patch.blocked_reason = updates.blockedReason?.trim() || null;
       if (updates.priority !== undefined) patch.priority = updates.priority;
       if (updates.dueDate !== undefined)
-        patch.due_date = new Date(updates.dueDate).toISOString();
+        patch.due_date = updates.dueDate ? new Date(updates.dueDate).toISOString() : null;
       if (updates.category !== undefined) patch.category = updates.category;
       if (updates.clientId !== undefined)
         patch.company_id = asUuid(updates.clientId);

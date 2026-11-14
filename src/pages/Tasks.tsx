@@ -13,6 +13,7 @@ import {
   Columns3,
   Trash2,
   Eye,
+  Edit,
   RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -66,7 +67,7 @@ const currentMonthRange = () => {
 };
 
 const Tasks = () => {
-  const { tasks, addTask, generateRecurringTasks, updateTaskStatus, deleteTask, clients, tenantId } = useData();
+  const { tasks, addTask, updateTask, generateRecurringTasks, updateTaskStatus, deleteTask, clients, tenantId } = useData();
   const { viewMode } = useViewMode();
   const { user, profile } = useAuth();
   const canCreateTasks = useWorkspacePermission({
@@ -103,6 +104,7 @@ const Tasks = () => {
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [dragOverStatus, setDragOverStatus] = useState<TaskStatus | null>(null);
   const [selectedTask, setSelectedTask] = useState<TaskData | null>(null);
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<TaskData | null>(null);
   const [blockTarget, setBlockTarget] = useState<TaskData | null>(null);
   const [blockReason, setBlockReason] = useState("");
@@ -144,6 +146,19 @@ const Tasks = () => {
   const assignees = activeAssignees.length
     ? activeAssignees.map((member) => [member.user_id, member.full_name || "Sem nome"] as [string, string])
     : user?.id ? [[user.id, currentUserName] as [string, string]] : [];
+  const canManageAssignments = profile?.account_type === "admin";
+  const availableAssignees = canManageAssignments
+    ? assignees
+    : assignees.filter(([id]) => id === user?.id);
+  const editingTask = editingTaskId ? tasks.find((task) => task.id === editingTaskId) ?? null : null;
+  const assignmentOptions = editingTask && !editingTask.assignedToId
+    ? [["unassigned", "Sem responsável"] as [string, string], ...availableAssignees]
+    : availableAssignees;
+  const canEditTask = (task: TaskData) => canUpdateTasks && (
+    profile?.account_type === "admin" ||
+    !task.assignedToId ||
+    task.assignedToId === user?.id
+  );
 
   const filteredTasks = filterTasks(tasks, {
     status: "all",
@@ -166,29 +181,89 @@ const Tasks = () => {
     updateTaskStatus(taskId, newStatus);
   };
 
-  const handleCreateTask = async () => {
-    if (!canCreateTasks) return;
-    if (!newTask.title.trim()) return;
-    const selectedClient = clients.find((c) => c.id === newTask.clientId);
+  const openTaskEditor = (task?: TaskData) => {
+    if (!task) {
+      setEditingTaskId(null);
+      setNewTask({
+        title: "",
+        description: "",
+        priority: "medium",
+        dueDate: "",
+        category: "",
+        clientId: "",
+        assignedToId: user?.id ?? "",
+        type: "monthly",
+      });
+      setDialogOpen(true);
+      return;
+    }
+
+    if (!canEditTask(task)) {
+      toast.error("Você só pode editar tarefas sem responsável ou atribuídas a você.");
+      return;
+    }
+
+    setEditingTaskId(task.id);
+    setNewTask({
+      title: task.title,
+      description: task.description,
+      priority: task.priority,
+      dueDate: task.dueDate ? task.dueDate.slice(0, 10) : "",
+      category: task.category,
+      clientId: task.clientId ?? "",
+      assignedToId: task.assignedToId || "unassigned",
+      type: task.type,
+    });
+    setSelectedTask(null);
+    setDialogOpen(true);
+  };
+
+  const handleSaveTask = async () => {
+    if (!newTask.title.trim()) {
+      toast.error("Informe o título da tarefa");
+      return;
+    }
+    const selectedClient = clients.find((client) => client.id === newTask.clientId);
+    const selectedAssigneeId = newTask.assignedToId === "unassigned" ? null : newTask.assignedToId;
     const assigneeName =
-      assignees.find(([id]) => id === newTask.assignedToId)?.[1] ||
+      assignmentOptions.find(([id]) => id === newTask.assignedToId)?.[1] ||
+      (editingTaskId ? tasks.find((task) => task.id === editingTaskId)?.assignedToName : null) ||
       "Sem responsável";
 
-    const saved = await addTask({
-      title: newTask.title,
-      description: newTask.description,
-      status: "pending",
-      priority: newTask.priority,
-      type: newTask.type,
-      dueDate: newTask.dueDate,
-      category: newTask.category || "Geral",
-      clientId: newTask.clientId || null,
-      clientName: selectedClient?.name ?? null,
-      assignedToId: newTask.assignedToId,
-      assignedToName: assigneeName,
-    });
-    if (!saved) return;
+    if (editingTaskId) {
+      const saved = await updateTask(editingTaskId, {
+        title: newTask.title.trim(),
+        description: newTask.description,
+        type: newTask.type,
+        priority: newTask.priority,
+        dueDate: newTask.dueDate,
+        category: newTask.category || "Geral",
+        clientId: newTask.clientId || null,
+        clientName: selectedClient?.name ?? null,
+        assignedToId: selectedAssigneeId ?? "",
+        assignedToName: assigneeName,
+      });
+      if (!saved) return;
+      toast.success("Tarefa atualizada");
+    } else {
+      const saved = await addTask({
+        title: newTask.title.trim(),
+        description: newTask.description,
+        status: "pending",
+        priority: newTask.priority,
+        type: newTask.type,
+        dueDate: newTask.dueDate,
+        category: newTask.category || "Geral",
+        clientId: newTask.clientId || null,
+        clientName: selectedClient?.name ?? null,
+        assignedToId: newTask.assignedToId,
+        assignedToName: assigneeName,
+      });
+      if (!saved) return;
+    }
 
+    setEditingTaskId(null);
+    setDialogOpen(false);
     setNewTask({
       title: "",
       description: "",
@@ -199,7 +274,6 @@ const Tasks = () => {
       assignedToId: user?.id ?? "",
       type: "monthly",
     });
-    setDialogOpen(false);
   };
 
   const handleGenerateRecurringTasks = async () => {
@@ -429,21 +503,28 @@ const Tasks = () => {
               />
             )}
             {viewMode !== "client" && canCreateTasks && (
-              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <Dialog open={dialogOpen} onOpenChange={(open) => {
+                setDialogOpen(open);
+                if (!open) setEditingTaskId(null);
+              }}>
                 <DialogTrigger asChild>
-                  <Button className="gap-2">
+                  <Button className="gap-2" onClick={() => openTaskEditor()}>
                     <Plus className="h-4 w-4" />
                     Nova Tarefa
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>Criar Nova Tarefa</DialogTitle>
+                    <DialogTitle>{editingTaskId ? "Editar tarefa" : "Criar nova tarefa"}</DialogTitle>
+                    <DialogDescription>
+                      {editingTaskId ? "Atualize os dados operacionais sem alterar o histórico de status." : "Defina responsável, prazo e contexto para a execução."}
+                    </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4 pt-4">
                     <div className="space-y-2">
-                      <Label>Título</Label>
+                      <Label htmlFor="task-editor-title">Título</Label>
                       <Input
+                        id="task-editor-title"
                         placeholder="Digite o título da tarefa"
                         value={newTask.title}
                         onChange={(e) =>
@@ -452,8 +533,9 @@ const Tasks = () => {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>Descrição</Label>
+                      <Label htmlFor="task-editor-description">Descrição</Label>
                       <Textarea
+                        id="task-editor-description"
                         placeholder="Descreva a tarefa"
                         value={newTask.description}
                         onChange={(e) =>
@@ -466,14 +548,14 @@ const Tasks = () => {
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label>Tipo</Label>
+                        <Label htmlFor="task-editor-type">Tipo</Label>
                         <Select
                           value={newTask.type}
                           onValueChange={(v: TaskType) =>
                             setNewTask({ ...newTask, type: v })
                           }
                         >
-                          <SelectTrigger>
+                          <SelectTrigger id="task-editor-type">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -484,14 +566,14 @@ const Tasks = () => {
                         </Select>
                       </div>
                       <div className="space-y-2">
-                        <Label>Prioridade</Label>
+                        <Label htmlFor="task-editor-priority">Prioridade</Label>
                         <Select
                           value={newTask.priority}
                           onValueChange={(v: TaskPriority) =>
                             setNewTask({ ...newTask, priority: v })
                           }
                         >
-                          <SelectTrigger>
+                          <SelectTrigger id="task-editor-priority">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -504,8 +586,9 @@ const Tasks = () => {
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label>Data Limite</Label>
+                        <Label htmlFor="task-editor-due-date">Data limite</Label>
                         <Input
+                          id="task-editor-due-date"
                           type="date"
                           value={newTask.dueDate}
                           onChange={(e) =>
@@ -514,8 +597,9 @@ const Tasks = () => {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label>Categoria</Label>
+                        <Label htmlFor="task-editor-category">Categoria</Label>
                         <Input
+                          id="task-editor-category"
                           placeholder="Ex: Fiscal, Contratos"
                           value={newTask.category}
                           onChange={(e) =>
@@ -526,14 +610,14 @@ const Tasks = () => {
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label>Cliente</Label>
+                        <Label htmlFor="task-editor-client">Cliente</Label>
                         <Select
                           value={newTask.clientId}
                           onValueChange={(v) =>
                             setNewTask({ ...newTask, clientId: v })
                           }
                         >
-                          <SelectTrigger>
+                          <SelectTrigger id="task-editor-client">
                             <SelectValue placeholder="Selecione" />
                           </SelectTrigger>
                           <SelectContent>
@@ -546,18 +630,19 @@ const Tasks = () => {
                         </Select>
                       </div>
                       <div className="space-y-2">
-                        <Label>Responsável</Label>
+                        <Label htmlFor="task-editor-assignee">Responsável</Label>
                         <Select
                           value={newTask.assignedToId}
                           onValueChange={(v) =>
                             setNewTask({ ...newTask, assignedToId: v })
                           }
+                          disabled={!canManageAssignments || editingTask?.status === "completed"}
                         >
-                          <SelectTrigger>
-                            <SelectValue />
+                          <SelectTrigger id="task-editor-assignee">
+                            <SelectValue placeholder={canManageAssignments ? "Selecione" : "Você"} />
                           </SelectTrigger>
                           <SelectContent>
-                            {assignees.map(([id, name]) => (
+                            {assignmentOptions.map(([id, name]) => (
                               <SelectItem key={id} value={id}>
                                 {name}
                               </SelectItem>
@@ -566,8 +651,13 @@ const Tasks = () => {
                         </Select>
                       </div>
                     </div>
-                    <Button onClick={handleCreateTask} className="w-full">
-                      Criar Tarefa
+                    {!canManageAssignments && (
+                      <p className="text-xs text-muted-foreground">
+                        Colaboradores podem criar e editar tarefas próprias; a distribuição para outra pessoa fica com o administrador.
+                      </p>
+                    )}
+                    <Button onClick={() => void handleSaveTask()} className="w-full">
+                      {editingTaskId ? "Salvar alterações" : "Criar tarefa"}
                     </Button>
                   </div>
                 </DialogContent>
@@ -761,6 +851,7 @@ const Tasks = () => {
                 menuItems={[
                   ...(canUpdateTasks && task.status !== "completed" ? [{ label: "Concluir", icon: CheckCircle2, onSelect: () => void updateTaskStatus(task.id, "completed") }] : []),
                   ...(canUpdateTasks && task.status !== "in_progress" && task.status !== "completed" ? [{ label: "Iniciar", icon: Clock, onSelect: () => void updateTaskStatus(task.id, "in_progress") }] : []),
+                  ...(canEditTask(task) ? [{ label: "Editar tarefa", icon: Edit, onSelect: () => openTaskEditor(task) }] : []),
                   ...(viewMode !== "client" && canDeleteTasks ? [{ label: "Remover tarefa", icon: Trash2, destructive: true, separatorBefore: true, onSelect: () => setDeleteTarget(task) }] : []),
                 ]}
               />
@@ -808,6 +899,11 @@ const Tasks = () => {
                     </Button>
                   )}
                   <div className="flex flex-wrap gap-2">
+                  {canEditTask(selectedTask) && (
+                      <Button variant="outline" className="rounded-xl" onClick={() => openTaskEditor(selectedTask)}>
+                        <Edit className="mr-2 h-4 w-4" />Editar
+                      </Button>
+                    )}
                   {canUpdateTasks && selectedTask.status !== "pending" && (
                       <Button variant="outline" className="rounded-xl" onClick={() => { void updateTaskStatus(selectedTask.id, "pending"); setSelectedTask(null); }}>Marcar pendente</Button>
                     )}

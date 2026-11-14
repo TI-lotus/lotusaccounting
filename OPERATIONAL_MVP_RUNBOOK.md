@@ -28,20 +28,22 @@ ambiente de staging. Integrações externas ficam fora deste roteiro.
    `Dispensado`.
 7. Abrir `Tarefas`, atribuir tarefas pendentes, mover uma tarefa no kanban,
    registrar comentário e enviar uma tarefa crítica para revisão.
-8. Criar uma tarefa mensal ou anual com prazo e confirmar que ela entra na
+8. Editar uma tarefa pendente e confirmar a persistência do cliente, prazo,
+   prioridade, categoria e descrição após recarregar a tela.
+9. Criar uma tarefa mensal ou anual com prazo e confirmar que ela entra na
    série recorrente. Ao abrir `Tarefas`, conferir que as próximas ocorrências
    são geradas sem duplicidade; a rotina interna também as verifica diariamente
    mesmo quando ninguém está na tela.
-9. Tentar atribuir uma tarefa concluída. O sistema deve bloquear a alteração e
+10. Tentar atribuir uma tarefa concluída. O sistema deve bloquear a alteração e
    pedir que a tarefa seja reaberta primeiro.
-10. Aprovar ou reprovar a revisão com comentário. A aprovação conclui o item;
+11. Aprovar ou reprovar a revisão com comentário. A aprovação conclui o item;
    a reprovação devolve a execução para andamento.
-11. Registrar uma receita, uma despesa, uma fatura e uma baixa. Conferir os
+12. Registrar uma receita, uma despesa, uma fatura e uma baixa. Conferir os
     totais em `Financeiro`, o extrato em `Pagamentos` e exportar o resultado
     filtrado em CSV.
-12. Fechar a competência somente depois que pendências, evidências e revisões
+13. Fechar a competência somente depois que pendências, evidências e revisões
     estiverem resolvidas. Confirmar o status `Fechada` e o histórico do cliente.
-13. Verificar `Notificações`, `Agenda`, `Relatórios` e os registros de atividade.
+14. Verificar `Notificações`, `Agenda`, `Relatórios` e os registros de atividade.
 
 ## Roteiro do colaborador
 
@@ -50,13 +52,15 @@ ambiente de staging. Integrações externas ficam fora deste roteiro.
    permitidas pela matriz.
 3. Iniciar, bloquear com motivo, comentar, concluir e enviar uma tarefa para
    revisão.
-4. Abrir documentos e solicitações, anexar ou revisar apenas o que a permissão
+4. Editar uma tarefa sem responsável ou atribuída ao próprio usuário. Confirmar
+   que a distribuição para outra pessoa fica restrita ao administrador.
+5. Abrir documentos e solicitações, anexar ou revisar apenas o que a permissão
    permite.
-5. Abrir mensagens, iniciar conversa autorizada, marcar como lida, fixar e
+6. Abrir mensagens, iniciar conversa autorizada, marcar como lida, fixar e
    arquivar uma conversa.
-6. Abrir uma área financeira sem permissão de escrita. A interface deve ocultar
+7. Abrir uma área financeira sem permissão de escrita. A interface deve ocultar
    a ação e o banco deve rejeitar uma tentativa direta.
-7. Confirmar que não consegue convidar usuários, alterar configurações do
+8. Confirmar que não consegue convidar usuários, alterar configurações do
    workspace, editar templates globais ou reativar o próprio acesso.
 
 ## Roteiro do cliente

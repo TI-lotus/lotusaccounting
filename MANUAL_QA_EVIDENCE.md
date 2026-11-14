@@ -34,6 +34,8 @@ feito no staging liberado, antes de qualquer promoção para `main`.
 - [ ] Criar cliente com CNPJ formatado e confirmar normalização.
 - [ ] Convidar colaborador e cliente; conferir status e entrega do convite.
 - [ ] Criar competência sem duplicar etapas, checklist, tarefas ou obrigações.
+- [ ] Editar uma tarefa pendente, alterar cliente/prazo/prioridade e confirmar a persistência após recarregar.
+- [ ] Confirmar que a atribuição para outro colaborador fica disponível ao administrador e não aparece para colaborador comum.
 - [ ] Solicitar documento, aprovar, recusar com motivo e dispensar com justificativa.
 - [ ] Registrar receita, despesa, fatura, baixa, cancelamento permitido e exportar CSV.
 - [ ] Tentar fechar competência com pendência; confirmar bloqueio.
@@ -43,6 +45,7 @@ feito no staging liberado, antes de qualquer promoção para `main`.
 
 - [ ] Visualizar apenas clientes, tarefas e documentos permitidos pela matriz.
 - [ ] Iniciar tarefa, bloquear com motivo, comentar e enviar para revisão.
+- [ ] Editar uma tarefa sem responsável ou atribuída ao próprio colaborador; confirmar que não consegue assumir a distribuição de outra pessoa.
 - [ ] Confirmar que não consegue escrever no financeiro sem permissão.
 - [ ] Confirmar que tarefa concluída não pode receber nova atribuição.
 - [ ] Fixar e arquivar conversa autorizada; recuperar a conversa arquivada.
