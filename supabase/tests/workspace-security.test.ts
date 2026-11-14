@@ -83,6 +83,7 @@ beforeAll(async () => {
   await db.exec(migration("20260917150000_fix_internal_messaging_guard.sql"));
   await db.exec(migration("20260917151000_message_receipts_and_member_directory.sql"));
   await db.exec(migration("20260917152000_message_notification_deep_links.sql"));
+  await db.exec(migration("20260827090000_financial_reconciliation_invoice_sync.sql"));
   await db.exec(migration("20260923120000_client_periods.sql"));
   await db.exec(migration("20260923121000_client_period_steps.sql"));
   await db.exec(migration("20260923122000_operational_checklists.sql"));
@@ -103,6 +104,7 @@ beforeAll(async () => {
   await db.exec(migration("20261109150000_task_delete_permission_fix.sql"));
   await db.exec(migration("20261114100000_normalize_financial_permission_key.sql"));
   await db.exec(migration("20261114140000_period_close_requirements.sql"));
+  await db.exec(migration("20261114150000_financial_integrity_guards.sql"));
   // Seed auth identities before enabling the onboarding trigger. The initial
   // workspace fixture below owns their public profile/user records directly.
   await db.exec(`INSERT INTO auth.users(id, email) VALUES ('${admin}', 'admin@example.com'), ('${client}', 'client-owner@example.com'), ('${collaborator}', 'collaborator@example.com')`);
@@ -808,12 +810,23 @@ describe("workspace security regression", () => {
     )).rows).toEqual([{ user_id: collaborator, href: "/invoices" }]);
 
     await asUser(admin);
-    await db.query("UPDATE invoices SET status = 'paid' WHERE id = $1", [invoiceId]);
+    await db.query(`INSERT INTO payments(id, tenant_id, company_id, invoice_id, amount, status, direction) VALUES ('${id(45)}', '${tenant}', '${company}', '${invoiceId}', 100, 'completed', 'income')`);
     await asUser(collaborator);
     expect((await db.query<{ read_at: string | null }>(
       "SELECT read_at FROM user_notifications WHERE kind = 'invoice_overdue' AND metadata ->> 'invoice_id' = $1",
       [invoiceId],
     )).rows[0].read_at).not.toBeNull();
+  });
+  it("protects invoice and reconciled payment financial invariants", async () => {
+    await asUser(admin);
+    const invoiceId = id(46);
+    await db.query(`INSERT INTO invoices(id, tenant_id, company_id, amount, status) VALUES ('${invoiceId}', '${tenant}', '${company}', 100, 'pending')`);
+    await expect(db.query("UPDATE invoices SET status = 'paid' WHERE id = $1", [invoiceId])).rejects.toThrow(/completed payment/);
+
+    const paymentId = id(47);
+    await db.query(`INSERT INTO payments(id, tenant_id, company_id, invoice_id, amount, status, paid_at, reconciled_at, direction) VALUES ('${paymentId}', '${tenant}', '${company}', '${invoiceId}', 100, 'completed', now(), now(), 'income')`);
+    await expect(db.query("DELETE FROM payments WHERE id = $1", [paymentId])).rejects.toThrow(/Reconciled payments cannot be deleted/);
+    await expect(db.query("UPDATE invoices SET status = 'pending' WHERE id = $1", [invoiceId])).rejects.toThrow(/cannot be reopened/);
   });
   it("archives only read notifications older than the retention window", async () => {
     await db.exec("RESET ROLE; SELECT set_config('request.jwt.claim.role', 'service_role', false)");
