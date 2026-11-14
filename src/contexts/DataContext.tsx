@@ -735,7 +735,32 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       )
       .on(
         "postgres_changes",
+        { event: "*", schema: "public", table: "documents", filter: `tenant_id=eq.${profile.tenant_id}` },
+        () => void fetchAll(),
+      )
+      .on(
+        "postgres_changes",
         { event: "*", schema: "public", table: "document_requests", filter: `tenant_id=eq.${profile.tenant_id}` },
+        () => void fetchAll(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "payments", filter: `tenant_id=eq.${profile.tenant_id}` },
+        () => void fetchAll(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "invoices", filter: `tenant_id=eq.${profile.tenant_id}` },
+        () => void fetchAll(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "fiscal_obligations", filter: `tenant_id=eq.${profile.tenant_id}` },
+        () => void fetchAll(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "task_reviews", filter: `tenant_id=eq.${profile.tenant_id}` },
         () => void fetchAll(),
       )
       .on(
