@@ -28,6 +28,16 @@ BEGIN
     RAISE EXCEPTION 'An invoice with a completed payment cannot be reopened manually' USING ERRCODE = '23514';
   END IF;
 
+  IF NEW.status IN ('cancelled', 'canceled')
+    AND EXISTS (
+      SELECT 1
+      FROM public.payments payment
+      WHERE payment.invoice_id = NEW.id
+        AND payment.status IN ('completed', 'paid')
+    ) THEN
+    RAISE EXCEPTION 'An invoice with a completed payment cannot be cancelled without reversing the payment' USING ERRCODE = '23514';
+  END IF;
+
   RETURN NEW;
 END;
 $$;

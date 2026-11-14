@@ -827,6 +827,7 @@ describe("workspace security regression", () => {
     await db.query(`INSERT INTO payments(id, tenant_id, company_id, invoice_id, amount, status, paid_at, reconciled_at, direction) VALUES ('${paymentId}', '${tenant}', '${company}', '${invoiceId}', 100, 'completed', now(), now(), 'income')`);
     await expect(db.query("DELETE FROM payments WHERE id = $1", [paymentId])).rejects.toThrow(/Reconciled payments cannot be deleted/);
     await expect(db.query("UPDATE invoices SET status = 'pending' WHERE id = $1", [invoiceId])).rejects.toThrow(/cannot be reopened/);
+    await expect(db.query("UPDATE invoices SET status = 'cancelled' WHERE id = $1", [invoiceId])).rejects.toThrow(/cannot be cancelled/);
   });
   it("archives only read notifications older than the retention window", async () => {
     await db.exec("RESET ROLE; SELECT set_config('request.jwt.claim.role', 'service_role', false)");

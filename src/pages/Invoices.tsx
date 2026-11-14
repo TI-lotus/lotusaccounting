@@ -23,7 +23,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Plus, Receipt, Eye, ExternalLink, CheckCircle2, Trash2, Search } from "lucide-react";
+import { Plus, Receipt, Eye, ExternalLink, CheckCircle2, Trash2, Search, XCircle } from "lucide-react";
 import { useData } from "@/contexts/DataContext";
 import { useViewMode } from "@/contexts/ViewModeContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -33,6 +33,7 @@ import { toast } from "sonner";
 import { toastWithUndo } from "@/lib/toastUndo";
 import { BentoDataTable } from "@/components/BentoDataTable";
 import { RowActions } from "@/components/RowActions";
+import { ConfirmDestructiveDialog } from "@/components/ConfirmDestructiveDialog";
 
 type Invoice = Pick<
   Database["public"]["Tables"]["invoices"]["Row"],
@@ -64,6 +65,14 @@ const statusMeta: Record<string, { label: string; className: string }> = {
     className: "bg-red-500 hover:bg-red-500 text-white",
   },
   draft: { label: "Rascunho", className: "" },
+  cancelled: {
+    label: "Cancelada",
+    className: "bg-muted text-muted-foreground",
+  },
+  canceled: {
+    label: "Cancelada",
+    className: "bg-muted text-muted-foreground",
+  },
 };
 
 const Invoices = () => {
@@ -95,10 +104,18 @@ const Invoices = () => {
     resource: "financial",
     action: "delete",
   });
+  const canUpdateFinancial = useWorkspacePermission({
+    tenantId,
+    userId: user?.id,
+    accountType: profile?.account_type,
+    resource: "financial",
+    action: "update",
+  });
   const [statusFilters, setStatusFilters] = useState<string[]>([]);
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<Invoice | null>(null);
+  const [invoiceToCancel, setInvoiceToCancel] = useState<Invoice | null>(null);
   const [form, setForm] = useState({
     number: "",
     amount: "",
@@ -192,6 +209,23 @@ const Invoices = () => {
     toast.success("Pagamento registrado e fatura marcada como paga");
   };
 
+  const cancelInvoice = async () => {
+    if (!invoiceToCancel) return false;
+    if (!canUpdateFinancial) {
+      toast.error("Seu perfil não tem permissão para cancelar faturas.");
+      return false;
+    }
+    if (invoiceToCancel.status === "paid") {
+      toast.error("Faturas pagas não podem ser canceladas sem estornar o pagamento.");
+      return false;
+    }
+    const updated = await updateInvoice(invoiceToCancel.id, { status: "cancelled" });
+    if (!updated) return false;
+    setSelected((current) => current?.id === invoiceToCancel.id ? { ...current, status: "cancelled" } : current);
+    toast.success("Fatura cancelada");
+    return true;
+  };
+
   const clientName = (id: string | null) =>
     clients.find((c) => c.id === id)?.name ?? "—";
 
@@ -206,7 +240,8 @@ const Invoices = () => {
       );
     });
 
-  const total = invoices.reduce((a, i) => a + Number(i.amount || 0), 0);
+  const activeInvoices = invoices.filter((invoice) => !["cancelled", "canceled"].includes(invoice.status ?? ""));
+  const total = activeInvoices.reduce((a, i) => a + Number(i.amount || 0), 0);
   const totalPaid = invoices
     .filter((i) => i.status === "paid")
     .reduce((a, i) => a + Number(i.amount || 0), 0);
@@ -222,7 +257,7 @@ const Invoices = () => {
       const reference = new Date();
       reference.setDate(1);
       reference.setMonth(reference.getMonth() - (5 - index));
-      return invoices
+      return activeInvoices
         .filter((invoice) => {
           if (targetStatus && invoice.status !== targetStatus) return false;
           const issuedAt = invoice.issued_at ? new Date(invoice.issued_at) : null;
@@ -236,6 +271,7 @@ const Invoices = () => {
     { value: "paid", label: "Pagas" },
     { value: "overdue", label: "Atrasadas" },
     { value: "draft", label: "Rascunhos" },
+    { value: "cancelled", label: "Canceladas" },
   ];
 
   return (
@@ -418,8 +454,9 @@ const Invoices = () => {
                   onPrimary={() => setSelected(invoice)}
                   menuItems={[
                     { label: "Abrir fatura", icon: ExternalLink, onSelect: () => setSelected(invoice) },
-                    ...(!isClientView && canCreateFinancial && invoice.status !== "paid" ? [{ label: "Registrar pagamento", icon: CheckCircle2, onSelect: () => void registerPaymentFromInvoice(invoice) }] : []),
-                    ...(!isClientView && canDeleteFinancial ? [{ label: "Remover fatura", icon: Trash2, destructive: true, separatorBefore: true, onSelect: () => removeInvoice(invoice) }] : []),
+                    ...(!isClientView && canCreateFinancial && !["paid", "cancelled", "canceled"].includes(invoice.status ?? "") ? [{ label: "Registrar pagamento", icon: CheckCircle2, onSelect: () => void registerPaymentFromInvoice(invoice) }] : []),
+                    ...(!isClientView && canUpdateFinancial && !["paid", "cancelled", "canceled"].includes(invoice.status) ? [{ label: "Cancelar fatura", icon: XCircle, separatorBefore: true, onSelect: () => setInvoiceToCancel(invoice) }] : []),
+                    ...(!isClientView && canDeleteFinancial && !["paid", "cancelled", "canceled"].includes(invoice.status) ? [{ label: "Remover fatura", icon: Trash2, destructive: true, separatorBefore: true, onSelect: () => removeInvoice(invoice) }] : []),
                   ]}
                 />
               )}
@@ -446,7 +483,7 @@ const Invoices = () => {
               >
                 Fechar
               </Button>
-              {!isClientView && canCreateFinancial && selected.status !== "paid" && (
+              {!isClientView && canCreateFinancial && !["paid", "cancelled", "canceled"].includes(selected.status ?? "") && (
                 <Button
                   className="rounded-xl"
                   onClick={() => registerPaymentFromInvoice(selected)}
@@ -454,7 +491,16 @@ const Invoices = () => {
                   Registrar pagamento
                 </Button>
               )}
-              {!isClientView && canDeleteFinancial && selected.status !== "paid" && (
+              {!isClientView && canUpdateFinancial && !["paid", "cancelled", "canceled"].includes(selected.status) && (
+                <Button
+                  variant="outline"
+                  className="rounded-xl"
+                  onClick={() => setInvoiceToCancel(selected)}
+                >
+                  Cancelar fatura
+                </Button>
+              )}
+              {!isClientView && canDeleteFinancial && !["paid", "cancelled", "canceled"].includes(selected.status) && (
                 <Button
                   variant="destructive"
                   className="rounded-xl"
@@ -511,6 +557,14 @@ const Invoices = () => {
           </div>
         )}
       </DetailSheet>
+      <ConfirmDestructiveDialog
+        open={Boolean(invoiceToCancel)}
+        onOpenChange={(open) => !open && setInvoiceToCancel(null)}
+        title="Cancelar esta fatura?"
+        description="A fatura permanecerá no histórico com o status cancelada e não poderá ser paga ou removida por este fluxo."
+        confirmLabel="Cancelar fatura"
+        onConfirm={cancelInvoice}
+      />
     </>
   );
 };
