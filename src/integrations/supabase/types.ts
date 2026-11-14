@@ -318,6 +318,8 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           id: string
+          is_archived: boolean
+          is_pinned: boolean
           recipient_id: string | null
           tenant_id: string | null
           title: string | null
@@ -328,6 +330,8 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           id?: string
+          is_archived?: boolean
+          is_pinned?: boolean
           recipient_id?: string | null
           tenant_id?: string | null
           title?: string | null
@@ -338,6 +342,8 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           id?: string
+          is_archived?: boolean
+          is_pinned?: boolean
           recipient_id?: string | null
           tenant_id?: string | null
           title?: string | null

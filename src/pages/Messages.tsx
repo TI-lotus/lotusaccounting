@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
-import { CheckCheck, MessageSquare, Mic, Paperclip, Plus, Search, Send, Smile, Users } from "lucide-react";
+import { Archive, ArchiveRestore, CheckCheck, MessageSquare, Mic, MoreHorizontal, Paperclip, Pin, Plus, Search, Send, Smile, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +16,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
@@ -55,6 +62,7 @@ const Messages = () => {
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [showArchived, setShowArchived] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
   const [recipientId, setRecipientId] = useState("");
   const [conversationRows, setConversationRows] = useState<ConversationRow[]>([]);
@@ -185,9 +193,14 @@ const Messages = () => {
     };
   }), [clientById, conversationRows, members, messagesByConversation, recipientById, user?.id]);
 
-  const filteredConversations = conversations.filter((conversation) => {
+  const visibleConversations = conversations.filter((conversation) => Boolean(conversation.is_archived) === showArchived);
+  const filteredConversations = visibleConversations.filter((conversation) => {
     const query = searchTerm.trim().toLowerCase();
     return !query || conversation.name.toLowerCase().includes(query) || (conversation.lastMessage?.message || "").toLowerCase().includes(query);
+  });
+  const orderedConversations = [...filteredConversations].sort((a, b) => {
+    if (Boolean(a.is_pinned) !== Boolean(b.is_pinned)) return a.is_pinned ? -1 : 1;
+    return new Date(b.lastMessage?.created_at ?? b.created_at ?? 0).getTime() - new Date(a.lastMessage?.created_at ?? a.created_at ?? 0).getTime();
   });
   const requestedConversationId = searchParams.get("conversation");
   useEffect(() => {
@@ -195,7 +208,7 @@ const Messages = () => {
     setSelectedConversation(requestedConversationId);
     setSearchParams({}, { replace: true });
   }, [conversationRows, requestedConversationId, setSearchParams]);
-  const effectiveSelectedId = selectedConversation ?? filteredConversations[0]?.id ?? null;
+  const effectiveSelectedId = selectedConversation ?? orderedConversations[0]?.id ?? null;
   const currentConversation = conversations.find((conversation) => conversation.id === effectiveSelectedId);
   const currentMessages = effectiveSelectedId ? messagesByConversation.get(effectiveSelectedId) ?? [] : [];
   const currentContactOnline = Boolean(currentConversation?.otherUserId && onlineUserIds.has(currentConversation.otherUserId));
@@ -233,6 +246,35 @@ const Messages = () => {
     setSelectedConversation(data.id);
     setContactOpen(false);
     setRecipientId("");
+  };
+
+  const updateConversationPreference = async (
+    conversationId: string,
+    updates: Database["public"]["Tables"]["conversations"]["Update"],
+  ) => {
+    const { data, error } = await supabase
+      .from("conversations")
+      .update(updates)
+      .eq("id", conversationId)
+      .select("*")
+      .maybeSingle();
+    if (error || !data) {
+      toast.error(error?.message ?? "Não foi possível atualizar a conversa.");
+      return false;
+    }
+    setConversationRows((current) => current.map((conversation) => conversation.id === conversationId ? data as ConversationRow : conversation));
+    return true;
+  };
+
+  const toggleConversationPinned = async (conversation: ConversationRow) => {
+    await updateConversationPreference(conversation.id, { is_pinned: !conversation.is_pinned });
+  };
+
+  const toggleConversationArchived = async (conversation: ConversationRow) => {
+    const archived = await updateConversationPreference(conversation.id, { is_archived: !conversation.is_archived });
+    if (archived && !conversation.is_archived && selectedConversation === conversation.id) {
+      setSelectedConversation(null);
+    }
   };
 
   const handleSendMessage = async () => {
@@ -289,8 +331,30 @@ const Messages = () => {
             </div>
             <div className="sidebar-scroll min-h-0 flex-1 space-y-1 overflow-y-auto px-3 py-2 sm:px-4">
               {loading && <p className="py-8 text-center text-sm text-muted-foreground">Carregando conversas...</p>}
-              {!loading && filteredConversations.length === 0 && <div className="py-12 text-center text-muted-foreground"><MessageSquare className="mx-auto mb-3 h-8 w-8 opacity-60" /><p className="text-sm font-medium text-foreground">Nenhuma conversa ainda</p><p className="mt-1 text-xs">Inicie uma conversa com um contato autorizado.</p></div>}
-              {filteredConversations.map((conversation) => <button key={conversation.id} onClick={() => setSelectedConversation(conversation.id)} className={cn("flex w-full items-center gap-3 rounded-xl p-3 text-left transition-colors", effectiveSelectedId === conversation.id ? "bg-gilver/20" : "hover:bg-accent/50")}><Avatar className="h-10 w-10 shrink-0"><AvatarImage src={conversation.avatarUrl ?? undefined} /><AvatarFallback className="bg-gilver/20 text-sm font-medium text-gilver">{initials(conversation.name)}</AvatarFallback></Avatar><div className="min-w-0 flex-1"><div className="flex items-center justify-between gap-2"><p className="truncate text-sm font-medium">{conversation.name}</p><span className="shrink-0 text-[10px] text-muted-foreground">{relativeTime(conversation.lastMessage?.created_at ?? conversation.created_at)}</span></div><p className="truncate text-xs text-muted-foreground">{conversation.lastMessage?.message || "Nenhuma mensagem enviada"}</p></div></button>)}
+              {!loading && orderedConversations.length === 0 && <div className="py-12 text-center text-muted-foreground"><MessageSquare className="mx-auto mb-3 h-8 w-8 opacity-60" /><p className="text-sm font-medium text-foreground">{showArchived ? "Nenhuma conversa arquivada" : "Nenhuma conversa ainda"}</p><p className="mt-1 text-xs">{showArchived ? "As conversas arquivadas aparecerão aqui." : "Inicie uma conversa com um contato autorizado."}</p></div>}
+              {orderedConversations.map((conversation) => <div key={conversation.id} className={cn("flex w-full items-center gap-1 rounded-xl p-1.5 text-left transition-colors", effectiveSelectedId === conversation.id ? "bg-gilver/20" : "hover:bg-accent/50")}>
+                <button type="button" onClick={() => setSelectedConversation(conversation.id)} className="flex min-w-0 flex-1 items-center gap-3 rounded-lg p-1.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  <Avatar className="h-10 w-10 shrink-0"><AvatarImage src={conversation.avatarUrl ?? undefined} /><AvatarFallback className="bg-gilver/20 text-sm font-medium text-gilver">{initials(conversation.name)}</AvatarFallback></Avatar>
+                  <div className="min-w-0 flex-1"><div className="flex items-center gap-1.5"><p className="truncate text-sm font-medium">{conversation.name}</p>{conversation.is_pinned && <Pin className="h-3 w-3 shrink-0 text-gilver" fill="currentColor" aria-label="Conversa fixada" />}<span className="ml-auto shrink-0 text-[10px] text-muted-foreground">{relativeTime(conversation.lastMessage?.created_at ?? conversation.created_at)}</span></div><p className="truncate text-xs text-muted-foreground">{conversation.lastMessage?.message || "Nenhuma mensagem enviada"}</p></div>
+                </button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button type="button" aria-label={`Ações da conversa com ${conversation.name}`} title="Ações da conversa" className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><MoreHorizontal className="h-4 w-4" aria-hidden="true" /></button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" sideOffset={6} className="min-w-[190px]">
+                    <DropdownMenuItem onSelect={() => void toggleConversationPinned(conversation)}><Pin className="mr-2 h-4 w-4" />{conversation.is_pinned ? "Desafixar conversa" : "Fixar conversa"}</DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onSelect={() => void toggleConversationArchived(conversation)}>{conversation.is_archived ? <ArchiveRestore className="mr-2 h-4 w-4" /> : <Archive className="mr-2 h-4 w-4" />}{conversation.is_archived ? "Desarquivar conversa" : "Arquivar conversa"}</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>)}
+            </div>
+            <div className="shrink-0 border-t border-border/70 px-3 py-3 sm:px-4">
+              <button type="button" onClick={() => setShowArchived((current) => !current)} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                {showArchived ? <ArchiveRestore className="h-4 w-4 shrink-0" aria-hidden="true" /> : <Archive className="h-4 w-4 shrink-0" aria-hidden="true" />}
+                <span>{showArchived ? "Conversas ativas" : "Arquivadas"}</span>
+                {!showArchived && conversations.filter((conversation) => conversation.is_archived).length > 0 && <span className="ml-auto text-xs">{conversations.filter((conversation) => conversation.is_archived).length}</span>}
+              </button>
             </div>
           </aside>
 
