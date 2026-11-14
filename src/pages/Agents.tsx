@@ -1045,12 +1045,16 @@ export default function Agents() {
                     >
                       Risco {item.risk}
                     </Badge>
-                    <Button variant="outline" size="sm" className="rounded-lg">
-                      Rejeitar
-                    </Button>
-                    <Button size="sm" className="rounded-lg">
-                      Aprovar
-                    </Button>
+                    {!AGENTS_PREVIEW_ONLY && (
+                      <>
+                        <Button variant="outline" size="sm" className="rounded-lg">
+                          Rejeitar
+                        </Button>
+                        <Button size="sm" className="rounded-lg">
+                          Aprovar
+                        </Button>
+                      </>
+                    )}
                   </div>
                 ))}
               </CardContent>
