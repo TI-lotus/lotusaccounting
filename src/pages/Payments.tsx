@@ -10,6 +10,7 @@ import {
   Copy,
   CheckCircle2,
   RotateCcw,
+  Download,
   ArrowUp,
   ArrowDown,
   Eye,
@@ -228,6 +229,34 @@ const Payments = () => {
     toast.success("Status atualizado!");
   };
 
+  const handleExportCsv = () => {
+    if (!filteredPayments.length) {
+      toast.info("Não há pagamentos para exportar com os filtros atuais.");
+      return;
+    }
+    const escapeCell = (value: string | number) => `"${String(value).replace(/"/g, '""')}"`;
+    const rows = [
+      ["Referência", "Cliente", "Data", "Tipo", "Categoria", "Valor", "Status"],
+      ...filteredPayments.map((payment) => [
+        payment.description,
+        payment.clientName,
+        payment.date,
+        payment.type === "income" ? "Receita" : "Despesa",
+        payment.category,
+        payment.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+        payment.status === "completed" ? "Concluído" : "Pendente",
+      ]),
+    ];
+    const csv = `\uFEFF${rows.map((row) => row.map(escapeCell).join(";")).join("\n")}`;
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `pagamentos-lotus-${new Date().toISOString().slice(0, 10)}.csv`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    toast.success(`${filteredPayments.length} pagamento(s) exportado(s)`);
+  };
+
   const paymentViewControls = (
     <div className="flex flex-wrap items-center gap-2">
       <div className="flex rounded-full border border-border bg-card p-1">
@@ -336,6 +365,13 @@ const Payments = () => {
         label="valor"
         direction={valueSort === "asc" ? "asc" : "desc"}
         onChange={(direction) => setValueSort(direction)}
+      />
+      <IconTooltipButton
+        icon={Download}
+        label="Exportar pagamentos filtrados em CSV"
+        variant="ghost"
+        className="rounded-full"
+        onClick={handleExportCsv}
       />
     </div>
   );
