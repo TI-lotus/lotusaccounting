@@ -1101,6 +1101,39 @@ describe("workspace security regression", () => {
     await db.query("UPDATE client_period_steps SET status = 'pending' WHERE client_period_id = $1 AND step_key = 'documents'", [periodId]);
     expect((await db.query<{ status: string }>("SELECT status FROM client_periods WHERE id = $1", [periodId])).rows[0]).toEqual({ status: "in_progress" });
   });
+  it("records operational comment history for create, update and delete", async () => {
+    await asUser(admin);
+    const taskId = id(78);
+    const commentId = id(79);
+    await db.query(
+      `INSERT INTO tasks(id, tenant_id, company_id, assigned_to, title, status)
+       VALUES ('${taskId}', '${tenant}', '${company}', '${admin}', 'Tarefa auditada', 'pending')`,
+    );
+    await db.query(
+      `INSERT INTO operational_comments(id, tenant_id, target_type, target_id, author_id, body)
+       VALUES ('${commentId}', '${tenant}', 'task', '${taskId}', '${admin}', 'Primeira orientação')`,
+    );
+
+    const created = await db.query<{ entity: string; action: string; table_name: string }>(
+      "SELECT entity, action, metadata ->> 'table' AS table_name FROM activity_logs WHERE entity_id = $1 ORDER BY created_at DESC LIMIT 1",
+      [commentId],
+    );
+    expect(created.rows).toEqual([{ entity: "operational_comments", action: "created", table_name: "operational_comments" }]);
+
+    await db.query("UPDATE operational_comments SET body = 'Orientação revisada' WHERE id = $1", [commentId]);
+    const updated = await db.query<{ action: string; changed_fields: string[] }>(
+      "SELECT action, ARRAY(SELECT jsonb_array_elements_text(metadata -> 'changed_fields')) AS changed_fields FROM activity_logs WHERE entity_id = $1 ORDER BY created_at DESC LIMIT 1",
+      [commentId],
+    );
+    expect(updated.rows[0].action).toBe("updated");
+    expect(updated.rows[0].changed_fields).toContain("body");
+
+    await db.query("DELETE FROM operational_comments WHERE id = $1", [commentId]);
+    expect((await db.query<{ action: string }>(
+      "SELECT action FROM activity_logs WHERE entity_id = $1 ORDER BY created_at DESC LIMIT 1",
+      [commentId],
+    )).rows[0]).toEqual({ action: "deleted" });
+  });
   it("rejects assigning a client to another company's task or an inactive user", async () => {
     await db.exec("RESET ROLE; SELECT set_config('request.jwt.claim.role', 'service_role', false)");
     await expect(db.query(`INSERT INTO tasks(tenant_id, company_id, assigned_to, title) VALUES ('${tenant}', '${otherCompany}', '${client}', 'Wrong client task')`)).rejects.toThrow(/own company/);
