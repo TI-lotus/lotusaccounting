@@ -59,6 +59,12 @@ type ActivityEntityFilter =
   | "invoice"
   | "payment"
   | "fiscal_obligation"
+  | "client_periods"
+  | "client_period_steps"
+  | "client_period_checklist_items"
+  | "document_requests"
+  | "task_reviews"
+  | "operational_comments"
   | "audit";
 type ActivityPeriodFilter = "all" | "7" | "30" | "90";
 
@@ -201,6 +207,18 @@ const activityLabel = (activity: ClientActivity) => {
               ? "Pagamento"
               : activity.entity === "fiscal_obligation"
                 ? "Obrigação fiscal"
+                : activity.entity === "client_periods"
+                  ? "Competência"
+                  : activity.entity === "client_period_steps"
+                    ? "Etapa da competência"
+                    : activity.entity === "client_period_checklist_items"
+                      ? "Checklist"
+                      : activity.entity === "document_requests"
+                        ? "Solicitação de documento"
+                        : activity.entity === "task_reviews"
+                          ? "Revisão de tarefa"
+                          : activity.entity === "operational_comments"
+                            ? "Comentário operacional"
                 : "Registro";
   return `${entity} ${action}`;
 };
@@ -1376,6 +1394,12 @@ const ClientDetail = () => {
                         <SelectItem value="fiscal_obligation">
                           Obrigações
                         </SelectItem>
+                        <SelectItem value="client_periods">Competências</SelectItem>
+                        <SelectItem value="client_period_steps">Etapas</SelectItem>
+                        <SelectItem value="client_period_checklist_items">Checklists</SelectItem>
+                        <SelectItem value="document_requests">Solicitações</SelectItem>
+                        <SelectItem value="task_reviews">Revisões</SelectItem>
+                        <SelectItem value="operational_comments">Comentários</SelectItem>
                       </SelectContent>
                     </Select>
                     <Select
