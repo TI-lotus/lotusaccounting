@@ -330,8 +330,9 @@ const Invoices = () => {
                 </DialogHeader>
                 <div className="grid gap-3">
                   <div className="grid gap-1.5">
-                    <Label>Número</Label>
+                    <Label htmlFor="invoice-number">Número</Label>
                     <Input
+                      id="invoice-number"
                       value={form.number}
                       onChange={(e) =>
                         setForm({ ...form, number: e.target.value })
@@ -339,8 +340,9 @@ const Invoices = () => {
                     />
                   </div>
                   <div className="grid gap-1.5">
-                    <Label>Valor</Label>
+                    <Label htmlFor="invoice-amount">Valor</Label>
                     <Input
+                      id="invoice-amount"
                       type="number"
                       value={form.amount}
                       onChange={(e) =>
@@ -349,12 +351,12 @@ const Invoices = () => {
                     />
                   </div>
                   <div className="grid gap-1.5">
-                    <Label>Cliente</Label>
+                    <Label htmlFor="invoice-company">Cliente</Label>
                     <Select
                       value={form.company_id}
                       onValueChange={(v) => setForm({ ...form, company_id: v })}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger id="invoice-company">
                         <SelectValue placeholder="Selecionar" />
                       </SelectTrigger>
                       <SelectContent>
@@ -367,8 +369,9 @@ const Invoices = () => {
                     </Select>
                   </div>
                   <div className="grid gap-1.5">
-                    <Label>Vencimento</Label>
+                    <Label htmlFor="invoice-due-date">Vencimento</Label>
                     <Input
+                      id="invoice-due-date"
                       type="date"
                       value={form.due_date}
                       onChange={(e) =>
@@ -377,12 +380,12 @@ const Invoices = () => {
                     />
                   </div>
                   <div className="grid gap-1.5">
-                    <Label>Status</Label>
+                    <Label htmlFor="invoice-status">Status</Label>
                     <Select
                       value={form.status}
                       onValueChange={(v) => setForm({ ...form, status: v })}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger id="invoice-status">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>

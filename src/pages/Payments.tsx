@@ -493,7 +493,7 @@ const Payments = () => {
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="type">Tipo</Label>
+                    <Label htmlFor="payment-type">Tipo</Label>
                     <Select
                       value={newPayment.type}
                       onValueChange={(value: "income" | "expense") =>
@@ -504,7 +504,7 @@ const Payments = () => {
                         })
                       }
                     >
-                      <SelectTrigger className="rounded-xl">
+                      <SelectTrigger id="payment-type" className="rounded-xl">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -529,7 +529,7 @@ const Payments = () => {
                     />
                   </div>
                   <div className="grid gap-2">
-                    <Label>Cliente</Label>
+                    <Label htmlFor="payment-company">Cliente</Label>
                     <Select
                       value={newPayment.companyId}
                       onValueChange={(value) =>
@@ -540,7 +540,7 @@ const Payments = () => {
                         })
                       }
                     >
-                      <SelectTrigger className="rounded-xl">
+                      <SelectTrigger id="payment-company" className="rounded-xl">
                         <SelectValue placeholder="Selecione um cliente" />
                       </SelectTrigger>
                       <SelectContent>
