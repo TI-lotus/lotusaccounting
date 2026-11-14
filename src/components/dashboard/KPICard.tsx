@@ -3,12 +3,6 @@ import { useId } from "react";
 import {
   LucideIcon,
 } from "lucide-react";
-import {
-  Area,
-  AreaChart,
-  ResponsiveContainer,
-  YAxis,
-} from "recharts";
 
 const placeholderTrend = [0, 0, 0, 0, 0, 0];
 
@@ -48,33 +42,56 @@ export const KPITrend = ({
       : direction === "negative"
         ? "hsl(0 72% 55%)"
         : "hsl(var(--foreground))";
+  const chartWidth = 240;
+  const chartHeight = 44;
+  const chartPadding = 2;
+  const valuesOnly = chartData.map((point) => point.value);
+  const minValue = Math.min(...valuesOnly);
+  const maxValue = Math.max(...valuesOnly);
+  const valueRange = maxValue - minValue || 1;
+  const points = chartData
+    .map((point, index) => {
+      const x = chartData.length === 1
+        ? chartWidth / 2
+        : (index / (chartData.length - 1)) * (chartWidth - chartPadding * 2) + chartPadding;
+      const y = chartHeight - chartPadding - ((point.value - minValue) / valueRange) * (chartHeight - chartPadding * 2);
+      return `${x.toFixed(2)},${y.toFixed(2)}`;
+    })
+    .join(" ");
+  const firstPoint = points.split(" ")[0] ?? `${chartPadding},${chartHeight - chartPadding}`;
+  const lastPoint = points.split(" ").at(-1) ?? `${chartWidth - chartPadding},${chartHeight - chartPadding}`;
+  const areaPoints = `${points} ${lastPoint.split(",")[0]},${chartHeight} ${firstPoint.split(",")[0]},${chartHeight}`;
 
   return (
     <div
       className={cn("h-11 w-[42%] min-w-[96px]", className)}
       aria-label={hasRealData ? "Gráfico de tendência do indicador" : "Gráfico sem histórico"}
+      role="img"
     >
-      <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={chartData} margin={{ top: 3, right: 1, bottom: 2, left: 1 }}>
-          <defs>
-            <linearGradient id={`kpi-trend-fill-${chartId}`} x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0%" stopColor={stroke} stopOpacity={hasRealData && !isZero ? 0.28 : 0.12} />
-              <stop offset="100%" stopColor={stroke} stopOpacity={0.01} />
-            </linearGradient>
-          </defs>
-          <YAxis domain={["auto", "auto"]} hide />
-          <Area
-            type="monotone"
-            dataKey="value"
-            stroke={stroke}
-            strokeWidth={2.2}
-            strokeOpacity={hasRealData && !isZero ? 0.95 : 0.72}
-            fill={`url(#kpi-trend-fill-${chartId})`}
-            dot={false}
-            activeDot={false}
-          />
-        </AreaChart>
-      </ResponsiveContainer>
+      <svg
+        viewBox={`0 0 ${chartWidth} ${chartHeight}`}
+        className="h-full w-full overflow-visible"
+        preserveAspectRatio="none"
+        aria-hidden="true"
+      >
+        <defs>
+          <linearGradient id={`kpi-trend-fill-${chartId}`} x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stopColor={stroke} stopOpacity={hasRealData && !isZero ? 0.28 : 0.12} />
+            <stop offset="100%" stopColor={stroke} stopOpacity={0.01} />
+          </linearGradient>
+        </defs>
+        <polygon points={areaPoints} fill={`url(#kpi-trend-fill-${chartId})`} />
+        <polyline
+          points={points}
+          fill="none"
+          stroke={stroke}
+          strokeWidth="2.2"
+          strokeOpacity={hasRealData && !isZero ? 0.95 : 0.72}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
+        />
+      </svg>
     </div>
   );
 };
