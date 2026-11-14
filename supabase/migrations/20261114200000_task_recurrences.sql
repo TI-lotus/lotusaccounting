@@ -35,6 +35,16 @@ ALTER TABLE public.task_recurrence_occurrences ENABLE ROW LEVEL SECURITY;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.task_recurrences TO authenticated;
 GRANT SELECT ON public.task_recurrence_occurrences TO authenticated;
 
+DROP TRIGGER IF EXISTS trg_audit_task_recurrences ON public.task_recurrences;
+CREATE TRIGGER trg_audit_task_recurrences
+AFTER INSERT OR UPDATE OR DELETE ON public.task_recurrences
+FOR EACH ROW EXECUTE FUNCTION public.log_entity_activity();
+
+DROP TRIGGER IF EXISTS trg_audit_task_recurrence_occurrences ON public.task_recurrence_occurrences;
+CREATE TRIGGER trg_audit_task_recurrence_occurrences
+AFTER INSERT OR UPDATE OR DELETE ON public.task_recurrence_occurrences
+FOR EACH ROW EXECUTE FUNCTION public.log_entity_activity();
+
 DROP POLICY IF EXISTS task_recurrences_read_permission ON public.task_recurrences;
 CREATE POLICY task_recurrences_read_permission ON public.task_recurrences
 FOR SELECT TO authenticated
