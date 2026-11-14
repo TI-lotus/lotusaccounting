@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
-import { Archive, ArchiveRestore, CheckCheck, MessageSquare, Mic, MoreHorizontal, Paperclip, Pin, Plus, Search, Send, Smile, Users } from "lucide-react";
+import { Archive, ArchiveRestore, AlertCircle, CheckCheck, MessageSquare, Mic, MoreHorizontal, Paperclip, Pin, Plus, RefreshCw, Search, Send, Smile, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -69,6 +69,7 @@ const Messages = () => {
   const [messages, setMessages] = useState<MessageRow[]>([]);
   const [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const lastMessageRefreshAt = useRef(0);
   const { members } = useWorkspaceMembers();
 
@@ -78,15 +79,28 @@ const Messages = () => {
   const loadMessages = useCallback(async () => {
     if (!tenantId) return;
     setLoading(true);
-    const [conversationRes, messageRes] = await Promise.all([
-      supabase.from("conversations").select("*").eq("tenant_id", tenantId).eq("channel", "internal").order("created_at", { ascending: false }),
-      supabase.from("messages").select("*").eq("tenant_id", tenantId).order("created_at", { ascending: true }),
-    ]);
-    if (conversationRes.error) toast.error("Erro ao carregar conversas: " + conversationRes.error.message);
-    if (messageRes.error) toast.error("Erro ao carregar mensagens: " + messageRes.error.message);
-    setConversationRows((conversationRes.data ?? []) as ConversationRow[]);
-    setMessages((messageRes.data ?? []) as MessageRow[]);
-    setLoading(false);
+    try {
+      const [conversationRes, messageRes] = await Promise.all([
+        supabase.from("conversations").select("*").eq("tenant_id", tenantId).eq("channel", "internal").order("created_at", { ascending: false }),
+        supabase.from("messages").select("*").eq("tenant_id", tenantId).order("created_at", { ascending: true }),
+      ]);
+      const requestError = conversationRes.error ?? messageRes.error;
+      if (requestError) {
+        const message = "Não foi possível atualizar as conversas. Seus dados anteriores continuam disponíveis.";
+        setLoadError(message);
+        toast.error(requestError.message);
+        return;
+      }
+      setLoadError(null);
+      setConversationRows((conversationRes.data ?? []) as ConversationRow[]);
+      setMessages((messageRes.data ?? []) as MessageRow[]);
+    } catch (error) {
+      const message = "Não foi possível atualizar as conversas. Verifique sua conexão e tente novamente.";
+      setLoadError(message);
+      toast.error(error instanceof Error ? error.message : message);
+    } finally {
+      setLoading(false);
+    }
   }, [tenantId]);
 
   useEffect(() => {
@@ -354,8 +368,9 @@ const Messages = () => {
             </div>
             <div className="sidebar-scroll min-h-0 flex-1 space-y-1 overflow-y-auto px-3 py-2 sm:px-4">
               {loading && <p className="py-8 text-center text-sm text-muted-foreground">Carregando conversas...</p>}
-              {!loading && orderedConversations.length === 0 && <div className="py-12 text-center text-muted-foreground"><MessageSquare className="mx-auto mb-3 h-8 w-8 opacity-60" /><p className="text-sm font-medium text-foreground">{showArchived ? "Nenhuma conversa arquivada" : "Nenhuma conversa ainda"}</p><p className="mt-1 text-xs">{showArchived ? "As conversas arquivadas aparecerão aqui." : "Inicie uma conversa com um contato autorizado."}</p></div>}
-              {orderedConversations.map((conversation) => <div key={conversation.id} className={cn("flex w-full items-center gap-1 rounded-xl p-1.5 text-left transition-colors", effectiveSelectedId === conversation.id ? "bg-gilver/20" : "hover:bg-accent/50")}>
+              {!loading && loadError && <div className="space-y-3 py-12 text-center text-muted-foreground" role="alert"><AlertCircle className="mx-auto h-8 w-8 text-gilver" aria-hidden="true" /><p className="text-sm font-medium text-foreground">Não foi possível atualizar</p><p className="px-3 text-xs leading-5">{loadError}</p><Button type="button" variant="outline" size="sm" className="rounded-xl" onClick={() => void loadMessages()}><RefreshCw className="mr-2 h-3.5 w-3.5" aria-hidden="true" />Tentar novamente</Button></div>}
+              {!loading && !loadError && orderedConversations.length === 0 && <div className="py-12 text-center text-muted-foreground"><MessageSquare className="mx-auto mb-3 h-8 w-8 opacity-60" /><p className="text-sm font-medium text-foreground">{showArchived ? "Nenhuma conversa arquivada" : "Nenhuma conversa ainda"}</p><p className="mt-1 text-xs">{showArchived ? "As conversas arquivadas aparecerão aqui." : "Inicie uma conversa com um contato autorizado."}</p></div>}
+              {!loading && !loadError && orderedConversations.map((conversation) => <div key={conversation.id} className={cn("flex w-full items-center gap-1 rounded-xl p-1.5 text-left transition-colors", effectiveSelectedId === conversation.id ? "bg-gilver/20" : "hover:bg-accent/50")}>
                 <button type="button" onClick={() => setSelectedConversation(conversation.id)} className="flex min-w-0 flex-1 items-center gap-3 rounded-lg p-1.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring">
                   <Avatar className="h-10 w-10 shrink-0"><AvatarImage src={conversation.avatarUrl ?? undefined} /><AvatarFallback className="bg-gilver/20 text-sm font-medium text-gilver">{initials(conversation.name)}</AvatarFallback></Avatar>
                   <div className="min-w-0 flex-1"><div className="flex items-center gap-1.5"><p className="truncate text-sm font-medium">{conversation.name}</p>{conversation.is_pinned && <Pin className="h-3 w-3 shrink-0 text-gilver" fill="currentColor" aria-label="Conversa fixada" />}<span className="ml-auto shrink-0 text-[10px] text-muted-foreground">{relativeTime(conversation.lastMessage?.created_at ?? conversation.created_at)}</span></div><p className="truncate text-xs text-muted-foreground">{conversation.lastMessage?.message || "Nenhuma mensagem enviada"}</p></div>
