@@ -6,7 +6,7 @@ contabilidade, sem depender de integrações externas nesta etapa.
 ## Estado atual
 
 - Branch de trabalho: `staging`.
-- Último commit enviado: `04a2c27`.
+- Último commit enviado: `897cb5d`.
 - Última validação automatizada: 14/11/2026; typecheck, testes, lint e build
   aprovados no branch `staging`.
 - Typecheck: aprovado.
@@ -25,7 +25,7 @@ contabilidade, sem depender de integrações externas nesta etapa.
 | 1 | QA por administrador, colaborador e cliente | Em validação manual | `MANUAL_QA_EVIDENCE.md` |
 | 2 | Regras de negócio e permissões | Automatizado; falta confirmação manual | `supabase/tests/workspace-security.test.ts` |
 | 3 | Ciclo do cliente até fechamento da competência | Implementado; falta smoke test real | `OPERATIONAL_ACCOUNTING_EXECUTION_PLAN.md` e migrations de `client_periods` |
-| 4 | Tarefas, kanban, recorrência, responsáveis e revisão | Implementado; falta QA dos perfis | `src/pages/Tasks.tsx`, `src/pages/WorkQueue.tsx` |
+| 4 | Tarefas, kanban, recorrência, responsáveis e revisão | Implementado; falta QA dos perfis | `src/pages/Tasks.tsx`, `src/pages/WorkQueue.tsx`; submissões protegidas contra duplicidade |
 | 5 | Documentos, solicitações, evidências e histórico | Implementado; falta QA dos perfis | migrations `document_requests`, `checklist_evidence` e `operational_audit` |
 | 6 | Mensagens, leitura, busca, fixação e arquivamento | Implementado; falta teste autenticado | `src/pages/Messages.tsx` e migrations de mensagens |
 | 7 | Financeiro interno, faturas, baixas, cancelamentos e CSV | Implementado; falta QA financeiro | `src/pages/Payments.tsx`, `src/pages/Invoices.tsx`, `src/pages/Reports.tsx`, migrations `linked_payment_integrity` e `payment_history_integrity` |
