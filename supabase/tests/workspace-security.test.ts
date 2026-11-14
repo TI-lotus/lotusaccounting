@@ -113,6 +113,7 @@ beforeAll(async () => {
   await db.exec(migration("20261114170000_document_request_integrity.sql"));
   await db.exec(migration("20261114180000_operational_audit_triggers.sql"));
   await db.exec(migration("20261114190000_positive_financial_amounts.sql"));
+  await db.exec(migration("20261114230000_linked_payment_integrity.sql"));
   await db.exec(migration("20261114200000_task_recurrences.sql"));
   await db.exec(migration("20261114210000_schedule_task_recurrences.sql"));
   await db.exec(migration("20261114220000_task_recurrence_calendar_rules.sql"));
@@ -1044,6 +1045,19 @@ describe("workspace security regression", () => {
     expect((await db.query("SELECT status FROM invoices WHERE id = $1", [cancellableInvoiceId])).rows).toEqual([{ status: "pending" }]);
     await expect(db.query(`INSERT INTO invoices(id, tenant_id, company_id, amount, status) VALUES ('${id(54)}', '${tenant}', '${company}', 0, 'pending')`)).rejects.toThrow(/greater than zero/);
     await expect(db.query(`INSERT INTO payments(id, tenant_id, company_id, amount, status, direction) VALUES ('${id(55)}', '${tenant}', '${company}', -1, 'pending', 'expense')`)).rejects.toThrow(/greater than zero/);
+  });
+  it("keeps linked payments inside the invoice, client and workspace boundaries", async () => {
+    await asUser(admin);
+    const invoiceId = id(56);
+    await db.query(`INSERT INTO invoices(id, tenant_id, company_id, amount, status) VALUES ('${invoiceId}', '${tenant}', '${company}', 100, 'pending')`);
+
+    await expect(db.query(`INSERT INTO payments(id, tenant_id, company_id, invoice_id, amount, status, direction) VALUES ('${id(57)}', '${tenant}', '${otherCompany}', '${invoiceId}', 10, 'pending', 'income')`)).rejects.toThrow(/same client/);
+    await expect(db.query(`INSERT INTO payments(id, tenant_id, company_id, invoice_id, amount, status, direction) VALUES ('${id(58)}', '${otherTenant}', '${foreignCompany}', '${invoiceId}', 10, 'pending', 'income')`)).rejects.toThrow(/same workspace|Invalid workspace reference/);
+    await expect(db.query(`INSERT INTO payments(id, tenant_id, company_id, invoice_id, amount, status, direction) VALUES ('${id(59)}', '${tenant}', '${company}', '${invoiceId}', 10, 'pending', 'expense')`)).rejects.toThrow(/Expenses cannot/);
+
+    await db.query(`INSERT INTO payments(id, tenant_id, company_id, invoice_id, amount, status, direction) VALUES ('${id(60)}', '${tenant}', '${company}', '${invoiceId}', 100, 'completed', 'income')`);
+    await expect(db.query(`INSERT INTO payments(id, tenant_id, company_id, invoice_id, amount, status, direction) VALUES ('${id(61)}', '${tenant}', '${company}', '${invoiceId}', 1, 'completed', 'income')`)).rejects.toThrow(/Paid invoices|exceed/);
+    await expect(db.query(`UPDATE invoices SET amount = 99 WHERE id = '${invoiceId}'`)).rejects.toThrow(/lower than completed payments/);
   });
   it("archives only read notifications older than the retention window", async () => {
     await db.exec("RESET ROLE; SELECT set_config('request.jwt.claim.role', 'service_role', false)");
