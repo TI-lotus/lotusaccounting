@@ -107,6 +107,7 @@ beforeAll(async () => {
   await db.exec(migration("20261114150000_financial_integrity_guards.sql"));
   await db.exec(migration("20261114160000_payment_cancellation.sql"));
   await db.exec(migration("20261114170000_document_request_integrity.sql"));
+  await db.exec(migration("20261114180000_operational_audit_triggers.sql"));
   // Seed auth identities before enabling the onboarding trigger. The initial
   // workspace fixture below owns their public profile/user records directly.
   await db.exec(`INSERT INTO auth.users(id, email) VALUES ('${admin}', 'admin@example.com'), ('${client}', 'client-owner@example.com'), ('${collaborator}', 'collaborator@example.com')`);
@@ -740,6 +741,16 @@ describe("workspace security regression", () => {
     await db.query("UPDATE document_requests SET status = 'uploaded', document_id = $1 WHERE id = $2", [documentId, requestId]);
     await db.query("UPDATE document_requests SET status = 'approved' WHERE id = $1", [requestId]);
     expect((await db.query("SELECT status, document_id FROM document_requests WHERE id = $1", [requestId])).rows).toEqual([{ status: "approved", document_id: documentId }]);
+  });
+  it("records operational period and document decisions in the activity log", async () => {
+    await asUser(admin);
+    const period = await db.query<{ id: string }>(`INSERT INTO client_periods(tenant_id, company_id, period_month, period_year, responsible_user_id, created_by) VALUES ('${tenant}', '${company}', 9, 2042, '${collaborator}', '${admin}') RETURNING id`);
+    const request = await db.query<{ id: string }>(`INSERT INTO document_requests(tenant_id, company_id, client_period_id, requested_by, title) VALUES ('${tenant}', '${company}', '${period.rows[0].id}', '${admin}', 'Balancete de setembro') RETURNING id`);
+    expect((await db.query("SELECT entity, action FROM activity_logs WHERE entity = 'client_periods' AND entity_id = $1", [period.rows[0].id])).rows).toContainEqual({ entity: "client_periods", action: "created" });
+    expect((await db.query("SELECT entity, action FROM activity_logs WHERE entity = 'document_requests' AND entity_id = $1", [request.rows[0].id])).rows).toContainEqual({ entity: "document_requests", action: "created" });
+
+    await db.query("UPDATE document_requests SET status = 'rejected', rejection_reason = 'Arquivo incompleto' WHERE id = $1", [request.rows[0].id]);
+    expect((await db.query<{ action: string; metadata: { new_status?: string } }>("SELECT action, metadata FROM activity_logs WHERE entity = 'document_requests' AND entity_id = $1 ORDER BY created_at DESC LIMIT 1", [request.rows[0].id])).rows[0]).toMatchObject({ action: "updated", metadata: { new_status: "rejected" } });
   });
   it("creates and clears task overdue alerts", async () => {
     await asUser(admin);
