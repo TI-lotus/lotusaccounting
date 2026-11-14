@@ -6,25 +6,23 @@ contabilidade, sem depender de integrações externas nesta etapa.
 ## Estado atual
 
 - Branch de trabalho: `staging`.
-- Última versão de código enviada: `b55a680`.
+- Última versão de código enviada: `a26d50a`.
 - Última validação automatizada: 14/11/2026; typecheck, testes, lint e build
   aprovados no branch `staging` (execução atual: 99 testes aprovados).
-- Staging no Vercel: deployment `lotusaccounting-j8qx2u4j8-lotus-5cd8.vercel.app`
-  observado como `READY`, com o alias de staging apontando para a versão atual;
-  SSO da Vercel foi desativado temporariamente para liberar o QA autenticado.
-- Smoke test público: aprovado; o deployment mais recente abre diretamente a
-  tela `/auth` da Lotus.
+- Staging no Vercel: deployment `lotusaccounting-74imgxbcg-lotus-5cd8.vercel.app`
+  observado como `READY`, com o alias de staging apontando para a versão atual.
+- Smoke test público: aprovado antes da proteção; o SSO foi reativado depois da
+  primeira rodada de QA para proteger os previews.
 - Typecheck: aprovado.
 - Testes automatizados: 99 aprovados em 6 arquivos.
 - Lint: aprovado sem erros bloqueantes; permanecem apenas avisos históricos de
   Fast Refresh.
 - Build: aprovado; permanece o aviso de chunks grandes do bundle.
-- QA autenticado: pendente apenas pela execução das contas de teste dos três
-  perfis.
-- Proteção Vercel: SSO temporariamente desativado para o QA; reativar após o
-  smoke test final.
-- Última checagem de proteção e deployment: 14/11/2026; não há falha de build
-  ou bloqueio público no staging.
+- QA autenticado: primeira rodada dos três perfis aprovada por relato do
+  usuário; regressão detalhada recomendada.
+- Proteção Vercel: SSO reativado para `prod_deployment_urls_and_all_previews`.
+- Última checagem de proteção e deployment: 14/11/2026; run GitHub Actions
+  #105 concluído com sucesso e não há falha de build no staging.
 - Gate repetível disponível com `npm run verify`: typecheck, testes, lint e
   build em sequência; execução atual aprovada.
 - CI e deploy do Supabase agora reutilizam esse mesmo gate, evitando divergência
@@ -40,7 +38,7 @@ contabilidade, sem depender de integrações externas nesta etapa.
 
 | Ponto | Escopo | Estado | Evidência principal |
 | --- | --- | --- | --- |
-| 1 | QA por administrador, colaborador e cliente | Em validação manual | `MANUAL_QA_EVIDENCE.md` |
+| 1 | QA por administrador, colaborador e cliente | Primeira rodada aprovada; regressão recomendada | `MANUAL_QA_EVIDENCE.md` |
 | 2 | Regras de negócio e permissões | Automatizado; falta confirmação manual | `supabase/tests/workspace-security.test.ts` |
 | 3 | Ciclo do cliente até fechamento da competência | Implementado; falta smoke test real | `OPERATIONAL_ACCOUNTING_EXECUTION_PLAN.md` e migrations de `client_periods` |
 | 4 | Tarefas, kanban, recorrência, responsáveis e revisão | Implementado; falta QA dos perfis | `src/pages/Tasks.tsx`, `src/pages/WorkQueue.tsx`; submissões protegidas contra duplicidade |
