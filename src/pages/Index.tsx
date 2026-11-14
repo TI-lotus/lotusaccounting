@@ -61,34 +61,6 @@ import {
   YAxis,
 } from "recharts";
 
-const liaImprovements = [
-  {
-    id: "i1",
-    title: "Automatizar lembretes de DAS",
-    desc: "Reduz 30% do retrabalho mensal com envio automático 5 dias antes do vencimento.",
-  },
-  {
-    id: "i2",
-    title: "Reconciliar Pix com faturas",
-    desc: "Conectar Pix Itaú para conciliar automaticamente 12 entradas pendentes.",
-  },
-  {
-    id: "i3",
-    title: "Categorizar despesas recorrentes",
-    desc: "A Lia identificou 8 despesas que podem ser auto-categorizadas.",
-  },
-  {
-    id: "i4",
-    title: "Revisar margens dos clientes",
-    desc: "3 clientes estão com honorários abaixo da média de mercado para o porte.",
-  },
-  {
-    id: "i5",
-    title: "Ativar alerta de inadimplência",
-    desc: "Notifica antes que o cliente passe de 15 dias em atraso.",
-  },
-];
-
 type MetricPeriod = "today" | "week" | "month" | "total";
 
 type MetricPoint = {
@@ -475,19 +447,52 @@ const MetricTrendDialog = ({
 };
 
 const LiaInsights = () => {
+  const navigate = useNavigate();
+  const { invoices, tasks, documentRequests } = useData();
   const [open, setOpen] = useState(false);
-  const [selected, setSelected] = useState<Record<string, boolean>>({});
+  const overdueInvoices = invoices.filter((invoice) => invoice.status === "overdue").length;
+  const openTasks = tasks.filter((task) => task.status !== "completed").length;
+  const pendingDocumentRequests = documentRequests.filter(
+    (request) => !["approved", "waived"].includes(request.status),
+  ).length;
+  const recommendations = [
+    overdueInvoices > 0 && {
+      id: "overdue-invoices",
+      title: "Revisar faturas vencidas",
+      desc: `${overdueInvoices} fatura(s) vencida(s) precisam de acompanhamento manual.`,
+      href: "/invoices",
+      action: "Abrir faturas",
+    },
+    pendingDocumentRequests > 0 && {
+      id: "pending-documents",
+      title: "Acompanhar documentos pendentes",
+      desc: `${pendingDocumentRequests} solicitação(ões) ainda não foram encerradas.`,
+      href: "/documents",
+      action: "Abrir documentos",
+    },
+    openTasks > 0 && {
+      id: "open-tasks",
+      title: "Revisar tarefas em aberto",
+      desc: `${openTasks} tarefa(s) continuam abertas no workspace.`,
+      href: "/tasks",
+      action: "Abrir tarefas",
+    },
+  ].filter(Boolean) as Array<{ id: string; title: string; desc: string; href: string; action: string }>;
+  if (recommendations.length === 0) {
+    recommendations.push({
+      id: "operational-cycle",
+      title: "Conferir o ciclo mensal",
+      desc: "Não há pendências críticas detectadas nos registros atuais.",
+      href: "/periods",
+      action: "Abrir ciclo mensal",
+    });
+  }
 
-  const toggle = (id: string) => setSelected((s) => ({ ...s, [id]: !s[id] }));
-  const applyImprovements = () => {
-    const count = Object.values(selected).filter(Boolean).length;
-    toast.success(
-      count > 0
-        ? `${count} melhoria(s) aplicada(s) pela Lia`
-        : "Nenhuma melhoria selecionada",
-    );
-    setOpen(false);
-  };
+  const summary = [
+    overdueInvoices > 0 ? `${overdueInvoices} fatura(s) vencida(s)` : "Nenhuma fatura vencida",
+    `${openTasks} tarefa(s) aberta(s)`,
+    `${pendingDocumentRequests} solicitação(ões) de documento pendente(s)`,
+  ].join(" · ");
 
   return (
     <>
@@ -507,11 +512,7 @@ const LiaInsights = () => {
             </div>
             <div className="min-w-0">
               <h3 className="text-lg font-semibold">Insights da Lia</h3>
-              <p className="text-sm opacity-95 mt-1">
-                Receita 12% acima da média trimestral. 23 faturas vencendo nos
-                próximos 7 dias. A Lia sugere automatizar lembretes para reduzir
-                inadimplência em até 40%.
-              </p>
+              <p className="mt-1 text-sm opacity-95">Resumo baseado nos registros reais: {summary}.</p>
             </div>
           </div>
           <Button
@@ -519,7 +520,7 @@ const LiaInsights = () => {
             className="rounded-xl shrink-0 gap-2"
             onClick={() => setOpen(true)}
           >
-            Saiba mais <ArrowRight className="h-4 w-4" />
+            Ver recomendações <ArrowRight className="h-4 w-4" />
           </Button>
         </div>
       </div>
@@ -532,25 +533,31 @@ const LiaInsights = () => {
               Melhorias sugeridas pela Lia
             </DialogTitle>
             <DialogDescription>
-              Selecione as melhorias que deseja aplicar agora.
+              Recomendações baseadas nos dados atuais. A Lia não executa ações automaticamente nesta etapa.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2 max-h-[400px] overflow-y-auto custom-scroll">
-            {liaImprovements.map((imp) => (
-              <label
-                key={imp.id}
-                className="flex items-start gap-3 rounded-xl border border-border p-3 hover:bg-accent/40 cursor-pointer"
+            {recommendations.map((recommendation) => (
+              <button
+                key={recommendation.id}
+                type="button"
+                onClick={() => {
+                  setOpen(false);
+                  navigate(recommendation.href);
+                }}
+                className="flex w-full items-start gap-3 rounded-xl border border-border p-3 text-left transition-colors hover:bg-accent/40"
               >
-                <Checkbox
-                  checked={!!selected[imp.id]}
-                  onCheckedChange={() => toggle(imp.id)}
-                  className="mt-0.5"
-                />
+                <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-full border border-border bg-card text-gilver">
+                  <Sparkles className="h-4 w-4" aria-hidden="true" />
+                </span>
                 <div className="min-w-0">
-                  <p className="text-sm font-medium">{imp.title}</p>
-                  <p className="text-xs text-muted-foreground">{imp.desc}</p>
+                  <p className="text-sm font-medium">{recommendation.title}</p>
+                  <p className="text-xs text-muted-foreground">{recommendation.desc}</p>
+                  <span className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary">
+                    {recommendation.action} <ArrowRight className="h-3 w-3" aria-hidden="true" />
+                  </span>
                 </div>
-              </label>
+              </button>
             ))}
           </div>
           <DialogFooter>
@@ -559,10 +566,7 @@ const LiaInsights = () => {
               className="rounded-xl"
               onClick={() => setOpen(false)}
             >
-              Cancelar
-            </Button>
-            <Button className="rounded-xl" onClick={applyImprovements}>
-              Aplicar
+              Fechar
             </Button>
           </DialogFooter>
         </DialogContent>
