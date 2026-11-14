@@ -41,6 +41,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/contexts/AuthContext";
 import { useData } from "@/contexts/DataContext";
+import { useWorkspacePermission } from "@/hooks/useWorkspacePermission";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { FilterPopover } from "@/components/FilterPopover";
@@ -238,6 +239,10 @@ const WorkQueue = () => {
   const [commentBody, setCommentBody] = useState("");
 
   const isAdmin = profile?.account_type === "admin";
+  const canCreateDocuments = useWorkspacePermission({ tenantId, userId: user?.id, accountType: profile?.account_type, resource: "documents", action: "create" });
+  const canUpdateTasks = useWorkspacePermission({ tenantId, userId: user?.id, accountType: profile?.account_type, resource: "tasks", action: "update" });
+  const canUpdateClients = useWorkspacePermission({ tenantId, userId: user?.id, accountType: profile?.account_type, resource: "clients", action: "update" });
+  const canComment = canUpdateTasks || canUpdateClients;
 
   useEffect(() => {
     if (!tenantId) {
@@ -526,6 +531,10 @@ const WorkQueue = () => {
   };
 
   const handleCreateDocumentRequest = async () => {
+    if (!canCreateDocuments) {
+      toast.error("Seu perfil não tem permissão para solicitar documentos.");
+      return;
+    }
     if (!requestTarget || !newRequest.title.trim()) {
       toast.error("Informe o documento solicitado");
       return;
@@ -548,6 +557,10 @@ const WorkQueue = () => {
     task: TaskData,
     checklistItem: ClientPeriodChecklistItemData | null,
   ) => {
+    if (!canUpdateTasks) {
+      toast.error("Seu perfil não tem permissão para atualizar tarefas.");
+      return;
+    }
     if (!checklistItem) {
       toast.info("Esta tarefa ainda não possui item de checklist vinculado para revisão.");
       return;
@@ -568,6 +581,10 @@ const WorkQueue = () => {
     task: TaskData,
     checklistItem: ClientPeriodChecklistItemData | null,
   ) => {
+    if (!canUpdateTasks) {
+      toast.error("Seu perfil não tem permissão para concluir tarefas.");
+      return;
+    }
     if (checklistItem?.requiresReview && checklistItem.status !== "in_review") {
       await sendTaskToReview(task, checklistItem);
       return;
@@ -581,6 +598,10 @@ const WorkQueue = () => {
     task: TaskData | null,
     review: TaskReviewData | null,
   ) => {
+    if (!canUpdateTasks) {
+      toast.error("Seu perfil não tem permissão para revisar tarefas.");
+      return;
+    }
     const ok = review
       ? await approveTaskReview(review.id)
       : await updateClientPeriodChecklistItem(item.id, "completed");
@@ -599,7 +620,7 @@ const WorkQueue = () => {
   };
 
   const handleRejectReview = async () => {
-    if (!rejectReviewTarget) return;
+    if (!rejectReviewTarget || !canUpdateTasks) return;
     const ok = await rejectTaskReview(rejectReviewTarget.id, reviewComment);
     if (!ok) return;
     toast.success("Revisão reprovada");
@@ -638,7 +659,7 @@ const WorkQueue = () => {
   };
 
   const handleCreateComment = async () => {
-    if (!commentTarget) return;
+    if (!commentTarget || !canComment) return;
     const saved = await createOperationalComment(
       commentTarget.targetType,
       commentTarget.targetId,
@@ -768,7 +789,7 @@ const WorkQueue = () => {
           </Badge>
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
-          {row.kind === "task" && row.task.status !== "in_progress" && (
+          {canUpdateTasks && row.kind === "task" && row.task.status !== "in_progress" && (
             <Button
               size="sm"
               variant="outline"
@@ -779,7 +800,7 @@ const WorkQueue = () => {
               Iniciar
             </Button>
           )}
-          {row.kind === "task" && row.checklistItem?.requiresReview && (
+          {canUpdateTasks && row.kind === "task" && row.checklistItem?.requiresReview && (
             <Button
               size="sm"
               variant="outline"
@@ -790,7 +811,7 @@ const WorkQueue = () => {
               Revisão
             </Button>
           )}
-          {row.kind === "task" && row.task.status !== "blocked" && (
+          {canUpdateTasks && row.kind === "task" && row.task.status !== "blocked" && (
             <Button
               size="sm"
               className="h-8 rounded-lg gap-1.5"
@@ -800,7 +821,7 @@ const WorkQueue = () => {
               Concluir
             </Button>
           )}
-          {row.kind === "checklist" && row.checklistItem.status === "in_review" && (
+          {canUpdateTasks && row.kind === "checklist" && row.checklistItem.status === "in_review" && (
             <>
               <Button
                 size="sm"
@@ -830,16 +851,18 @@ const WorkQueue = () => {
             <ExternalLink className="h-3.5 w-3.5" />
             Competência
           </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-8 rounded-lg gap-1.5"
-            onClick={() => openRequestDialog(client, period)}
-          >
-            <Plus className="h-3.5 w-3.5" />
-            Solicitar documento
-          </Button>
-          {commentTargetInfo && (
+          {canCreateDocuments && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 rounded-lg gap-1.5"
+              onClick={() => openRequestDialog(client, period)}
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Solicitar documento
+            </Button>
+          )}
+          {commentTargetInfo && canComment && (
             <Button
               size="sm"
               variant="ghost"
