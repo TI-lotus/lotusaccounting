@@ -42,6 +42,8 @@ import { CalendarEventView } from "@/components/CalendarEventView";
 import { TimelineView } from "@/components/TimelineView";
 import { useViewMode } from "@/contexts/ViewModeContext";
 import { useData } from "@/contexts/DataContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { useWorkspacePermission } from "@/hooks/useWorkspacePermission";
 import { FilterPopover } from "@/components/FilterPopover";
 import { IconTooltipButton } from "@/components/IconTooltipButton";
 import { SortToggle } from "@/components/SortToggle";
@@ -90,6 +92,7 @@ type PaymentDateFilter = "all" | "month" | "quarter" | "custom";
 const Payments = () => {
   const navigate = useNavigate();
   const { viewMode } = useViewMode();
+  const { user, profile } = useAuth();
   const {
     tenantId,
     clients,
@@ -98,6 +101,20 @@ const Payments = () => {
     addPayment,
     updatePayment,
   } = useData();
+  const canCreateFinancial = useWorkspacePermission({
+    tenantId,
+    userId: user?.id,
+    accountType: profile?.account_type,
+    resource: "financial",
+    action: "create",
+  });
+  const canUpdateFinancial = useWorkspacePermission({
+    tenantId,
+    userId: user?.id,
+    accountType: profile?.account_type,
+    resource: "financial",
+    action: "update",
+  });
   const [valueSort, setValueSort] = useState<"none" | "asc" | "desc">("none");
   const [dateSort, setDateSort] = useState<"newest" | "oldest">("newest");
   const [typeFilters, setTypeFilters] = useState<Payment["type"][]>([]);
@@ -175,6 +192,10 @@ const Payments = () => {
     });
 
   const handleAddPayment = async () => {
+    if (!canCreateFinancial) {
+      toast.error("Seu perfil não tem permissão para registrar pagamentos.");
+      return;
+    }
     if (!newPayment.description || !newPayment.amount) {
       toast.error("Preencha descrição e valor");
       return;
@@ -214,6 +235,10 @@ const Payments = () => {
   };
 
   const handleToggleStatus = async (id: string) => {
+    if (!canUpdateFinancial) {
+      toast.error("Seu perfil não tem permissão para atualizar pagamentos.");
+      return;
+    }
     const p = payments.find((x) => x.id === id);
     if (!p) return;
     if (p.reconciledAt) {
@@ -388,7 +413,7 @@ const Payments = () => {
               Acompanhe entradas e saídas financeiras
             </p>
           </div>
-          {viewMode !== "client" && (
+          {viewMode !== "client" && canCreateFinancial && (
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="rounded-xl gap-2">
@@ -641,9 +666,9 @@ const Payments = () => {
               ]}
               actions={(payment) => (
                 <RowActions
-                  primaryLabel={viewMode === "client" ? "Ver detalhes" : payment.reconciledAt ? "Já conciliado" : payment.status === "completed" ? "Reabrir pagamento" : "Confirmar pagamento"}
+                  primaryLabel={viewMode === "client" ? "Ver detalhes" : !canUpdateFinancial ? "Sem permissão para atualizar" : payment.reconciledAt ? "Já conciliado" : payment.status === "completed" ? "Reabrir pagamento" : "Confirmar pagamento"}
                   primaryIcon={viewMode === "client" ? Eye : payment.status === "completed" ? RotateCcw : CheckCircle2}
-                  primaryDisabled={viewMode !== "client" && Boolean(payment.reconciledAt)}
+                  primaryDisabled={viewMode !== "client" && (!canUpdateFinancial || Boolean(payment.reconciledAt))}
                   onPrimary={() => { if (viewMode === "client") setSelectedPayment(payment); else void handleToggleStatus(payment.id); }}
                   menuItems={[
                     { label: "Ver detalhes", icon: Eye, onSelect: () => setSelectedPayment(payment) },

@@ -67,6 +67,20 @@ const Tasks = () => {
   const { tasks, addTask, updateTaskStatus, deleteTask, clients, tenantId } = useData();
   const { viewMode } = useViewMode();
   const { user, profile } = useAuth();
+  const canCreateTasks = useWorkspacePermission({
+    tenantId,
+    userId: user?.id,
+    accountType: profile?.account_type,
+    resource: "tasks",
+    action: "create",
+  });
+  const canUpdateTasks = useWorkspacePermission({
+    tenantId,
+    userId: user?.id,
+    accountType: profile?.account_type,
+    resource: "tasks",
+    action: "update",
+  });
   const canDeleteTasks = useWorkspacePermission({
     tenantId,
     userId: user?.id,
@@ -134,6 +148,7 @@ const Tasks = () => {
     });
 
   const toggleTaskStatus = (taskId: string) => {
+    if (!canUpdateTasks) return;
     const task = tasks.find((t) => t.id === taskId);
     if (!task) return;
     const newStatus: TaskStatus =
@@ -142,6 +157,7 @@ const Tasks = () => {
   };
 
   const handleCreateTask = async () => {
+    if (!canCreateTasks) return;
     if (!newTask.title.trim()) return;
     const selectedClient = clients.find((c) => c.id === newTask.clientId);
     const assigneeName =
@@ -228,7 +244,7 @@ const Tasks = () => {
   };
 
   const handleBlockTask = async () => {
-    if (!blockTarget) return;
+    if (!blockTarget || !canUpdateTasks) return;
     const ok = await updateTaskStatus(blockTarget.id, "blocked", blockReason);
     if (!ok) return;
     setSelectedTask(null);
@@ -237,7 +253,7 @@ const Tasks = () => {
   };
 
   const moveTaskToStatus = async (status: TaskStatus) => {
-    if (!draggedTaskId || viewMode === "client") return;
+    if (!draggedTaskId || viewMode === "client" || !canUpdateTasks) return;
     const task = tasks.find((item) => item.id === draggedTaskId);
     setDragOverStatus(null);
     setDraggedTaskId(null);
@@ -248,9 +264,9 @@ const Tasks = () => {
   const KanbanCard = ({ task }: { task: TaskData }) => (
     <button
       type="button"
-      draggable={viewMode !== "client"}
+      draggable={viewMode !== "client" && canUpdateTasks}
       onDragStart={(event) => {
-        if (viewMode === "client") return;
+        if (viewMode === "client" || !canUpdateTasks) return;
         event.dataTransfer.effectAllowed = "move";
         event.dataTransfer.setData("text/plain", task.id);
         setDraggedTaskId(task.id);
@@ -378,7 +394,7 @@ const Tasks = () => {
             </p>
           </div>
           <div className="flex gap-2">
-            {viewMode !== "client" && (
+            {viewMode !== "client" && canCreateTasks && (
               <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                 <DialogTrigger asChild>
                   <Button className="gap-2">
@@ -709,8 +725,8 @@ const Tasks = () => {
                 primaryIcon={Eye}
                 onPrimary={() => setSelectedTask(task)}
                 menuItems={[
-                  ...(task.status !== "completed" ? [{ label: "Concluir", icon: CheckCircle2, onSelect: () => void updateTaskStatus(task.id, "completed") }] : []),
-                  ...(task.status !== "in_progress" && task.status !== "completed" ? [{ label: "Iniciar", icon: Clock, onSelect: () => void updateTaskStatus(task.id, "in_progress") }] : []),
+                  ...(canUpdateTasks && task.status !== "completed" ? [{ label: "Concluir", icon: CheckCircle2, onSelect: () => void updateTaskStatus(task.id, "completed") }] : []),
+                  ...(canUpdateTasks && task.status !== "in_progress" && task.status !== "completed" ? [{ label: "Iniciar", icon: Clock, onSelect: () => void updateTaskStatus(task.id, "in_progress") }] : []),
                   ...(viewMode !== "client" && canDeleteTasks ? [{ label: "Remover tarefa", icon: Trash2, destructive: true, separatorBefore: true, onSelect: () => setDeleteTarget(task) }] : []),
                 ]}
               />
@@ -758,16 +774,16 @@ const Tasks = () => {
                     </Button>
                   )}
                   <div className="flex flex-wrap gap-2">
-                    {selectedTask.status !== "pending" && (
+                  {canUpdateTasks && selectedTask.status !== "pending" && (
                       <Button variant="outline" className="rounded-xl" onClick={() => { void updateTaskStatus(selectedTask.id, "pending"); setSelectedTask(null); }}>Marcar pendente</Button>
                     )}
-                    {selectedTask.status !== "in_progress" && selectedTask.status !== "completed" && (
+                    {canUpdateTasks && selectedTask.status !== "in_progress" && selectedTask.status !== "completed" && (
                       <Button variant="outline" className="rounded-xl" onClick={() => { void updateTaskStatus(selectedTask.id, "in_progress"); setSelectedTask(null); }}>Iniciar</Button>
                     )}
-                    {selectedTask.status !== "blocked" && selectedTask.status !== "completed" && (
+                    {canUpdateTasks && selectedTask.status !== "blocked" && selectedTask.status !== "completed" && (
                       <Button variant="outline" className="rounded-xl" onClick={() => openBlockDialog(selectedTask)}>Bloquear</Button>
                     )}
-                    {selectedTask.status !== "completed" && (
+                    {canUpdateTasks && selectedTask.status !== "completed" && (
                       <Button className="rounded-xl" onClick={() => { void updateTaskStatus(selectedTask.id, "completed"); setSelectedTask(null); }}>Concluir</Button>
                     )}
                   </div>

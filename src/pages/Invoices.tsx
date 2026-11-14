@@ -27,6 +27,7 @@ import { Plus, Receipt, Eye, ExternalLink, CheckCircle2, Trash2, Search } from "
 import { useData } from "@/contexts/DataContext";
 import { useViewMode } from "@/contexts/ViewModeContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useWorkspacePermission } from "@/hooks/useWorkspacePermission";
 import type { Database } from "@/integrations/supabase/types";
 import { toast } from "sonner";
 import { toastWithUndo } from "@/lib/toastUndo";
@@ -79,7 +80,21 @@ const Invoices = () => {
     updateInvoice,
     generateMonthlyServiceFeeInvoices,
   } = useData();
-  const { profile } = useAuth();
+  const { user, profile } = useAuth();
+  const canCreateFinancial = useWorkspacePermission({
+    tenantId,
+    userId: user?.id,
+    accountType: profile?.account_type,
+    resource: "financial",
+    action: "create",
+  });
+  const canDeleteFinancial = useWorkspacePermission({
+    tenantId,
+    userId: user?.id,
+    accountType: profile?.account_type,
+    resource: "financial",
+    action: "delete",
+  });
   const [statusFilters, setStatusFilters] = useState<string[]>([]);
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
@@ -94,6 +109,10 @@ const Invoices = () => {
   const activeClients = clients.filter((client) => client.status === "active");
 
   const create = async () => {
+    if (!canCreateFinancial) {
+      toast.error("Seu perfil não tem permissão para criar faturas.");
+      return;
+    }
     if (!tenantId || !form.amount) {
       toast.error("Preencha o valor");
       return;
@@ -123,6 +142,10 @@ const Invoices = () => {
   };
 
   const generateServiceFeeInvoices = async () => {
+    if (!canCreateFinancial) {
+      toast.error("Seu perfil não tem permissão para gerar faturas.");
+      return;
+    }
     const created = await generateMonthlyServiceFeeInvoices();
     if (created > 0) {
       toast.success(`${created} fatura(s) mensal(is) de honorários gerada(s)`);
@@ -132,6 +155,10 @@ const Invoices = () => {
   };
 
   const removeInvoice = (inv: Invoice) => {
+    if (!canDeleteFinancial) {
+      toast.error("Seu perfil não tem permissão para remover faturas.");
+      return;
+    }
     setSelected(null);
     toastWithUndo({
       message: "Remoção de fatura agendada",
@@ -144,6 +171,10 @@ const Invoices = () => {
   };
 
   const registerPaymentFromInvoice = async (inv: Invoice) => {
+    if (!canCreateFinancial) {
+      toast.error("Seu perfil não tem permissão para registrar pagamentos.");
+      return;
+    }
     const saved = await addPayment({
       amount: Number(inv.amount),
       status: "completed",
@@ -213,7 +244,7 @@ const Invoices = () => {
         title="Faturas"
         description="Emissão e acompanhamento de faturas"
         primaryAction={
-          isClientView ? undefined : (
+          isClientView || !canCreateFinancial ? undefined : (
             <div className="flex flex-wrap gap-2">
               {profile?.account_type === "admin" && (
                 <Button variant="outline" className="rounded-xl" onClick={generateServiceFeeInvoices}>
@@ -387,8 +418,8 @@ const Invoices = () => {
                   onPrimary={() => setSelected(invoice)}
                   menuItems={[
                     { label: "Abrir fatura", icon: ExternalLink, onSelect: () => setSelected(invoice) },
-                    ...(!isClientView && invoice.status !== "paid" ? [{ label: "Registrar pagamento", icon: CheckCircle2, onSelect: () => void registerPaymentFromInvoice(invoice) }] : []),
-                    ...(!isClientView ? [{ label: "Remover fatura", icon: Trash2, destructive: true, separatorBefore: true, onSelect: () => removeInvoice(invoice) }] : []),
+                    ...(!isClientView && canCreateFinancial && invoice.status !== "paid" ? [{ label: "Registrar pagamento", icon: CheckCircle2, onSelect: () => void registerPaymentFromInvoice(invoice) }] : []),
+                    ...(!isClientView && canDeleteFinancial ? [{ label: "Remover fatura", icon: Trash2, destructive: true, separatorBefore: true, onSelect: () => removeInvoice(invoice) }] : []),
                   ]}
                 />
               )}
@@ -415,7 +446,7 @@ const Invoices = () => {
               >
                 Fechar
               </Button>
-              {!isClientView && selected.status !== "paid" && (
+              {!isClientView && canCreateFinancial && selected.status !== "paid" && (
                 <Button
                   className="rounded-xl"
                   onClick={() => registerPaymentFromInvoice(selected)}
@@ -423,7 +454,7 @@ const Invoices = () => {
                   Registrar pagamento
                 </Button>
               )}
-              {!isClientView && selected.status !== "paid" && (
+              {!isClientView && canDeleteFinancial && selected.status !== "paid" && (
                 <Button
                   variant="destructive"
                   className="rounded-xl"
