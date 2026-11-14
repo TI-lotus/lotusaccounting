@@ -182,6 +182,7 @@ export const AppSidebar = () => {
       <Link
         key={item.href}
         to={item.href}
+        aria-current={active ? "page" : undefined}
         className={cn(
           "flex items-center gap-2 rounded-xl px-3 py-2 text-sm transition-colors duration-200",
           isCollapsed && "lg:mx-auto lg:h-10 lg:w-10 lg:justify-center lg:rounded-full lg:px-0",
@@ -229,6 +230,7 @@ export const AppSidebar = () => {
                 <Link
                   to={item.href}
                   aria-label={isCollapsed ? group.label : undefined}
+                  aria-current={isActive ? "page" : undefined}
                   className={cn(
                     "flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium whitespace-nowrap transition-colors duration-200 lg:w-full",
                     isCollapsed ? "lg:mx-auto lg:h-10 lg:w-10 lg:justify-center lg:rounded-full lg:px-0" : "lg:justify-start",
