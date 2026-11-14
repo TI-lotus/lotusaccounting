@@ -2,42 +2,50 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { lazy, Suspense } from "react";
 import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom";
 import { ViewModeProvider } from "@/contexts/ViewModeContext";
 import { DataProvider } from "@/contexts/DataContext";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { UserProfileProvider } from "@/contexts/UserProfileContext";
-import Index from "./pages/Index";
 import Auth from "./pages/Auth";
-import Clients from "./pages/Clients";
-import Payments from "./pages/Payments";
-import Documents from "./pages/Documents";
-import Reports from "./pages/Reports";
-import Integrations from "./pages/Integrations";
-import IntegrationSettings from "./pages/IntegrationSettings";
-import Messages from "./pages/Messages";
-import Notifications from "./pages/Notifications";
-import Settings from "./pages/Settings";
-import OperationalTemplates from "./pages/OperationalTemplates";
-import SearchCNPJ from "./pages/SearchCNPJ";
-import AffiliationProgram from "./pages/AffiliationProgram";
-import Upgrade from "./pages/Upgrade";
-import Agents from "./pages/Agents";
-import Tasks from "./pages/Tasks";
-import WorkQueue from "./pages/WorkQueue";
-import Periods from "./pages/Periods";
-import Staff from "./pages/Staff";
-import ClientDetail from "./pages/ClientDetail";
-import Agenda from "./pages/Agenda";
-import Finance from "./pages/Finance";
-import Invoices from "./pages/Invoices";
-import Reconciliation from "./pages/Reconciliation";
-import Lia from "./pages/Lia";
-import Workflows from "./pages/Workflows";
-import NotFound from "./pages/NotFound";
 import { AppErrorBoundary } from "@/components/AppErrorBoundary";
 
+const Index = lazy(() => import("./pages/Index"));
+const Clients = lazy(() => import("./pages/Clients"));
+const Payments = lazy(() => import("./pages/Payments"));
+const Documents = lazy(() => import("./pages/Documents"));
+const Reports = lazy(() => import("./pages/Reports"));
+const Integrations = lazy(() => import("./pages/Integrations"));
+const IntegrationSettings = lazy(() => import("./pages/IntegrationSettings"));
+const Messages = lazy(() => import("./pages/Messages"));
+const Notifications = lazy(() => import("./pages/Notifications"));
+const Settings = lazy(() => import("./pages/Settings"));
+const OperationalTemplates = lazy(() => import("./pages/OperationalTemplates"));
+const SearchCNPJ = lazy(() => import("./pages/SearchCNPJ"));
+const AffiliationProgram = lazy(() => import("./pages/AffiliationProgram"));
+const Upgrade = lazy(() => import("./pages/Upgrade"));
+const Agents = lazy(() => import("./pages/Agents"));
+const Tasks = lazy(() => import("./pages/Tasks"));
+const WorkQueue = lazy(() => import("./pages/WorkQueue"));
+const Periods = lazy(() => import("./pages/Periods"));
+const Staff = lazy(() => import("./pages/Staff"));
+const ClientDetail = lazy(() => import("./pages/ClientDetail"));
+const Agenda = lazy(() => import("./pages/Agenda"));
+const Finance = lazy(() => import("./pages/Finance"));
+const Invoices = lazy(() => import("./pages/Invoices"));
+const Reconciliation = lazy(() => import("./pages/Reconciliation"));
+const Lia = lazy(() => import("./pages/Lia"));
+const Workflows = lazy(() => import("./pages/Workflows"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+
 const queryClient = new QueryClient();
+
+const RouteLoading = () => (
+  <div className="flex min-h-[40vh] items-center justify-center bg-background text-sm text-muted-foreground" role="status" aria-live="polite">
+    Carregando seção…
+  </div>
+);
 
 const WorkspaceData = ({ children }: { children: React.ReactNode }) => {
   const { user } = useAuth();
@@ -105,7 +113,8 @@ const App = () => (
               <Sonner />
               <BrowserRouter>
                 <AppErrorBoundary>
-                  <Routes>
+                  <Suspense fallback={<RouteLoading />}>
+                    <Routes>
                   <Route path="/auth" element={<Auth />} />
                   <Route path="/" element={protectedPage(<Index />)} />
                   <Route
@@ -212,7 +221,8 @@ const App = () => (
                     })}
                   />
                   <Route path="*" element={<NotFound />} />
-                  </Routes>
+                    </Routes>
+                  </Suspense>
                 </AppErrorBoundary>
               </BrowserRouter>
             </TooltipProvider>
