@@ -9,17 +9,17 @@ contabilidade, sem depender de integrações externas nesta etapa.
 - Última versão de código enviada: `9de1890`.
 - Última validação automatizada: 14/11/2026; typecheck, testes, lint e build
   aprovados no branch `staging`.
-- Staging no Vercel: deployment observado como `READY`; a proteção de acesso
-  continua ativa para o QA autenticado.
+- Staging no Vercel: deployment observado como `READY`; SSO da Vercel foi
+  desativado temporariamente para liberar o QA autenticado.
 - Typecheck: aprovado.
 - Testes automatizados: 99 aprovados em 6 arquivos.
 - Lint: aprovado sem erros bloqueantes; permanecem apenas avisos históricos de
   Fast Refresh.
 - Build: aprovado; permanece o aviso de chunks grandes do bundle.
-- QA autenticado: pendente porque o preview do Vercel ainda redireciona para
-  SSO.
-- Proteção Vercel confirmada: SSO em todos os deployments, exceto domínios
-  customizados.
+- QA autenticado: pendente apenas pela execução das contas de teste dos três
+  perfis.
+- Proteção Vercel: SSO temporariamente desativado para o QA; reativar após o
+  smoke test final.
 - `main`: não promovido.
 
 ## Acompanhamento dos 10 pontos
