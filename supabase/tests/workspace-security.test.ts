@@ -83,6 +83,8 @@ beforeAll(async () => {
   await db.exec(migration("20260917150000_fix_internal_messaging_guard.sql"));
   await db.exec(migration("20260917151000_message_receipts_and_member_directory.sql"));
   await db.exec(migration("20260917152000_message_notification_deep_links.sql"));
+  await db.exec(migration("20261113143000_conversation_list_preferences.sql"));
+  await db.exec(migration("20261113150000_set_internal_conversation_preference.sql"));
   await db.exec(migration("20260827090000_financial_reconciliation_invoice_sync.sql"));
   await db.exec(migration("20260923120000_client_periods.sql"));
   await db.exec(migration("20260923121000_client_period_steps.sql"));
@@ -257,6 +259,23 @@ describe("workspace security regression", () => {
     expect((await db.query(`SELECT public.mark_internal_conversation_read('${conversationId}') AS marked`)).rows).toEqual([{ marked: 1 }]);
     expect((await db.query<{ read_at: string | null }>(`SELECT read_at FROM messages WHERE id = '${inserted.rows[0].id}'`)).rows[0].read_at).not.toBeNull();
     expect((await db.query<{ read_at: string | null }>(`SELECT read_at FROM user_notifications WHERE user_id = '${recipient}' AND metadata ->> 'conversation_id' = '${conversationId}'`)).rows[0].read_at).not.toBeNull();
+  });
+  it("persists pin and archive preferences only for conversation participants", async () => {
+    const conversationId = id(37);
+
+    await asUser(collaborator);
+    expect(
+      (await db.query<{ id: string; is_pinned: boolean; is_archived: boolean }>(
+        "SELECT id, is_pinned, is_archived FROM public.set_internal_conversation_preference($1, true, true)",
+        [conversationId],
+      )).rows,
+    ).toEqual([{ id: conversationId, is_pinned: true, is_archived: true }]);
+    expect((await db.query<{ is_pinned: boolean; is_archived: boolean }>("SELECT is_pinned, is_archived FROM conversations WHERE id = $1", [conversationId])).rows).toEqual([{ is_pinned: true, is_archived: true }]);
+
+    await asUser(client);
+    await expect(
+      db.query("SELECT * FROM public.set_internal_conversation_preference($1, false, false)", [conversationId]),
+    ).rejects.toThrow(/access denied|not found/i);
   });
   it("exposes only safe directory fields to a client and lets active users save their own avatar", async () => {
     await asUser(client);
