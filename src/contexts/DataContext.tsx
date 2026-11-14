@@ -1582,6 +1582,10 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         toast.error("Tenant não encontrado");
         return null;
       }
+      if (accountType === "client") {
+        toast.error("Clientes não podem registrar pagamentos no workspace");
+        return null;
+      }
       const { data, error } = await supabase
         .from("payments")
         .insert({
@@ -1598,12 +1602,16 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       if (data?.invoice_id) await fetchAll();
       return (data as PaymentRow | null) ?? null;
     },
-    [tenantId, fetchAll],
+    [accountType, tenantId, fetchAll],
   );
 
   const updatePayment = useCallback(
     async (id: string, updates: Partial<PaymentRow>) => {
       if (!tenantId) return false;
+      if (accountType === "client") {
+        toast.error("Clientes não podem alterar pagamentos no workspace");
+        return false;
+      }
       const currentPayment = payments.find((payment) => payment.id === id);
       if (
         currentPayment?.reconciled_at &&
@@ -1624,12 +1632,16 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       await fetchAll();
       return true;
     },
-    [fetchAll, tenantId, payments],
+    [accountType, fetchAll, tenantId, payments],
   );
 
   const deletePayment = useCallback(
     async (id: string) => {
       if (!tenantId) return false;
+      if (accountType === "client") {
+        toast.error("Clientes não podem remover pagamentos no workspace");
+        return false;
+      }
       const { data, error } = await supabase.from("payments").delete().eq("id", id).eq("tenant_id", tenantId).select("id").maybeSingle();
       if (error || !data) {
         toast.error("Erro ao remover pagamento: " + (error?.message ?? "Acesso negado ou registro não encontrado"));
@@ -1639,7 +1651,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       await fetchAll();
       return true;
     },
-    [fetchAll, tenantId],
+    [accountType, fetchAll, tenantId],
   );
 
   // -------- Invoices --------
@@ -1647,6 +1659,10 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     async (invoice: InvoiceInsert) => {
       if (!tenantId) {
         toast.error("Tenant não encontrado");
+        return null;
+      }
+      if (accountType === "client") {
+        toast.error("Clientes não podem criar faturas no workspace");
         return null;
       }
       if (invoice.status === "paid") {
@@ -1668,12 +1684,16 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       if (data) setInvoices((prev) => [data as InvoiceRow, ...prev]);
       return (data as InvoiceRow | null) ?? null;
     },
-    [tenantId],
+    [accountType, tenantId],
   );
 
   const updateInvoice = useCallback(
     async (id: string, updates: Partial<InvoiceRow>) => {
       if (!tenantId) return false;
+      if (accountType === "client") {
+        toast.error("Clientes não podem alterar faturas no workspace");
+        return false;
+      }
       const { data, error } = await supabase
         .from("invoices")
         .update(updates)
@@ -1685,12 +1705,16 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       setInvoices((prev) => prev.map((invoice) => invoice.id === id ? data : invoice));
       return true;
     },
-    [tenantId],
+    [accountType, tenantId],
   );
 
   const deleteInvoice = useCallback(
     async (id: string) => {
       if (!tenantId) return false;
+      if (accountType === "client") {
+        toast.error("Clientes não podem remover faturas no workspace");
+        return false;
+      }
       const invoice = invoices.find((item) => item.id === id);
       if (invoice?.status === "paid") {
         toast.error("Faturas pagas não podem ser removidas. Cancele ou estorne o pagamento antes.");
@@ -1705,7 +1729,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       await fetchAll();
       return true;
     },
-    [fetchAll, tenantId, invoices],
+    [accountType, fetchAll, tenantId, invoices],
   );
 
   const generateMonthlyServiceFeeInvoices = useCallback(async () => {
