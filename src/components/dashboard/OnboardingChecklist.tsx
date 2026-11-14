@@ -40,6 +40,7 @@ export const OnboardingChecklist = () => {
   const {
     clients,
     clientPeriods,
+    clientPeriodChecklistItems,
     tasks,
     documents,
     documentRequests,
@@ -82,7 +83,7 @@ export const OnboardingChecklist = () => {
         description: "Defina as etapas e obrigações que serão usadas no mês.",
         href: "/settings/templates",
         icon: ListChecks,
-        completed: clientPeriods.length > 0,
+        completed: clientPeriodChecklistItems.length > 0,
       },
       {
         id: "period",
@@ -110,6 +111,7 @@ export const OnboardingChecklist = () => {
       },
     ],
     [
+      clientPeriodChecklistItems.length,
       clientPeriods.length,
       clients.length,
       documentRequests.length,
