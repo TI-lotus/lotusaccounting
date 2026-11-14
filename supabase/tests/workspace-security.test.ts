@@ -101,6 +101,7 @@ beforeAll(async () => {
   await db.exec(migration("20260923135000_task_blocked_reason.sql"));
   await db.exec(migration("20260924100000_client_email_claim_access.sql"));
   await db.exec(migration("20261109150000_task_delete_permission_fix.sql"));
+  await db.exec(migration("20261114100000_normalize_financial_permission_key.sql"));
   // Seed auth identities before enabling the onboarding trigger. The initial
   // workspace fixture below owns their public profile/user records directly.
   await db.exec(`INSERT INTO auth.users(id, email) VALUES ('${admin}', 'admin@example.com'), ('${client}', 'client-owner@example.com'), ('${collaborator}', 'collaborator@example.com')`);
@@ -332,6 +333,17 @@ describe("workspace security regression", () => {
     await db.query(`UPDATE workspace_member_permissions SET permissions = jsonb_set(permissions, '{financial,create}', 'true'::jsonb) WHERE tenant_id = '${tenant}' AND user_id = '${collaborator}'`);
     await asUser(collaborator);
     expect((await db.query("SELECT public.has_workspace_permission('financial', 'create') AS allowed")).rows).toEqual([{ allowed: true }]);
+  });
+  it("keeps legacy payment permission data aligned with the financial resource", async () => {
+    await asUser(admin);
+    await db.query(`UPDATE workspace_member_permissions SET permissions = (permissions - 'financial') || jsonb_build_object('payments', jsonb_build_object('read', true, 'create', true, 'update', false, 'delete', false)) WHERE tenant_id = '${tenant}' AND user_id = '${collaborator}'`);
+    await db.exec("RESET ROLE; SELECT set_config('request.jwt.claim.role', 'service_role', false)");
+    const permission = await db.query<{ has_financial: boolean; has_payments: boolean }>(`SELECT (permissions ? 'financial') AS has_financial, (permissions ? 'payments') AS has_payments FROM workspace_member_permissions WHERE tenant_id = '${tenant}' AND user_id = '${collaborator}'`);
+    expect(permission.rows).toEqual([{ has_financial: false, has_payments: true }]);
+
+    await db.exec(migration("20261114100000_normalize_financial_permission_key.sql"));
+    const normalized = await db.query<{ has_financial: boolean; has_payments: boolean; can_create: boolean }>(`SELECT (permissions ? 'financial') AS has_financial, (permissions ? 'payments') AS has_payments, public.has_workspace_permission('financial', 'create') AS can_create FROM workspace_member_permissions WHERE tenant_id = '${tenant}' AND user_id = '${collaborator}'`);
+    expect(normalized.rows).toEqual([{ has_financial: true, has_payments: false, can_create: true }]);
   });
   it("allows collaborator task deletion only when the task permission is enabled", async () => {
     const taskId = id(60);

@@ -54,7 +54,7 @@ type InviteForm = {
 const permissionLabels = {
   clients: "Clientes",
   tasks: "Tarefas",
-  payments: "Pagamentos",
+  financial: "Financeiro",
   documents: "Documentos",
   reports: "Relatórios",
   integrations: "Integrações",
@@ -74,7 +74,7 @@ const permissionActions: { key: PermissionAction; label: string }[] = [
 const defaultPermissionMatrix: PermissionMatrix = {
   clients: { read: true, create: true, update: true, delete: false },
   tasks: { read: true, create: true, update: true, delete: false },
-  payments: { read: true, create: false, update: false, delete: false },
+  financial: { read: true, create: false, update: false, delete: false },
   documents: { read: true, create: true, update: true, delete: false },
   reports: { read: true, create: false, update: false, delete: false },
   integrations: { read: false, create: false, update: false, delete: false },

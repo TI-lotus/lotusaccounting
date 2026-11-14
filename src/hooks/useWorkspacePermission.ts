@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-type PermissionResource = "clients" | "tasks" | "payments" | "documents" | "reports" | "integrations";
+type PermissionResource = "clients" | "tasks" | "payments" | "financial" | "documents" | "reports" | "integrations";
 type PermissionAction = "read" | "create" | "update" | "delete";
 type PermissionMap = Partial<Record<PermissionResource, Partial<Record<PermissionAction, boolean>>>>;
 
@@ -36,6 +36,7 @@ export const useWorkspacePermission = ({
     }
 
     setAllowed(false);
+    const backendResource = resource === "payments" ? "financial" : resource;
     void supabase
       .from("workspace_member_permissions")
       .select("permissions")
@@ -45,7 +46,7 @@ export const useWorkspacePermission = ({
       .then(({ data }) => {
         if (!active) return;
         const permissions = data?.permissions as PermissionMap | null | undefined;
-        setAllowed(permissions?.[resource]?.[action] === true);
+        setAllowed(permissions?.[backendResource]?.[action] === true);
       });
 
     return () => { active = false; };
