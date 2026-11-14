@@ -135,6 +135,7 @@ const Payments = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [paymentToCancel, setPaymentToCancel] = useState<Payment | null>(null);
+  const [savingPayment, setSavingPayment] = useState(false);
   const [newPayment, setNewPayment] = useState({
     description: "",
     amount: "",
@@ -205,6 +206,7 @@ const Payments = () => {
     });
 
   const handleAddPayment = async () => {
+    if (savingPayment) return;
     if (!canCreateFinancial) {
       toast.error("Seu perfil não tem permissão para registrar pagamentos.");
       return;
@@ -238,30 +240,35 @@ const Payments = () => {
       toast.error("A fatura selecionada pertence a outro cliente.");
       return;
     }
-    const saved = await addPayment({
-      amount,
-      status: "pending",
-      direction: newPayment.type === "income" ? "entrada" : "saida",
-      description: newPayment.description,
-      category: newPayment.category || "Outros",
-      company_id: newPayment.companyId || null,
-      due_date: linkedInvoice?.due_date ?? null,
-      invoice_id: newPayment.type === "income" ? newPayment.invoiceId || null : null,
-      method: null,
-      paid_at: null,
-    });
-    if (!saved) return;
+    setSavingPayment(true);
+    try {
+      const saved = await addPayment({
+        amount,
+        status: "pending",
+        direction: newPayment.type === "income" ? "entrada" : "saida",
+        description: newPayment.description,
+        category: newPayment.category || "Outros",
+        company_id: newPayment.companyId || null,
+        due_date: linkedInvoice?.due_date ?? null,
+        invoice_id: newPayment.type === "income" ? newPayment.invoiceId || null : null,
+        method: null,
+        paid_at: null,
+      });
+      if (!saved) return;
 
-    setNewPayment({
-      description: "",
-      amount: "",
-      type: "income",
-      category: "",
-      companyId: "",
-      invoiceId: "",
-    });
-    setDialogOpen(false);
-    toast.success("Pagamento registrado com sucesso!");
+      setNewPayment({
+        description: "",
+        amount: "",
+        type: "income",
+        category: "",
+        companyId: "",
+        invoiceId: "",
+      });
+      setDialogOpen(false);
+      toast.success("Pagamento registrado com sucesso!");
+    } finally {
+      setSavingPayment(false);
+    }
   };
 
   const handleToggleStatus = async (id: string) => {
@@ -622,8 +629,8 @@ const Payments = () => {
                   >
                     Cancelar
                   </Button>
-                  <Button onClick={handleAddPayment} className="rounded-xl">
-                    Registrar
+                  <Button onClick={handleAddPayment} className="rounded-xl" disabled={savingPayment}>
+                    {savingPayment ? "Registrando…" : "Registrar"}
                   </Button>
                 </DialogFooter>
               </DialogContent>

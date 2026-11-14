@@ -124,6 +124,7 @@ const Invoices = () => {
   const [selected, setSelected] = useState<Invoice | null>(null);
   const [invoiceToCancel, setInvoiceToCancel] = useState<Invoice | null>(null);
   const [invoiceToDelete, setInvoiceToDelete] = useState<Invoice | null>(null);
+  const [processingInvoiceId, setProcessingInvoiceId] = useState<string | null>(null);
   const [form, setForm] = useState({
     number: "",
     amount: "",
@@ -211,21 +212,32 @@ const Invoices = () => {
       toast.error("Seu perfil não tem permissão para registrar pagamentos.");
       return;
     }
-    const saved = await addPayment({
-      amount: Number(inv.amount),
-      status: "completed",
-      direction: "entrada",
-      description: `Pagamento da ${inv.number || `fatura ${inv.id.slice(0, 8)}`}`,
-      category: "Faturas",
-      company_id: inv.company_id,
-      due_date: inv.due_date,
-      invoice_id: inv.id,
-      method: null,
-      paid_at: new Date().toISOString(),
-    });
-    if (!saved) return;
-    setSelected({ ...inv, status: "paid" });
-    toast.success("Pagamento registrado e fatura marcada como paga");
+    if (["paid", "cancelled", "canceled"].includes(inv.status ?? "")) {
+      toast.info("Esta fatura não pode receber outro pagamento.");
+      return;
+    }
+    if (processingInvoiceId) return;
+
+    setProcessingInvoiceId(inv.id);
+    try {
+      const saved = await addPayment({
+        amount: Number(inv.amount),
+        status: "completed",
+        direction: "entrada",
+        description: `Pagamento da ${inv.number || `fatura ${inv.id.slice(0, 8)}`}`,
+        category: "Faturas",
+        company_id: inv.company_id,
+        due_date: inv.due_date,
+        invoice_id: inv.id,
+        method: null,
+        paid_at: new Date().toISOString(),
+      });
+      if (!saved) return;
+      setSelected({ ...inv, status: "paid" });
+      toast.success("Pagamento registrado e fatura marcada como paga");
+    } finally {
+      setProcessingInvoiceId(null);
+    }
   };
 
   const cancelInvoice = async () => {
@@ -487,7 +499,7 @@ const Invoices = () => {
                   onPrimary={() => setSelected(invoice)}
                   menuItems={[
                     { label: "Abrir fatura", icon: ExternalLink, onSelect: () => setSelected(invoice) },
-                    ...(!isClientView && canCreateFinancial && !["paid", "cancelled", "canceled"].includes(invoice.status ?? "") ? [{ label: "Registrar pagamento", icon: CheckCircle2, onSelect: () => void registerPaymentFromInvoice(invoice) }] : []),
+                    ...(!isClientView && canCreateFinancial && !["paid", "cancelled", "canceled"].includes(invoice.status ?? "") ? [{ label: processingInvoiceId === invoice.id ? "Registrando pagamento…" : "Registrar pagamento", icon: CheckCircle2, disabled: processingInvoiceId === invoice.id, onSelect: () => void registerPaymentFromInvoice(invoice) }] : []),
                     ...(!isClientView && canUpdateFinancial && !["paid", "cancelled", "canceled"].includes(invoice.status) ? [{ label: "Cancelar fatura", icon: XCircle, separatorBefore: true, onSelect: () => setInvoiceToCancel(invoice) }] : []),
                     ...(!isClientView && canDeleteFinancial && !["paid", "cancelled", "canceled"].includes(invoice.status) ? [{ label: "Remover fatura", icon: Trash2, destructive: true, separatorBefore: true, onSelect: () => removeInvoice(invoice) }] : []),
                   ]}
@@ -519,9 +531,10 @@ const Invoices = () => {
               {!isClientView && canCreateFinancial && !["paid", "cancelled", "canceled"].includes(selected.status ?? "") && (
                 <Button
                   className="rounded-xl"
+                  disabled={processingInvoiceId === selected.id}
                   onClick={() => registerPaymentFromInvoice(selected)}
                 >
-                  Registrar pagamento
+                  {processingInvoiceId === selected.id ? "Registrando…" : "Registrar pagamento"}
                 </Button>
               )}
               {!isClientView && canUpdateFinancial && !["paid", "cancelled", "canceled"].includes(selected.status) && (
