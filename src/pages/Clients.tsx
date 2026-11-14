@@ -39,6 +39,7 @@ import { ClientData } from "@/types";
 import type { ClientPeriodStatus } from "@/types";
 import { cn } from "@/lib/utils";
 import { useWorkspaceMembers } from "@/hooks/useWorkspaceMembers";
+import { useWorkspacePermission } from "@/hooks/useWorkspacePermission";
 import { FilterPopover } from "@/components/FilterPopover";
 import { IconTooltipButton } from "@/components/IconTooltipButton";
 import { MultiSelectFilter } from "@/components/MultiSelectFilter";
@@ -92,9 +93,12 @@ const currentPeriod = () => {
 
 const Clients = () => {
   const navigate = useNavigate();
-  const { clients, clientPeriods, addClient, updateClient, deleteClient, loading, refresh } = useData();
+  const { clients, clientPeriods, addClient, updateClient, deleteClient, loading, refresh, tenantId } = useData();
   const { user, profile } = useAuth();
   const { byUserId } = useWorkspaceMembers();
+  const canCreateClients = useWorkspacePermission({ tenantId, userId: user?.id, accountType: profile?.account_type, resource: "clients", action: "create" });
+  const canUpdateClients = useWorkspacePermission({ tenantId, userId: user?.id, accountType: profile?.account_type, resource: "clients", action: "update" });
+  const canDeleteClients = useWorkspacePermission({ tenantId, userId: user?.id, accountType: profile?.account_type, resource: "clients", action: "delete" });
   const [searchTerm, setSearchTerm] = useState("");
   const [feeRange, setFeeRange] = useState({ min: "", max: "" });
   const [contractSort, setContractSort] = useState("contract-desc");
@@ -183,6 +187,10 @@ const Clients = () => {
   });
 
   const handleAddClient = async () => {
+    if (!canCreateClients) {
+      toast.error("Seu perfil não tem permissão para cadastrar clientes.");
+      return;
+    }
     if (!newClient.name || !newClient.email) {
       toast.error("Preencha nome e email do cliente");
       return;
@@ -212,14 +220,26 @@ const Clients = () => {
   };
 
   const handleDeleteClient = async (id: string) => {
+    if (!canDeleteClients) {
+      toast.error("Seu perfil não tem permissão para arquivar clientes.");
+      return false;
+    }
     if (!await deleteClient(id)) return false;
     toast.success("Cliente arquivado com sucesso!");
     return true;
   };
 
   const handleStatusChange = async (id: string, status: ClientData["status"]) => {
+    if (!canUpdateClients) {
+      toast.error("Seu perfil não tem permissão para atualizar clientes.");
+      return;
+    }
     if (!await updateClient(id, { status })) return;
     toast.success("Status atualizado!");
+  };
+
+  const handleSendEmail = (client: ClientData) => {
+    toast.info(`Envio de e-mail para ${client.email || client.name} ficará disponível após configurar um canal de e-mail.`);
   };
 
   return (
@@ -230,7 +250,7 @@ const Clients = () => {
             <h1 className="text-[28px] font-normal tracking-[-0.035em]">Clientes</h1>
             <p className="text-muted-foreground">Gerencie seus relacionamentos com clientes</p>
           </div>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          {canCreateClients && <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button className="rounded-xl gap-2">
                 <Plus className="h-4 w-4" />
@@ -316,7 +336,7 @@ const Clients = () => {
                 <Button onClick={handleAddClient} className="rounded-xl">Adicionar</Button>
               </DialogFooter>
             </DialogContent>
-          </Dialog>
+          </Dialog>}
         </div>
 
         <div className="glass page-section animate-fade-in">
@@ -488,9 +508,9 @@ const Clients = () => {
                     primaryIcon={Eye}
                     onPrimary={() => setSelectedClient(client)}
                     menuItems={[
-                      { label: "Editar cadastro", icon: Edit, onSelect: () => navigate(`/clients/${client.id}`) },
-                      { label: "Enviar e-mail", icon: Mail, onSelect: () => undefined },
-                      { label: "Remover cliente", icon: Trash2, destructive: true, separatorBefore: true, onSelect: () => setDeleteTarget(client) },
+                      ...(canUpdateClients ? [{ label: "Editar cadastro", icon: Edit, onSelect: () => navigate(`/clients/${client.id}`) }] : []),
+                      { label: "Enviar e-mail", icon: Mail, onSelect: () => handleSendEmail(client) },
+                      ...(canDeleteClients ? [{ label: "Remover cliente", icon: Trash2, destructive: true, separatorBefore: true, onSelect: () => setDeleteTarget(client) }] : []),
                     ]}
                   />
                 )}
@@ -561,22 +581,24 @@ const Clients = () => {
                       <Eye className="h-4 w-4" />
                       Ver Detalhes
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="gap-2" onClick={() => navigate(`/clients/${client.id}`)}>
+                    {canUpdateClients && <DropdownMenuItem className="gap-2" onClick={() => navigate(`/clients/${client.id}`)}>
                       <Edit className="h-4 w-4" />
                       Editar
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="gap-2">
+                    </DropdownMenuItem>}
+                    <DropdownMenuItem className="gap-2" onClick={() => handleSendEmail(client)}>
                       <Mail className="h-4 w-4" />
                       Enviar Email
                     </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      className="gap-2 text-destructive focus:text-destructive"
-                      onClick={() => setDeleteTarget(client)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      Remover
-                    </DropdownMenuItem>
+                    {canDeleteClients && <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        className="gap-2 text-destructive focus:text-destructive"
+                        onClick={() => setDeleteTarget(client)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Remover
+                      </DropdownMenuItem>
+                    </>}
                   </DropdownMenuContent>
                 </DropdownMenu>
                 </div>
@@ -628,19 +650,19 @@ const Clients = () => {
                   </div>
                 </div>
                 <DialogFooter className="dialog-footer flex-col gap-2 sm:flex-row sm:justify-between">
-                  <Button variant="destructive" className="rounded-xl" onClick={() => setDeleteTarget(selectedClient)}>
+                  {canDeleteClients && <Button variant="destructive" className="rounded-xl" onClick={() => setDeleteTarget(selectedClient)}>
                     <Trash2 className="mr-2 h-4 w-4" />Remover
-                  </Button>
+                  </Button>}
                   <div className="flex flex-wrap gap-2">
-                    <Button variant="outline" className="rounded-xl" onClick={() => void handleStatusChange(selectedClient.id, selectedClient.status === "active" ? "inactive" : "active")}>
+                    {canUpdateClients && <Button variant="outline" className="rounded-xl" onClick={() => void handleStatusChange(selectedClient.id, selectedClient.status === "active" ? "inactive" : "active")}>
                       {selectedClient.status === "active" ? "Inativar" : "Ativar"}
-                    </Button>
+                    </Button>}
                     <Button variant="outline" className="rounded-xl" onClick={() => navigate(`/clients/${selectedClient.id}`)}>
                       <Eye className="mr-2 h-4 w-4" />Abrir cadastro
                     </Button>
-                    <Button className="rounded-xl" onClick={() => navigate(`/clients/${selectedClient.id}`)}>
+                    {canUpdateClients && <Button className="rounded-xl" onClick={() => navigate(`/clients/${selectedClient.id}`)}>
                       <Edit className="mr-2 h-4 w-4" />Editar
-                    </Button>
+                    </Button>}
                   </div>
                 </DialogFooter>
               </>

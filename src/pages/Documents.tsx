@@ -40,6 +40,8 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { useData } from "@/contexts/DataContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { useWorkspacePermission } from "@/hooks/useWorkspacePermission";
 import { documentTypeLabels } from "@/lib/documentClassifier";
 import { DocumentData, DocumentType } from "@/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -161,6 +163,7 @@ const isRequestOverdue = (request: { dueDate: string | null; status: string }) =
 const Documents = () => {
   const { viewMode } = useViewMode();
   const {
+    tenantId,
     documents,
     addDocument,
     updateDocument,
@@ -169,6 +172,10 @@ const Documents = () => {
     documentRequests,
     clients,
   } = useData();
+  const { user, profile } = useAuth();
+  const canCreateDocuments = useWorkspacePermission({ tenantId, userId: user?.id, accountType: profile?.account_type, resource: "documents", action: "create" });
+  const canUpdateDocuments = useWorkspacePermission({ tenantId, userId: user?.id, accountType: profile?.account_type, resource: "documents", action: "update" });
+  const canDeleteDocuments = useWorkspacePermission({ tenantId, userId: user?.id, accountType: profile?.account_type, resource: "documents", action: "delete" });
   const [dialogOpen, setDialogOpen] = useState(false);
   const [filterStatuses, setFilterStatuses] = useState<string[]>([]);
   const [filterTypes, setFilterTypes] = useState<string[]>([]);
@@ -236,6 +243,10 @@ const Documents = () => {
   );
 
   const handleAddDocument = async () => {
+    if (viewMode !== "client" && !canCreateDocuments) {
+      toast.error("Seu perfil não tem permissão para criar documentos.");
+      return;
+    }
     if (!newDoc.name || !newDoc.client) {
       toast.error("Preencha nome e cliente");
       return;
@@ -269,17 +280,29 @@ const Documents = () => {
   };
 
   const handleDeleteDocument = async (id: string) => {
+    if (viewMode !== "client" && !canDeleteDocuments) {
+      toast.error("Seu perfil não tem permissão para excluir documentos.");
+      return false;
+    }
     if (!await deleteDocument(id)) return false;
     toast.success("Documento removido!");
     return true;
   };
 
   const handleMarkAsPaid = async (id: string) => {
+    if (viewMode !== "client" && !canUpdateDocuments) {
+      toast.error("Seu perfil não tem permissão para atualizar documentos.");
+      return;
+    }
     if (!await updateDocument(id, { status: "paid" })) return;
     toast.success("Marcado como pago!");
   };
 
   const handleMarkAsRead = async (id: string) => {
+    if (viewMode !== "client" && !canUpdateDocuments) {
+      toast.error("Seu perfil não tem permissão para atualizar documentos.");
+      return;
+    }
     if (!await updateDocument(id, { status: "read", readAt: new Date().toISOString() })) return;
     toast.success("Marcado como lido!");
   };
@@ -401,7 +424,7 @@ const Documents = () => {
                 className="hidden"
                 onChange={handleFileUpload}
               />
-              <Button
+              {(viewMode === "client" || canCreateDocuments) && <Button
                 variant="outline"
                 className="gap-2"
                 onClick={() => {
@@ -411,8 +434,8 @@ const Documents = () => {
               >
                 <Upload className="h-4 w-4" />
                 Enviar Arquivos
-              </Button>
-              {viewMode !== "client" && (
+              </Button>}
+              {viewMode !== "client" && canCreateDocuments && (
                 <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                   <DialogTrigger asChild>
                     <Button className="gap-2">
@@ -791,9 +814,9 @@ const Documents = () => {
                       onPrimary={() => void openDocumentInViewer(doc)}
                       menuItems={[
                         { label: "Baixar arquivo", icon: Download, onSelect: () => void handleDownloadDocument(doc) },
-                        ...(doc.status === "unread" ? [{ label: "Marcar como lido", icon: Eye, onSelect: () => void handleMarkAsRead(doc.id) }] : []),
-                        ...(viewMode !== "client" && (doc.status === "pending" || doc.status === "overdue") ? [{ label: "Marcar como pago", icon: Check, onSelect: () => void handleMarkAsPaid(doc.id) }, { label: "Enviar lembrete", icon: Send, onSelect: () => handleSendReminder(doc) }] : []),
-                        ...(viewMode !== "client" ? [{ label: "Excluir documento", icon: Trash2, destructive: true, separatorBefore: true, onSelect: () => setDeleteTarget(doc) }] : []),
+                        ...(doc.status === "unread" && (viewMode === "client" || canUpdateDocuments) ? [{ label: "Marcar como lido", icon: Eye, onSelect: () => void handleMarkAsRead(doc.id) }] : []),
+                        ...(viewMode !== "client" && canUpdateDocuments && (doc.status === "pending" || doc.status === "overdue") ? [{ label: "Marcar como pago", icon: Check, onSelect: () => void handleMarkAsPaid(doc.id) }, { label: "Enviar lembrete", icon: Send, onSelect: () => handleSendReminder(doc) }] : []),
+                        ...(viewMode !== "client" && canDeleteDocuments ? [{ label: "Excluir documento", icon: Trash2, destructive: true, separatorBefore: true, onSelect: () => setDeleteTarget(doc) }] : []),
                       ]}
                     />
                   )}
