@@ -7,6 +7,9 @@
 - Backend: Supabase staging e production separados.
 - Auth URLs: dominio final, `/auth`, `/auth?reset=1` e URL local de desenvolvimento.
 - Storage: buckets privados de documentos e avatars conferidos.
+- QA manual: o preview/staging da Vercel deve estar acessível ao testador; se a
+  proteção de autenticação da Vercel estiver ativa, liberar uma URL de QA
+  autorizada antes do roteiro autenticado dos três perfis.
 
 ## Secrets Supabase
 
@@ -62,6 +65,8 @@ As credenciais específicas de cada conta Banco Inter ficam em `integration_cred
 - Cadastrar cliente com CNPJ normalizado.
 - Validar que cliente não enxerga dados de outro cliente.
 - Validar que colaborador sem permissão não acessa financeiro/integrações.
+- Executar o roteiro autenticado completo no staging liberado, em desktop e
+  mobile, registrando falhas antes de promover para `main`.
 
 As integrações externas (SERPRO, Asaas, Banco Inter, WhatsApp e e-mail
 transacional) ficam fora da aprovação desta etapa. Elas só entram em um smoke
