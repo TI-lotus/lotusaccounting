@@ -61,6 +61,7 @@ beforeAll(async () => {
   await db.exec(migration("20260917122000_document_path_integrity.sql"));
   await db.exec(migration("20260917130000_integration_event_engine.sql"));
   await db.exec(migration("20260917131000_domain_event_producers.sql"));
+  await db.exec(migration("20260825200000_responsible_names.sql"));
   // The focused fixture skips the historical audit enrichment migration.
   await db.exec("ALTER TABLE public.activity_logs ADD COLUMN company_id uuid REFERENCES public.companies(id) ON DELETE SET NULL; ALTER TABLE public.activity_logs ADD COLUMN metadata jsonb DEFAULT '{}'::jsonb");
   // Reproduce the historical trigger before the consolidation migration removes it.
@@ -85,6 +86,7 @@ beforeAll(async () => {
   await db.exec(migration("20260917152000_message_notification_deep_links.sql"));
   await db.exec(migration("20261113143000_conversation_list_preferences.sql"));
   await db.exec(migration("20261113150000_set_internal_conversation_preference.sql"));
+  await db.exec(migration("20260923110000_task_assignment_completion_guard.sql"));
   await db.exec(migration("20260827090000_financial_reconciliation_invoice_sync.sql"));
   await db.exec(migration("20260923120000_client_periods.sql"));
   await db.exec(migration("20260923121000_client_period_steps.sql"));
@@ -443,6 +445,23 @@ describe("workspace security regression", () => {
 
     await asUser(collaborator);
     expect((await db.query(`DELETE FROM tasks WHERE id = '${taskId}' RETURNING id`)).rows).toEqual([{ id: taskId }]);
+  });
+  it("keeps completed task assignments immutable until the task is reopened", async () => {
+    const taskId = id(74);
+    await asUser(admin);
+    await db.query(
+      `INSERT INTO tasks(id, tenant_id, company_id, assigned_to, assigned_to_name, title, status, completed_at)
+       VALUES ('${taskId}', '${tenant}', '${company}', '${admin}', 'Admin', 'Tarefa concluída', 'completed', now())`,
+    );
+
+    await expect(
+      db.query(`UPDATE tasks SET assigned_to = '${collaborator}', assigned_to_name = 'Colaborador' WHERE id = '${taskId}'`),
+    ).rejects.toThrow(/Completed tasks cannot be reassigned/);
+
+    await db.query(`UPDATE tasks SET status = 'pending', completed_at = NULL WHERE id = '${taskId}'`);
+    expect(
+      (await db.query(`UPDATE tasks SET assigned_to = '${collaborator}', assigned_to_name = 'Colaborador' WHERE id = '${taskId}' RETURNING assigned_to`)).rows,
+    ).toEqual([{ assigned_to: collaborator }]);
   });
   it("scopes monthly client periods to the workspace and client company", async () => {
     await asUser(admin);
