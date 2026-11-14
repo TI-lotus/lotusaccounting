@@ -8,10 +8,10 @@ import {
   File,
   Download,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { IconTooltipButton } from "@/components/IconTooltipButton";
 
 export interface ViewableDocument {
   id: string;
@@ -69,38 +69,18 @@ export const DocumentViewer = ({ document, onClose }: DocumentViewerProps) => {
           </div>
         </div>
         <div className="flex items-center gap-1 shrink-0">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 rounded-lg"
+          <IconTooltipButton
+            icon={Download}
+            label="Baixar documento"
             disabled={!document.downloadUrl}
-            onClick={() =>
-              document.downloadUrl &&
-              window.open(document.downloadUrl, "_blank", "noopener,noreferrer")
-            }
-          >
-            <Download className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 rounded-lg"
+            onClick={() => document.downloadUrl && window.open(document.downloadUrl, "_blank", "noopener,noreferrer")}
+          />
+          <IconTooltipButton
+            icon={isFullScreen ? Minimize2 : Maximize2}
+            label={isFullScreen ? "Sair da tela cheia" : "Tela cheia"}
             onClick={() => setIsFullScreen(!isFullScreen)}
-          >
-            {isFullScreen ? (
-              <Minimize2 className="h-4 w-4" />
-            ) : (
-              <Maximize2 className="h-4 w-4" />
-            )}
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 rounded-lg"
-            onClick={onClose}
-          >
-            <X className="h-4 w-4" />
-          </Button>
+          />
+          <IconTooltipButton icon={X} label="Fechar visualizador" onClick={onClose} />
         </div>
       </div>
 

@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { PageShell } from "@/components/PageShell";
+import { MultiSelectFilter } from "@/components/MultiSelectFilter";
+import { FilterPopover } from "@/components/FilterPopover";
 import { EmptyState, LoadingState } from "@/components/PageStates";
 import { DetailSheet } from "@/components/DetailSheet";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -22,13 +23,15 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Plus, Receipt, FileText } from "lucide-react";
+import { Plus, Receipt, Eye, ExternalLink, CheckCircle2, Trash2, Search } from "lucide-react";
 import { useData } from "@/contexts/DataContext";
 import { useViewMode } from "@/contexts/ViewModeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import type { Database } from "@/integrations/supabase/types";
 import { toast } from "sonner";
 import { toastWithUndo } from "@/lib/toastUndo";
+import { BentoDataTable } from "@/components/BentoDataTable";
+import { RowActions } from "@/components/RowActions";
 
 type Invoice = Pick<
   Database["public"]["Tables"]["invoices"]["Row"],
@@ -77,7 +80,7 @@ const Invoices = () => {
     generateMonthlyServiceFeeInvoices,
   } = useData();
   const { profile } = useAuth();
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [statusFilters, setStatusFilters] = useState<string[]>([]);
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<Invoice | null>(null);
@@ -162,7 +165,7 @@ const Invoices = () => {
     clients.find((c) => c.id === id)?.name ?? "—";
 
   const filtered = invoices
-    .filter((i) => statusFilter === "all" || i.status === statusFilter)
+    .filter((i) => statusFilters.length === 0 || statusFilters.includes(i.status))
     .filter((i) => {
       if (!search.trim()) return true;
       const q = search.toLowerCase();
@@ -183,8 +186,21 @@ const Invoices = () => {
     .filter((i) => i.status === "overdue")
     .reduce((a, i) => a + Number(i.amount || 0), 0);
 
-  const statusTabs = [
-    { value: "all", label: "Todas" },
+  const invoiceTrend = (targetStatus?: Invoice["status"]) =>
+    Array.from({ length: 6 }, (_, index) => {
+      const reference = new Date();
+      reference.setDate(1);
+      reference.setMonth(reference.getMonth() - (5 - index));
+      return invoices
+        .filter((invoice) => {
+          if (targetStatus && invoice.status !== targetStatus) return false;
+          const issuedAt = invoice.issued_at ? new Date(invoice.issued_at) : null;
+          return issuedAt?.getFullYear() === reference.getFullYear() && issuedAt.getMonth() === reference.getMonth();
+        })
+        .reduce((sum, invoice) => sum + Number(invoice.amount || 0), 0);
+    });
+
+  const statusOptions = [
     { value: "pending", label: "Pendentes" },
     { value: "paid", label: "Pagas" },
     { value: "overdue", label: "Atrasadas" },
@@ -289,68 +305,96 @@ const Invoices = () => {
           )
         }
         kpis={[
-          { label: "Total emitido", value: brl(total) },
-          { label: "Pagas", value: brl(totalPaid) },
-          { label: "Pendentes", value: brl(totalPending) },
-          { label: "Atrasadas", value: brl(totalOverdue) },
+          { label: "Total emitido", value: brl(total), trend: invoiceTrend() },
+          { label: "Pagas", value: brl(totalPaid), trend: invoiceTrend("paid") },
+          { label: "Pendentes", value: brl(totalPending), trend: invoiceTrend("pending") },
+          { label: "Atrasadas", value: brl(totalOverdue), trend: invoiceTrend("overdue") },
         ]}
-        tabs={statusTabs}
-        activeTab={statusFilter}
-        onTabChange={setStatusFilter}
-        searchValue={search}
-        onSearchChange={setSearch}
-        searchPlaceholder="Buscar por número ou cliente..."
       >
-        <Card>
-          <CardContent className="pt-6">
-            {loading ? (
-              <LoadingState />
-            ) : filtered.length === 0 ? (
-              <EmptyState
-                icon={<Receipt className="h-8 w-8" />}
-                title="Nenhuma fatura encontrada"
-                description="Ajuste os filtros ou crie uma nova fatura."
-              />
-            ) : (
-              <div className="space-y-2">
-                {filtered.map((inv) => {
-                  const meta = statusMeta[inv.status] ?? {
-                    label: inv.status,
-                    className: "",
-                  };
-                  return (
-                    <button
-                      key={inv.id}
-                      onClick={() => setSelected(inv)}
-                      className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-accent/50 transition-colors text-left"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-xl bg-primary/10">
-                          <FileText className="h-4 w-4 text-primary" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium">
-                            {inv.number || `Fatura ${inv.id.slice(0, 8)}`}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {clientName(inv.company_id)} • Venc.{" "}
-                            {fmt(inv.due_date)}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <Badge className={meta.className}>{meta.label}</Badge>
-                        <span className="text-sm font-semibold">
-                          {brl(Number(inv.amount))}
-                        </span>
-                      </div>
-                    </button>
-                  );
-                })}
+        <section className="page-section space-y-4 p-0 overflow-hidden">
+          <div className="flex flex-wrap items-start justify-between gap-4 px-5 pt-5 sm:px-6 sm:pt-6">
+            <div>
+              <h2 className="text-base font-medium">Faturas emitidas</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Referências, vencimentos, status e valores do período.</p>
+            </div>
+            <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto">
+              <div className="relative min-w-[220px] flex-1 sm:max-w-[280px]">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+                <Input
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Buscar faturas…"
+                  name="invoice-search"
+                  autoComplete="off"
+                  aria-label="Buscar faturas por número ou cliente"
+                  className="h-10 rounded-xl border-border/70 bg-card/80 pl-9"
+                />
               </div>
-            )}
-          </CardContent>
-        </Card>
+              <FilterPopover activeCount={statusFilters.length} onClear={() => setStatusFilters([])}>
+                <MultiSelectFilter
+                  label="Status"
+                  options={statusOptions}
+                  value={statusFilters}
+                  onChange={setStatusFilters}
+                />
+              </FilterPopover>
+              <Badge variant="secondary">{filtered.length} registros</Badge>
+            </div>
+          </div>
+          {loading ? (
+            <div className="px-5 pb-5 sm:px-6 sm:pb-6"><LoadingState /></div>
+          ) : (
+            <BentoDataTable
+              rows={filtered}
+              getRowKey={(invoice) => invoice.id}
+              empty={<EmptyState icon={<Receipt className="h-8 w-8" />} title="Nenhuma fatura encontrada" description="Ajuste os filtros ou crie uma nova fatura." />}
+              className="rounded-none border-x-0 border-b-0"
+              columns={[
+                {
+                  key: "reference",
+                  label: "Referência",
+                  render: (invoice) => <span className="block max-w-[210px] truncate font-medium">{invoice.number || `Fatura ${invoice.id.slice(0, 8)}`}</span>,
+                },
+                {
+                  key: "client",
+                  label: "Cliente",
+                  render: (invoice) => <span className="block max-w-[190px] truncate text-sm text-muted-foreground">{clientName(invoice.company_id)}</span>,
+                },
+                {
+                  key: "due",
+                  label: "Vencimento",
+                  sortValue: (invoice) => invoice.due_date ? new Date(invoice.due_date) : null,
+                  render: (invoice) => <span className="whitespace-nowrap text-sm text-muted-foreground">{fmt(invoice.due_date)}</span>,
+                },
+                {
+                  key: "status",
+                  label: "Status",
+                  render: (invoice) => { const meta = statusMeta[invoice.status] ?? { label: invoice.status, className: "" }; return <Badge className={meta.className}>{meta.label}</Badge>; },
+                },
+                {
+                  key: "value",
+                  label: "Valor",
+                  sortValue: (invoice) => Number(invoice.amount ?? 0),
+                  className: "text-right font-medium tabular-nums",
+                  headerClassName: "text-right",
+                  render: (invoice) => <span className="whitespace-nowrap">{brl(Number(invoice.amount))}</span>,
+                },
+              ]}
+              actions={(invoice) => (
+                <RowActions
+                  primaryLabel="Abrir fatura"
+                  primaryIcon={Eye}
+                  onPrimary={() => setSelected(invoice)}
+                  menuItems={[
+                    { label: "Abrir fatura", icon: ExternalLink, onSelect: () => setSelected(invoice) },
+                    ...(!isClientView && invoice.status !== "paid" ? [{ label: "Registrar pagamento", icon: CheckCircle2, onSelect: () => void registerPaymentFromInvoice(invoice) }] : []),
+                    ...(!isClientView ? [{ label: "Remover fatura", icon: Trash2, destructive: true, separatorBefore: true, onSelect: () => removeInvoice(invoice) }] : []),
+                  ]}
+                />
+              )}
+            />
+          )}
+        </section>
       </PageShell>
 
       <DetailSheet

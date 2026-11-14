@@ -15,7 +15,9 @@ const STORAGE_KEY = "lia-chat-panel-state";
 
 export const DashboardLayout = ({ children, className }: DashboardLayoutProps) => {
   const location = useLocation();
-  const { isCollapsed } = useViewMode();
+  const { isCollapsed, setIsCollapsed } = useViewMode();
+  const isMessagesPage = location.pathname === "/messages";
+  const isLiaPage = location.pathname === "/lia";
   const [chatState, setChatState] = useState<ChatPanelState>(() => {
     if (typeof window === "undefined") return "closed";
     const saved = window.localStorage.getItem(STORAGE_KEY) as ChatPanelState | null;
@@ -27,25 +29,36 @@ export const DashboardLayout = ({ children, className }: DashboardLayoutProps) =
   }, [chatState]);
 
   useEffect(() => {
-    if (location.pathname === "/lia") setChatState("open");
-  }, [location.pathname]);
+    // The Lia panel is intentionally scoped to its own route. This prevents a
+    // persisted open state from covering the fixed workspace messaging panes.
+    setChatState(isLiaPage ? "open" : "closed");
+  }, [isLiaPage]);
+
+  useEffect(() => {
+    if (isMessagesPage) setIsCollapsed(true);
+  }, [isMessagesPage, setIsCollapsed]);
 
   return (
-    <div className="min-h-screen flex flex-col w-full bg-background">
+    <div className={cn(
+      "flex min-h-screen w-full flex-col bg-background",
+      isMessagesPage && "h-[100dvh] min-h-0 overflow-hidden",
+    )}>
       <TopBar />
       <AppSidebar />
       <main
         className={cn(
-          "flex-1 px-4 py-5 sm:px-6 sm:py-6 lg:pr-8 lg:transition-[padding] lg:duration-300",
+          "min-h-0 min-w-0 flex-1 overflow-x-hidden px-4 py-5 sm:px-6 sm:py-6 lg:pr-8 lg:transition-[padding] lg:duration-300",
           isCollapsed ? "lg:pl-[5.5rem]" : "lg:pl-[17rem]",
-          chatState === "open" && "lg:pr-[396px]",
-          chatState === "minimized" && "lg:pr-20",
+          isLiaPage && chatState === "open" && "lg:pr-[396px]",
+          isLiaPage && chatState === "minimized" && "lg:pr-20",
           className
         )}
       >
-        {children}
+        <div className="page-frame mx-auto h-full min-h-0 w-full min-w-0 max-w-[1440px]">
+          {children}
+        </div>
       </main>
-      <ChatBox state={chatState} onStateChange={setChatState} />
+      {!isMessagesPage && <ChatBox state={isLiaPage ? chatState : "closed"} onStateChange={setChatState} />}
     </div>
   );
 };

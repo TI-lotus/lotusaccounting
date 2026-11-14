@@ -88,35 +88,36 @@ const SearchCNPJ = () => {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 animate-fade-in">
+      <div className="mx-auto w-full max-w-[1100px] space-y-8 animate-fade-in">
         <div>
-          <h1 className="text-2xl font-semibold">Consulta CNPJ</h1>
-          <p className="text-muted-foreground mt-1">
+          <Search className="mb-3 h-5 w-5 text-gilver" aria-hidden="true" />
+          <h1 className="text-[30px] font-normal tracking-[-0.035em]">Consulta CNPJ</h1>
+          <p className="mt-2 max-w-2xl text-[13px] leading-6 text-muted-foreground">
             Pesquise informações de empresas pelo CNPJ
           </p>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Buscar Empresa</CardTitle>
+        <Card className="page-section">
+          <CardHeader className="px-0 pt-0">
+            <CardTitle className="text-lg">Buscar empresa</CardTitle>
             <CardDescription>
               Digite o CNPJ (somente números) para consultar os dados cadastrais
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="flex gap-3">
+          <CardContent className="space-y-3 px-0 pb-0">
+            <div className="flex flex-col gap-3 sm:flex-row">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="00000000000000"
                   value={cnpj}
                   onChange={handleInputChange}
-                  className="pl-10"
+                  className="h-10 rounded-xl border-border/70 bg-card/80 pl-10"
                   maxLength={14}
                   onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                 />
               </div>
-              <Button onClick={handleSearch} disabled={loading}>
+              <Button className="h-10 rounded-xl" onClick={handleSearch} disabled={loading}>
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Consultar"}
               </Button>
             </div>
@@ -129,12 +130,10 @@ const SearchCNPJ = () => {
         </Card>
 
         {companyData && (
-          <Card className="animate-fade-in">
-            <CardHeader>
+          <Card className="page-section animate-fade-in">
+            <CardHeader className="px-0 pt-0">
               <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded-lg bg-gilver/20 flex items-center justify-center">
-                  <Building2 className="h-6 w-6 text-gilver" />
-                </div>
+                <Building2 className="h-5 w-5 text-gilver" aria-hidden="true" />
                 <div>
                   <CardTitle>{companyName}</CardTitle>
                   <CardDescription>{tradeName}</CardDescription>
@@ -142,7 +141,7 @@ const SearchCNPJ = () => {
                 </div>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-0 pb-0">
               <div className="grid gap-6 md:grid-cols-2">
                 <div className="space-y-4">
                   <div>

@@ -108,36 +108,80 @@ export const KPICard = ({
       onClick={onClick}
       disabled={!onClick}
       className={cn(
-        "kpi-card animate-fade-in w-full text-left",
+        "group flex min-h-36 w-full flex-col justify-between rounded-2xl border border-border/70 bg-card p-5 text-left transition-[background-color,transform] duration-200 hover:bg-accent/45 animate-fade-in",
         onClick &&
           "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         !onClick && "cursor-default",
         className,
       )}
     >
-      <div className="flex items-center gap-3">
-        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-secondary">
-          <Icon className="h-5 w-5 text-foreground" />
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className="truncate text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">{title}</p>
+          <p className="mt-3 text-2xl font-semibold tracking-tight text-foreground">{value}</p>
+          {changeLabel && <p className="mt-2 text-xs leading-5 text-muted-foreground">{changeLabel}</p>}
         </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <p className="truncate text-sm text-muted-foreground">{title}</p>
-            {change !== undefined && (
-              <span className="shrink-0 text-xs font-medium text-muted-foreground">
-                {isPositive ? "+" : ""}{change}%
-              </span>
-            )}
-          </div>
-          <p className="text-2xl font-semibold tracking-tight text-foreground">{value}</p>
-          {changeLabel && (
-            <p className="text-xs text-muted-foreground mt-2">{changeLabel}</p>
-          )}
-        </div>
+        <span className="shrink-0 text-gilver transition-transform duration-200 group-hover:scale-110" title={title}>
+          <Icon className="h-5 w-5" aria-hidden="true" />
+        </span>
+      </div>
+      <div className="mt-4 flex items-end justify-between gap-3">
+        {change !== undefined ? (
+          <span className="text-xs font-medium text-muted-foreground">
+            {isPositive ? "+" : ""}{change}%
+          </span>
+        ) : <span />}
         <KPITrend
           values={trend}
           tone={change !== undefined && change < 0 ? "negative" : isPositive ? "positive" : "neutral"}
+          className="w-full max-w-[180px]"
         />
       </div>
     </button>
   );
 };
+
+interface BentoMetricProps {
+  title: string;
+  value: string;
+  description?: string;
+  trend?: number[];
+  icon: LucideIcon;
+  featured?: boolean;
+  className?: string;
+  onClick?: () => void;
+}
+
+/** Bloco de métrica para composições bento, evitando uma grade de cards repetidos. */
+export const BentoMetric = ({
+  title,
+  value,
+  description,
+  trend,
+  icon: Icon,
+  featured = false,
+  className,
+  onClick,
+}: BentoMetricProps) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className={cn(
+      "group flex min-h-36 w-full flex-col justify-between bg-card p-5 text-left transition-[background-color,transform] duration-200 hover:bg-accent/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
+      featured && "min-h-52 p-6",
+      className,
+    )}
+  >
+    <div className="flex items-start justify-between gap-4">
+      <div className="min-w-0">
+        <p className="truncate text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">{title}</p>
+        <p className={cn("mt-3 font-semibold tracking-tight text-foreground", featured ? "text-4xl" : "text-2xl")}>{value}</p>
+        {description && <p className="mt-2 line-clamp-2 text-xs leading-5 text-muted-foreground">{description}</p>}
+      </div>
+      <span className="shrink-0 text-gilver transition-transform duration-200 group-hover:scale-110" title={title}>
+        <Icon className={cn(featured ? "h-6 w-6" : "h-5 w-5")} aria-hidden="true" />
+      </span>
+    </div>
+    <KPITrend values={trend} className={cn("mt-4 w-full", featured ? "h-16" : "h-10")} />
+  </button>
+);

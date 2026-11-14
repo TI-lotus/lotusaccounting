@@ -42,6 +42,7 @@ import {
 } from "@/types";
 import { cn } from "@/lib/utils";
 import { FilterPopover } from "@/components/FilterPopover";
+import { BentoStatStrip } from "@/components/dashboard/BentoStatStrip";
 
 const monthNames = [
   "Janeiro",
@@ -559,7 +560,7 @@ const Periods = () => {
       <div className="space-y-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Ciclo mensal</h1>
+            <h1 className="text-[28px] font-normal tracking-[-0.035em]">Ciclo mensal</h1>
             <p className="text-muted-foreground">
               Acompanhe a competência contábil de cada cliente, do início ao fechamento.
             </p>
@@ -570,32 +571,15 @@ const Periods = () => {
           </Button>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          <Card>
-            <CardContent className="pt-6">
-              <p className="text-sm text-muted-foreground">Criadas</p>
-              <p className="mt-1 text-2xl font-semibold">{stats.created}/{stats.total}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <p className="text-sm text-muted-foreground">Aguardando documentos</p>
-              <p className="mt-1 text-2xl font-semibold text-amber-600">{stats.waiting}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <p className="text-sm text-muted-foreground">Bloqueadas</p>
-              <p className="mt-1 text-2xl font-semibold text-red-600">{stats.blocked}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <p className="text-sm text-muted-foreground">Fechadas</p>
-              <p className="mt-1 text-2xl font-semibold text-emerald-600">{stats.closed}</p>
-            </CardContent>
-          </Card>
-        </div>
+        <BentoStatStrip
+          className="animate-fade-in"
+          items={[
+            { label: "Criadas", value: stats.created, hint: `${stats.total} no total`, icon: CalendarClock, compact: true },
+            { label: "Aguardando documentos", value: stats.waiting, icon: FileWarning, compact: true },
+            { label: "Bloqueadas", value: stats.blocked, icon: ShieldAlert, compact: true },
+            { label: "Fechadas", value: stats.closed, icon: CheckCircle2, compact: true },
+          ]}
+        />
 
         <Card>
           <CardHeader className="gap-4">
@@ -604,6 +588,13 @@ const Periods = () => {
               <FilterPopover
                 activeCount={[periodMonth !== initial.month, periodYear !== initial.year, statusFilter !== "all", responsibleFilter !== "all", clientFilter !== "all"].filter(Boolean).length}
                 description="Escolha o período e refine por status, responsável ou cliente."
+                onClear={() => {
+                  setPeriodMonth(initial.month);
+                  setPeriodYear(initial.year);
+                  setStatusFilter("all");
+                  setResponsibleFilter("all");
+                  setClientFilter("all");
+                }}
               >
                 <div className="grid grid-cols-2 gap-3">
                   <Select value={String(periodMonth)} onValueChange={(value) => setPeriodMonth(Number(value))}>

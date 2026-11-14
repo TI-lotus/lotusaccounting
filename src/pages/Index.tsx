@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { useNavigate } from "react-router-dom";
-import { KPICard } from "@/components/dashboard/KPICard";
+import { BentoMetric } from "@/components/dashboard/KPICard";
+import { getBentoGridClass } from "@/components/dashboard/bentoGrid";
 import { PendingRisksPanel } from "@/components/dashboard/PendingRisksPanel";
 import { OperationalIndicatorsPanel } from "@/components/dashboard/OperationalIndicatorsPanel";
 import { useViewMode } from "@/contexts/ViewModeContext";
@@ -10,6 +11,7 @@ import { useUserProfile } from "@/contexts/UserProfileContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -25,11 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { FilterPopover } from "@/components/FilterPopover";
 import { toast } from "sonner";
 import {
   DollarSign,
@@ -44,7 +42,6 @@ import {
   Plus,
   CalendarClock,
   Upload,
-  SlidersHorizontal,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -814,7 +811,7 @@ const ClientDashboard = () => {
         onChange={(event) => void handleRequestFileUpload(event)}
       />
       <div className="animate-fade-in">
-        <h1 className="text-2xl font-semibold tracking-tight">Minha empresa</h1>
+        <h1 className="text-[28px] font-normal tracking-[-0.035em]">Minha empresa</h1>
         <p className="text-muted-foreground">
           Bem-vindo de volta, {profile.firstName}. Aqui está o resumo da sua
           empresa.
@@ -840,7 +837,7 @@ const ClientDashboard = () => {
               <span className="font-medium">{currentPeriod?.progressPercent ?? 0}%</span>
             </div>
             <Progress value={currentPeriod?.progressPercent ?? 0} className="h-2" />
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            <div className={cn("grid gap-2", getBentoGridClass(Math.min(currentPeriodSteps.length, 6)))}>
               {currentPeriodSteps.slice(0, 6).map((step) => (
                 <div key={step.id} className="rounded-xl border border-border p-3">
                   <p className="truncate text-sm font-medium">{step.title}</p>
@@ -899,23 +896,17 @@ const ClientDashboard = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {clientMetrics.map((metric) => (
-          <KPICard
+      <div className={cn("grid overflow-hidden rounded-[28px] border border-border/70 bg-border/70 gap-px animate-fade-in", getBentoGridClass(clientMetrics.length))}>
+        {clientMetrics.map((metric, index) => (
+          <BentoMetric
             key={metric.id}
             title={metric.title}
             value={metric.value}
+            description={metric.description}
             trend={metric.points.week.map((point) => point.value)}
-            changeLabel={
-              metric.id === "client-open-tasks"
-                ? "Pendentes no seu painel"
-                : metric.id === "client-completed-tasks"
-                  ? "Histórico da conta"
-                  : metric.id === "client-documents"
-                    ? "Documentos cadastrados"
-                    : "Documentos a revisar"
-            }
             icon={metric.icon}
+            featured={index === 0}
+            className={cn(index === 0 && "min-h-44")}
             onClick={() => setSelectedMetric(metric)}
           />
         ))}
@@ -1153,9 +1144,6 @@ const Index = () => {
       ),
   );
   const openTasks = filteredTasks.filter((task) => task.status !== "completed");
-  const overdueTasks = filteredTasks.filter(
-    (task) => task.status === "overdue",
-  );
   const pendingDocuments = filteredDocuments.filter(
     (doc) => doc.status === "pending" || doc.status === "unread",
   );
@@ -1168,11 +1156,6 @@ const Index = () => {
     (sum, payment) => sum + Number(payment.amount || 0),
     0,
   );
-  const pendingFinancialCount =
-    filteredPayments.filter((payment) => payment.status === "pending").length +
-    filteredInvoices.filter(
-      (invoice) => invoice.status === "pending" || invoice.status === "overdue",
-    ).length;
   const activePeriod = useMemo(() => currentOperationalPeriod(), []);
   const currentPeriods = useMemo(
     () =>
@@ -1311,7 +1294,7 @@ const Index = () => {
     <DashboardLayout>
       <div className="space-y-6">
         <div className="animate-fade-in">
-          <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
+          <h1 className="text-[28px] font-normal tracking-[-0.035em]">Dashboard</h1>
           <p className="text-muted-foreground">
             Bem-vindo de volta, {profile.firstName}. Aqui está seu panorama
             financeiro.
@@ -1329,59 +1312,53 @@ const Index = () => {
               {metricPeriods.find((item) => item.value === dashboardPeriod)?.label} · {dashboardClientId === "all" ? "Todos os clientes" : clients.find((client) => client.id === dashboardClientId)?.name ?? "Cliente selecionado"}
             </p>
           </div>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" className="shrink-0 rounded-xl gap-2">
-                <SlidersHorizontal className="h-4 w-4" />
-                Ajustar filtros
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent align="end" className="w-[min(360px,calc(100vw-2rem))] rounded-2xl p-4">
-              <div className="space-y-4">
-                <div>
-                  <p className="text-sm font-medium">Filtros do painel</p>
-                  <p className="mt-1 text-xs text-muted-foreground">Atualize o período e a carteira analisada.</p>
-                </div>
-                <div className="space-y-2">
-                  <p className="text-xs font-medium text-muted-foreground">Período</p>
-                  <Select
-                    value={dashboardPeriod}
-                    onValueChange={(value: MetricPeriod) => setDashboardPeriod(value)}
-                  >
-                    <SelectTrigger className="h-10 w-full rounded-xl">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {metricPeriods.map((period) => (
-                        <SelectItem key={period.value} value={period.value}>
-                          {period.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <p className="text-xs font-medium text-muted-foreground">Cliente</p>
-                  <Select
-                    value={dashboardClientId}
-                    onValueChange={setDashboardClientId}
-                  >
-                    <SelectTrigger className="h-10 w-full rounded-xl">
-                      <SelectValue placeholder="Todos os clientes" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos os clientes</SelectItem>
-                      {clients.map((client) => (
-                        <SelectItem key={client.id} value={client.id}>
-                          {client.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
+          <FilterPopover
+            title="Filtros do painel"
+            description="Atualize o período e a carteira analisada."
+            activeCount={[dashboardPeriod !== "month", dashboardClientId !== "all"].filter(Boolean).length}
+            onClear={() => {
+              setDashboardPeriod("month");
+              setDashboardClientId("all");
+            }}
+          >
+            <div className="space-y-1.5">
+              <Label htmlFor="dashboard-period">Período</Label>
+              <Select
+                value={dashboardPeriod}
+                onValueChange={(value: MetricPeriod) => setDashboardPeriod(value)}
+              >
+                <SelectTrigger id="dashboard-period" className="h-10 w-full rounded-xl">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {metricPeriods.map((period) => (
+                    <SelectItem key={period.value} value={period.value}>
+                      {period.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="dashboard-client">Cliente</Label>
+              <Select
+                value={dashboardClientId}
+                onValueChange={setDashboardClientId}
+              >
+                <SelectTrigger id="dashboard-client" className="h-10 w-full rounded-xl">
+                  <SelectValue placeholder="Todos os clientes" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os clientes</SelectItem>
+                  {clients.map((client) => (
+                    <SelectItem key={client.id} value={client.id}>
+                      {client.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </FilterPopover>
         </div>
 
         {clients.length === 0 && (
@@ -1409,23 +1386,17 @@ const Index = () => {
 
         <LiaInsights />
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {officeMetrics.map((metric) => (
-            <KPICard
+        <div className={cn("grid overflow-hidden rounded-[28px] border border-border/70 bg-border/70 gap-px animate-fade-in", getBentoGridClass(officeMetrics.length))}>
+          {officeMetrics.map((metric, index) => (
+            <BentoMetric
               key={metric.id}
               title={metric.title}
               value={metric.value}
+              description={metric.description}
               trend={metric.points[dashboardPeriod].map((point) => point.value)}
-              changeLabel={
-                metric.id === "revenue"
-                  ? `${pendingFinancialCount} pendência(s) financeira(s)`
-                  : metric.id === "open-tasks"
-                    ? `${overdueTasks.length} atrasada(s)`
-                    : metric.id === "active-clients"
-                      ? `${clients.length} cadastrados`
-                      : `${filteredDocuments.length} documentos`
-              }
               icon={metric.icon}
+              featured={index === 0}
+              className={cn(index === 0 && "min-h-44")}
               onClick={() => setSelectedMetric(metric)}
             />
           ))}
@@ -1448,29 +1419,19 @@ const Index = () => {
               Abrir ciclo mensal
             </Button>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-            <div className="rounded-xl bg-muted p-4">
-              <p className="text-xs text-muted-foreground">Criadas</p>
-              <p className="mt-1 text-2xl font-semibold">
-                {currentPeriodStats.created}/{activeClientsForPeriod.length}
-              </p>
-            </div>
-            <div className="rounded-xl bg-muted p-4">
-              <p className="text-xs text-muted-foreground">Progresso médio</p>
-              <p className="mt-1 text-2xl font-semibold">{currentPeriodStats.averageProgress}%</p>
-            </div>
-            <div className="rounded-xl bg-muted p-4">
-              <p className="text-xs text-muted-foreground">Aguardando docs</p>
-              <p className="mt-1 text-2xl font-semibold text-amber-600">{currentPeriodStats.waiting}</p>
-            </div>
-            <div className="rounded-xl bg-muted p-4">
-              <p className="text-xs text-muted-foreground">Em revisão</p>
-              <p className="mt-1 text-2xl font-semibold text-violet-600">{currentPeriodStats.review}</p>
-            </div>
-            <div className="rounded-xl bg-muted p-4">
-              <p className="text-xs text-muted-foreground">Bloqueadas</p>
-              <p className="mt-1 text-2xl font-semibold text-red-600">{currentPeriodStats.blocked}</p>
-            </div>
+          <div className="flex flex-wrap gap-2 border-y border-border/70 py-4">
+            {[
+              ["Criadas", `${currentPeriodStats.created}/${activeClientsForPeriod.length}`],
+              ["Progresso médio", `${currentPeriodStats.averageProgress}%`],
+              ["Aguardando docs", currentPeriodStats.waiting],
+              ["Em revisão", currentPeriodStats.review],
+              ["Bloqueadas", currentPeriodStats.blocked],
+            ].map(([label, value]) => (
+              <span key={label} className="inline-flex items-baseline gap-2 rounded-full border border-border/70 bg-card px-3 py-2 text-xs text-muted-foreground">
+                <span>{label}</span>
+                <strong className="text-sm font-semibold text-foreground">{value}</strong>
+              </span>
+            ))}
           </div>
           <div className="mt-5 grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
             <div className="space-y-2">
@@ -1561,25 +1522,10 @@ const Index = () => {
                 </div>
               </div>
             ) : (
-              <div className="grid gap-3 sm:grid-cols-3">
-                <div className="rounded-xl bg-muted p-4">
-                  <p className="text-xs text-muted-foreground">Recebido</p>
-                  <p className="mt-1 text-lg font-semibold">
-                    {brl(totalRevenue)}
-                  </p>
-                </div>
-                <div className="rounded-xl bg-muted p-4">
-                  <p className="text-xs text-muted-foreground">Faturas</p>
-                  <p className="mt-1 text-lg font-semibold">
-                    {filteredInvoices.length}
-                  </p>
-                </div>
-                <div className="rounded-xl bg-muted p-4">
-                  <p className="text-xs text-muted-foreground">Pagamentos</p>
-                  <p className="mt-1 text-lg font-semibold">
-                    {filteredPayments.length}
-                  </p>
-                </div>
+              <div className="flex flex-wrap gap-2 border-y border-border/70 py-4">
+                <span className="inline-flex items-baseline gap-2 rounded-full border border-border/70 bg-card px-3 py-2 text-xs text-muted-foreground"><span>Recebido</span><strong className="text-sm font-semibold text-foreground">{brl(totalRevenue)}</strong></span>
+                <span className="inline-flex items-baseline gap-2 rounded-full border border-border/70 bg-card px-3 py-2 text-xs text-muted-foreground"><span>Faturas</span><strong className="text-sm font-semibold text-foreground">{filteredInvoices.length}</strong></span>
+                <span className="inline-flex items-baseline gap-2 rounded-full border border-border/70 bg-card px-3 py-2 text-xs text-muted-foreground"><span>Pagamentos</span><strong className="text-sm font-semibold text-foreground">{filteredPayments.length}</strong></span>
               </div>
             )}
           </div>
@@ -1607,6 +1553,7 @@ const Index = () => {
                 >
                   <Checkbox
                     checked={task.status === "completed"}
+                    aria-label={`Marcar tarefa ${task.title} como ${task.status === "completed" ? "pendente" : "concluída"}`}
                     onCheckedChange={(checked) =>
                       updateTaskStatus(
                         task.id,

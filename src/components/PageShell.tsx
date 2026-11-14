@@ -1,12 +1,11 @@
 import { ReactNode } from "react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
-import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { FilterPopover } from "@/components/FilterPopover";
 import { KPITrend } from "@/components/dashboard/KPICard";
-import { Search, SlidersHorizontal } from "lucide-react";
+import { Search } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export interface PageShellKPI {
   label: string;
@@ -33,6 +32,8 @@ interface PageShellProps {
   searchValue?: string;
   onSearchChange?: (v: string) => void;
   searchPlaceholder?: string;
+  filterCount?: number;
+  onClearFilters?: () => void;
   children: ReactNode;
 }
 
@@ -53,8 +54,16 @@ export const PageShell = ({
   searchValue,
   onSearchChange,
   searchPlaceholder = "Buscar...",
+  filterCount = 0,
+  onClearFilters,
   children,
 }: PageShellProps) => {
+  const kpiGridClass = kpis?.length === 4
+    ? "lg:grid-cols-4"
+    : kpis?.length === 5
+      ? "lg:grid-cols-5"
+      : "lg:grid-cols-3";
+
   return (
     <DashboardLayout>
       <div className="mx-auto w-full max-w-[1280px] space-y-8">
@@ -70,20 +79,18 @@ export const PageShell = ({
         </div>
 
         {kpis && kpis.length > 0 && (
-          <div className="grid gap-3 grid-cols-2 lg:grid-cols-3">
-            {kpis.map((k, i) => (
-              <Card key={i} className="kpi-card">
-                <CardContent className="pt-4 pb-3">
-                  <div className="flex items-end justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-xs text-muted-foreground">{k.label}</p>
-                      <p className="text-lg font-semibold mt-1">{k.value}</p>
-                      {k.hint && <p className="text-xs text-muted-foreground mt-0.5">{k.hint}</p>}
-                    </div>
-                    <KPITrend values={k.trend} />
+          <div className={cn("grid overflow-hidden rounded-2xl border border-border/70 bg-border/70 sm:grid-cols-2", kpiGridClass)}>
+            {kpis.slice(0, 6).map((k, i) => (
+              <div key={i} className="min-w-0 bg-card p-4 sm:p-5">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">{k.label}</p>
+                    <p className="mt-2 text-xl font-semibold tracking-tight text-foreground">{k.value}</p>
+                    {k.hint && <p className="mt-1 text-xs text-muted-foreground">{k.hint}</p>}
                   </div>
-                </CardContent>
-              </Card>
+                  <KPITrend values={k.trend} className="h-9 w-24 min-w-0" />
+                </div>
+              </div>
             ))}
           </div>
         )}
@@ -107,30 +114,17 @@ export const PageShell = ({
                   value={searchValue ?? ""}
                   onChange={(e) => onSearchChange(e.target.value)}
                   placeholder={searchPlaceholder}
+                  name="page-search"
+                  autoComplete="off"
+                  aria-label={searchPlaceholder}
                   className="h-10 rounded-xl border-border/70 bg-card/80 pl-9"
                 />
               </div>
             )}
             {filters && (
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="h-10 rounded-xl gap-2">
-                    <SlidersHorizontal className="h-4 w-4" />
-                    Filtros
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent
-                  align="end"
-                  className="w-[min(360px,calc(100vw-2rem))] rounded-2xl p-3"
-                >
-                  <div className="space-y-3">
-                    <p className="px-1 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                      Filtrar resultados
-                    </p>
-                    <div className="space-y-2">{filters}</div>
-                  </div>
-                </PopoverContent>
-              </Popover>
+              <FilterPopover activeCount={filterCount} onClear={onClearFilters}>
+                {filters}
+              </FilterPopover>
             )}
           </div>
         )}

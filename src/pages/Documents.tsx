@@ -5,19 +5,18 @@ import {
   Plus,
   Download,
   Eye,
-  MoreHorizontal,
   Trash2,
   Send,
   Check,
   Upload,
-  FileCode,
-  File,
   ScanText,
   Calendar,
+  Clock,
   LayoutDashboard,
   List,
-  SlidersHorizontal,
 } from "lucide-react";
+import { FilterPopover } from "@/components/FilterPopover";
+import { MultiSelectFilter } from "@/components/MultiSelectFilter";
 import { DocumentViewer, ViewableDocument } from "@/components/DocumentViewer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -32,13 +31,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
@@ -56,8 +48,11 @@ import { cn } from "@/lib/utils";
 import { CalendarEventView } from "@/components/CalendarEventView";
 import { supabase } from "@/integrations/supabase/client";
 import { useViewMode } from "@/contexts/ViewModeContext";
-import { KPITrend } from "@/components/dashboard/KPICard";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { BentoStatStrip } from "@/components/dashboard/BentoStatStrip";
+import { IconTooltipButton } from "@/components/IconTooltipButton";
+import { SortToggle } from "@/components/SortToggle";
+import { BentoDataTable } from "@/components/BentoDataTable";
+import { RowActions } from "@/components/RowActions";
 
 const statusColors: Record<string, string> = {
   paid: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400",
@@ -162,14 +157,6 @@ const isRequestOverdue = (request: { dueDate: string | null; status: string }) =
       !["approved", "waived"].includes(request.status),
   );
 
-const fileTypeIcons: Record<string, React.ReactNode> = {
-  pdf: <FileText className="h-4 w-4 text-red-500" />,
-  xml: <FileCode className="h-4 w-4 text-emerald-500" />,
-  xlsx: <File className="h-4 w-4 text-green-600" />,
-  docx: <FileText className="h-4 w-4 text-blue-500" />,
-  csv: <File className="h-4 w-4 text-amber-500" />,
-};
-
 const Documents = () => {
   const { viewMode } = useViewMode();
   const {
@@ -182,7 +169,8 @@ const Documents = () => {
     clients,
   } = useData();
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterStatuses, setFilterStatuses] = useState<string[]>([]);
+  const [filterTypes, setFilterTypes] = useState<string[]>([]);
   const [filterMonth, setFilterMonth] = useState<string>(String(currentMonth));
   const [filterYear, setFilterYear] = useState<string>(String(currentYear));
   const [filterClient, setFilterClient] = useState<string>("all");
@@ -196,10 +184,11 @@ const Documents = () => {
   });
   const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("recebidos");
-  const [requestView, setRequestView] = useState<DocumentRequestView>("actionable");
+  const [requestViews, setRequestViews] = useState<DocumentRequestView[]>(["actionable"]);
   const [view, setView] = useState<"dashboard" | "list" | "calendar">(
     "dashboard",
   );
+  const [documentSort, setDocumentSort] = useState<"asc" | "desc">("desc");
   const [dateRange, setDateRange] = useState({
     start: currentMonthStart,
     end: currentMonthEnd,
@@ -207,11 +196,16 @@ const Documents = () => {
   const [viewerDoc, setViewerDoc] = useState<ViewableDocument | null>(null);
 
   const filteredDocuments = documents.filter((doc) => {
-    const statusMatch = filterStatus === "all" || doc.status === filterStatus;
+    const statusMatch = filterStatuses.length === 0 || filterStatuses.includes(doc.status);
+    const typeMatch = filterTypes.length === 0 || filterTypes.includes(doc.documentType);
     const monthMatch = doc.month === parseInt(filterMonth);
     const yearMatch = doc.year === parseInt(filterYear);
     const clientMatch = filterClient === "all" || doc.clientId === filterClient;
-    return statusMatch && monthMatch && yearMatch && clientMatch;
+    return statusMatch && typeMatch && monthMatch && yearMatch && clientMatch;
+  }).sort((a, b) => {
+    const first = documentSort === "asc" ? new Date(a.createdAt).getTime() : new Date(b.createdAt).getTime();
+    const second = documentSort === "asc" ? new Date(b.createdAt).getTime() : new Date(a.createdAt).getTime();
+    return first - second;
   });
   const visibleDocumentRequests = documentRequests.filter((request) =>
     filterClient === "all" || request.companyId === filterClient,
@@ -227,14 +221,17 @@ const Documents = () => {
     resolved: visibleDocumentRequests.filter((request) => ["approved", "waived"].includes(request.status)).length,
     all: visibleDocumentRequests.length,
   };
-  const filteredDocumentRequests = visibleDocumentRequests.filter((request) => {
-    if (requestView === "actionable") return ["requested", "rejected"].includes(request.status);
-    if (requestView === "approval") return request.status === "uploaded";
-    if (requestView === "rejected") return request.status === "rejected";
-    if (requestView === "overdue") return isRequestOverdue(request);
-    if (requestView === "resolved") return ["approved", "waived"].includes(request.status);
+  const matchesRequestView = (request: (typeof visibleDocumentRequests)[number], view: DocumentRequestView) => {
+    if (view === "actionable") return ["requested", "rejected"].includes(request.status);
+    if (view === "approval") return request.status === "uploaded";
+    if (view === "rejected") return request.status === "rejected";
+    if (view === "overdue") return isRequestOverdue(request);
+    if (view === "resolved") return ["approved", "waived"].includes(request.status);
     return true;
-  });
+  };
+  const filteredDocumentRequests = visibleDocumentRequests.filter((request) =>
+    requestViews.length === 0 || requestViews.some((view) => matchesRequestView(request, view)),
+  );
 
   const handleAddDocument = async () => {
     if (!newDoc.name || !newDoc.client) {
@@ -352,6 +349,29 @@ const Documents = () => {
     fileInputRef.current?.click();
   };
 
+  const documentViewControls = (
+    <div className="flex rounded-full border border-border bg-card p-1">
+      {[
+        { value: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+        { value: "list", label: "Lista", icon: List },
+        { value: "calendar", label: "Calendário", icon: Calendar },
+      ].map((item) => {
+        const Icon = item.icon;
+        return (
+          <IconTooltipButton
+            key={item.value}
+            icon={Icon}
+            label={item.label}
+            variant={view === item.value ? "default" : "ghost"}
+            className="rounded-full"
+            aria-pressed={view === item.value}
+            onClick={() => setView(item.value as typeof view)}
+          />
+        );
+      })}
+    </div>
+  );
+
   return (
     <DashboardLayout>
       <div className="flex h-full">
@@ -363,14 +383,14 @@ const Documents = () => {
         >
           <div className="page-header flex items-center justify-between gap-4 animate-fade-in">
             <div>
-              <h1 className="text-2xl font-semibold tracking-tight">
+              <h1 className="text-[28px] font-normal tracking-[-0.035em]">
                 Documentos
               </h1>
               <p className="text-muted-foreground">
                 Gerencie faturas, relatórios e documentos
               </p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap items-center justify-end gap-2">
               <input
                 ref={fileInputRef}
                 type="file"
@@ -505,28 +525,28 @@ const Documents = () => {
                 </div>
                 <Badge variant="outline">{visibleDocumentRequests.length} no total</Badge>
               </div>
-              <div className="mb-4 flex flex-wrap gap-2">
-                {[
-                  { value: "actionable", label: "Pendentes", count: requestCounts.actionable },
-                  { value: "approval", label: "Aprovação", count: requestCounts.approval },
-                  { value: "rejected", label: "Recusados", count: requestCounts.rejected },
-                  { value: "overdue", label: "Vencidos", count: requestCounts.overdue },
-                  { value: "resolved", label: "Resolvidos", count: requestCounts.resolved },
-                  { value: "all", label: "Todos", count: requestCounts.all },
-                ].map((item) => (
-                  <Button
-                    key={item.value}
-                    size="sm"
-                    variant={requestView === item.value ? "default" : "outline"}
-                    className="h-8 rounded-xl gap-2"
-                    onClick={() => setRequestView(item.value as DocumentRequestView)}
-                  >
-                    {item.label}
-                    <Badge variant="secondary" className="h-5 rounded-lg px-1.5 text-[10px]">
-                      {item.count}
-                    </Badge>
-                  </Button>
-                ))}
+              <div className="mb-4 flex justify-end">
+                <FilterPopover
+                  title="Filtrar solicitações"
+                  description="Combine estados para acompanhar o fluxo de envio e aprovação."
+                  activeCount={requestViews.length}
+                  onClear={() => setRequestViews([])}
+                >
+                  <MultiSelectFilter
+                    label="Visão"
+                    emptyLabel="Todas"
+                    options={[
+                      { value: "actionable", label: "Pendentes", count: requestCounts.actionable },
+                      { value: "approval", label: "Aprovação", count: requestCounts.approval },
+                      { value: "rejected", label: "Recusados", count: requestCounts.rejected },
+                      { value: "overdue", label: "Vencidos", count: requestCounts.overdue },
+                      { value: "resolved", label: "Resolvidos", count: requestCounts.resolved },
+                      { value: "all", label: "Todos", count: requestCounts.all },
+                    ]}
+                    value={requestViews}
+                    onChange={(values) => setRequestViews(values as DocumentRequestView[])}
+                  />
+                </FilterPopover>
               </div>
               <div className="grid gap-3 lg:grid-cols-2">
                 {filteredDocumentRequests.map((request) => {
@@ -568,72 +588,43 @@ const Documents = () => {
             </div>
           )}
 
-          <div className="flex flex-wrap items-center justify-between gap-3 animate-fade-in">
-            <div className="flex rounded-2xl border border-border bg-card p-1">
-              {[
-                {
-                  value: "dashboard",
-                  label: "Dashboard",
-                  icon: LayoutDashboard,
-                },
-                { value: "list", label: "Lista", icon: List },
-                { value: "calendar", label: "Calendário", icon: Calendar },
-              ].map((item) => {
-                const Icon = item.icon;
-                return (
-                  <Button
-                    key={item.value}
-                    variant={view === item.value ? "default" : "ghost"}
-                    size="sm"
-                    className="rounded-xl"
-                    onClick={() => setView(item.value as typeof view)}
-                  >
-                    <Icon className="h-4 w-4" />
-                    {item.label}
-                  </Button>
-                );
-              })}
-            </div>
-          </div>
-
           {view === "dashboard" && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-fade-in">
-              <div className="kpi-card">
-                <div className="flex items-end justify-between gap-3">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Documentos</p>
-                    <p className="text-2xl font-semibold">{documents.length}</p>
-                  </div>
-                  <KPITrend />
+            <section className="page-section space-y-4 animate-fade-in">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-base font-medium">Resumo de documentos</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">Acompanhe o volume e os pendentes do período selecionado.</p>
                 </div>
+                {documentViewControls}
               </div>
-              <div className="kpi-card">
-                <div className="flex items-end justify-between gap-3">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Pendentes</p>
-                    <p className="text-2xl font-semibold">
-                      {documents.filter((doc) => doc.status === "pending").length}
-                    </p>
-                  </div>
-                  <KPITrend />
-                </div>
-              </div>
-              <div className="kpi-card">
-                <p className="text-sm text-muted-foreground">Período</p>
-                <p className="text-2xl font-semibold">
-                  {months.find((m) => m.value === filterMonth)?.label}
-                </p>
-              </div>
-            </div>
+              <BentoStatStrip
+                items={[
+                  { label: "Documentos", value: documents.length, icon: FileText, compact: true },
+                  {
+                    label: "Pendentes",
+                    value: documents.filter((doc) => doc.status === "pending").length,
+                    icon: Clock,
+                    compact: true,
+                  },
+                  {
+                    label: "Período",
+                    value: months.find((m) => m.value === filterMonth)?.label,
+                    icon: Calendar,
+                  },
+                ]}
+              />
+            </section>
           )}
 
           {view === "calendar" && (
             <CalendarEventView
               title="Calendário de documentos"
+              headerActions={documentViewControls}
               dateRange={dateRange}
               onDateRangeChange={setDateRange}
               events={documents.map((doc) => ({
                 day: new Date(doc.createdAt).getDate(),
+                date: doc.createdAt,
                 title: doc.name,
                 subtitle: `${doc.clientName ?? "Sem cliente"} • ${documentTypeLabels[doc.documentType]}`,
                 time: "09:00",
@@ -647,7 +638,7 @@ const Documents = () => {
 
           {view !== "calendar" && (
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="rounded-2xl">
+              <TabsList className="segmented-tabs">
                 <TabsTrigger value="recebidos" className="rounded-xl">
                   Recebidos
                 </TabsTrigger>
@@ -670,302 +661,192 @@ const Documents = () => {
                       {filteredDocuments.length} documento(s)
                     </Badge>
                     <span className="hidden text-xs text-muted-foreground sm:inline">
-                      {statusLabels[filterStatus] ?? "Todos os status"}
+                      {filterStatuses.length === 0
+                        ? "Todos os status"
+                        : `${filterStatuses.length} status selecionado(s)`}
                     </span>
                   </div>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" size="sm" className="gap-2">
-                        <SlidersHorizontal className="h-4 w-4" />
-                        Filtros
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent align="end" className="w-[min(360px,calc(100vw-2rem))] p-4">
-                      <div className="space-y-4">
-                        <div>
-                          <p className="text-sm font-medium">Filtrar documentos</p>
-                          <p className="mt-1 text-xs text-muted-foreground">Ajuste o status, competência e cliente.</p>
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Status</Label>
-                          <div className="grid grid-cols-2 gap-2">
-                            {["all", "pending", "paid", "overdue", "unread"].map((s) => (
-                              <Button
-                                key={s}
-                                variant={filterStatus === s ? "default" : "outline"}
-                                size="sm"
-                                className="justify-start"
-                                onClick={() => setFilterStatus(s)}
-                              >
-                                {s === "all" ? "Todos" : statusLabels[s] || s}
-                              </Button>
+                  <div className="flex flex-wrap items-center justify-end gap-2">
+                    {documentViewControls}
+                    <SortToggle label="data do documento" direction={documentSort} onChange={setDocumentSort} />
+                    <FilterPopover
+                      title="Filtrar documentos"
+                      description="Ajuste status, competência e cliente."
+                      activeCount={
+                        filterStatuses.length +
+                        filterTypes.length +
+                        (filterClient === "all" ? 0 : 1) +
+                        (filterMonth === String(currentMonth) ? 0 : 1) +
+                        (filterYear === String(currentYear) ? 0 : 1)
+                      }
+                      onClear={() => {
+                        setFilterStatuses([]);
+                        setFilterTypes([]);
+                        setFilterClient("all");
+                        setFilterMonth(String(currentMonth));
+                        setFilterYear(String(currentYear));
+                      }}
+                    >
+                    <MultiSelectFilter
+                      label="Status"
+                      options={["pending", "paid", "overdue", "unread"].map((status) => ({
+                        value: status,
+                        label: statusLabels[status] ?? status,
+                        count: documents.filter((doc) => doc.status === status).length,
+                      }))}
+                      value={filterStatuses}
+                      onChange={setFilterStatuses}
+                    />
+                    <MultiSelectFilter
+                      label="Tipo"
+                      options={lotusDocumentTypes.map((type) => ({
+                        value: type,
+                        label: documentTypeLabels[type] ?? type,
+                        count: documents.filter((doc) => doc.documentType === type).length,
+                      }))}
+                      value={filterTypes}
+                      onChange={setFilterTypes}
+                    />
+                    {viewMode !== "client" && (
+                      <div className="space-y-1.5">
+                        <Label>Cliente</Label>
+                        <Select value={filterClient} onValueChange={setFilterClient}>
+                          <SelectTrigger><SelectValue placeholder="Todos clientes" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Todos clientes</SelectItem>
+                            {clients.filter((client) => client.status === "active").map((c) => (
+                              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                             ))}
-                          </div>
-                        </div>
-                        {viewMode !== "client" && (
-                          <div className="space-y-2">
-                            <Label>Cliente</Label>
-                            <Select value={filterClient} onValueChange={setFilterClient}>
-                              <SelectTrigger><SelectValue placeholder="Todos clientes" /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="all">Todos clientes</SelectItem>
-                                {clients.filter((client) => client.status === "active").map((c) => (
-                                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        )}
-                        <div className="grid grid-cols-2 gap-2">
-                          <div className="space-y-2">
-                            <Label>Competência</Label>
-                            <Select value={filterMonth} onValueChange={setFilterMonth}>
-                              <SelectTrigger><SelectValue /></SelectTrigger>
-                              <SelectContent>{months.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}</SelectContent>
-                            </Select>
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Ano</Label>
-                            <Select value={filterYear} onValueChange={setFilterYear}>
-                              <SelectTrigger><SelectValue /></SelectTrigger>
-                              <SelectContent>{years.map((y) => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
-                            </Select>
-                          </div>
-                        </div>
+                          </SelectContent>
+                        </Select>
                       </div>
-                    </PopoverContent>
-                  </Popover>
-                </div>
-
-                <div className="table-surface animate-fade-in">
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b border-border bg-accent/30">
-                          <th className="text-left p-4 font-medium text-muted-foreground">
-                            Documento
-                          </th>
-                          <th className="text-left p-4 font-medium text-muted-foreground hidden md:table-cell">
-                            Cliente
-                          </th>
-                          <th className="text-left p-4 font-medium text-muted-foreground hidden sm:table-cell">
-                            Tipo
-                          </th>
-                          <th className="text-left p-4 font-medium text-muted-foreground">
-                            Status
-                          </th>
-                          <th className="text-right p-4 font-medium text-muted-foreground">
-                            Valor
-                          </th>
-                          <th className="text-right p-4 font-medium text-muted-foreground">
-                            Ações
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filteredDocuments.map((doc, index) => (
-                          <tr
-                            key={doc.id}
-                            className="border-b border-border last:border-0 hover:bg-accent/30 transition-colors"
-                            style={{ animationDelay: `${index * 50}ms` }}
-                          >
-                            <td className="p-4">
-                              <div className="flex items-center gap-3">
-                                <div className="p-2 rounded-xl bg-accent">
-                                  <FileText className="h-4 w-4 text-accent-foreground" />
-                                </div>
-                                <div>
-                                  <p className="font-medium">{doc.name}</p>
-                                  <p className="text-xs text-muted-foreground">
-                                    {doc.date}
-                                  </p>
-                                  {doc.classifiedAutomatically && (
-                                    <p className="text-xs text-muted-foreground/70">
-                                      Classificado automaticamente
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
-                            </td>
-                            <td className="p-4 hidden md:table-cell text-muted-foreground">
-                              {doc.clientName || "—"}
-                            </td>
-                            <td className="p-4 hidden sm:table-cell text-muted-foreground">
-                              {documentTypeLabels[doc.documentType]}
-                            </td>
-                            <td className="p-4">
-                              <Badge
-                                className={statusColors[doc.status] || ""}
-                                variant="secondary"
-                              >
-                                {statusLabels[doc.status] || doc.status}
-                              </Badge>
-                            </td>
-                            <td className="p-4 text-right font-medium">
-                              {doc.amount
-                                ? `R$ ${doc.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
-                                : "—"}
-                            </td>
-                            <td className="p-4">
-                              <div className="flex items-center justify-end gap-1">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  onClick={() => void openDocumentInViewer(doc)}
-                                >
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  onClick={() =>
-                                    void handleDownloadDocument(doc)
-                                  }
-                                >
-                                  <Download className="h-4 w-4" />
-                                </Button>
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-8 w-8"
-                                    >
-                                      <MoreHorizontal className="h-4 w-4" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                    {doc.status === "unread" && (
-                                      <DropdownMenuItem
-                                        className="gap-2"
-                                        onClick={() => handleMarkAsRead(doc.id)}
-                                      >
-                                        <Eye className="h-4 w-4" />
-                                        Marcar como Lido
-                                      </DropdownMenuItem>
-                                    )}
-                                    {viewMode !== "client" &&
-                                      (doc.status === "pending" ||
-                                        doc.status === "overdue") && (
-                                        <>
-                                          <DropdownMenuItem
-                                            className="gap-2"
-                                            onClick={() =>
-                                              handleMarkAsPaid(doc.id)
-                                            }
-                                          >
-                                            <Check className="h-4 w-4" />
-                                            Marcar como Pago
-                                          </DropdownMenuItem>
-                                          <DropdownMenuItem
-                                            className="gap-2"
-                                            onClick={() =>
-                                              handleSendReminder(doc)
-                                            }
-                                          >
-                                            <Send className="h-4 w-4" />
-                                            Enviar Lembrete
-                                          </DropdownMenuItem>
-                                          <DropdownMenuSeparator />
-                                        </>
-                                      )}
-                                    {viewMode !== "client" && (
-                                      <DropdownMenuItem
-                                        className="gap-2 text-destructive focus:text-destructive"
-                                        onClick={() =>
-                                          handleDeleteDocument(doc.id)
-                                        }
-                                      >
-                                        <Trash2 className="h-4 w-4" />
-                                        Excluir
-                                      </DropdownMenuItem>
-                                    )}
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  {filteredDocuments.length === 0 && (
-                    <div className="text-center py-12 text-muted-foreground">
-                      <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>
-                        Nenhum documento encontrado para o período selecionado
-                      </p>
+                    )}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1.5">
+                        <Label>Competência</Label>
+                        <Select value={filterMonth} onValueChange={setFilterMonth}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>{months.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}</SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label>Ano</Label>
+                        <Select value={filterYear} onValueChange={setFilterYear}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>{years.map((y) => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
+                        </Select>
+                      </div>
                     </div>
-                  )}
+                    </FilterPopover>
+                  </div>
                 </div>
+
+                <BentoDataTable
+                  rows={filteredDocuments}
+                  getRowKey={(doc) => doc.id}
+                  empty={<span>Nenhum documento encontrado para o período selecionado.</span>}
+                  columns={[
+                    {
+                      key: "document",
+                      label: "Documento",
+                      render: (doc) => <div className="flex min-w-0 items-center gap-3"><div className="rounded-xl bg-accent p-2"><FileText className="h-4 w-4 text-accent-foreground" /></div><div className="min-w-0"><p className="max-w-[240px] truncate font-medium">{doc.name}</p>{doc.classifiedAutomatically && <p className="text-xs text-muted-foreground/70">Classificado automaticamente</p>}</div></div>,
+                    },
+                    {
+                      key: "date",
+                      label: "Data",
+                      sortValue: (doc) => doc.createdAt ? new Date(doc.createdAt) : null,
+                      render: (doc) => <span className="whitespace-nowrap text-sm text-muted-foreground">{doc.date}</span>,
+                    },
+                    {
+                      key: "client",
+                      label: "Cliente",
+                      render: (doc) => <span className="block max-w-[180px] truncate text-sm text-muted-foreground">{doc.clientName || "—"}</span>,
+                    },
+                    {
+                      key: "type",
+                      label: "Tipo",
+                      render: (doc) => <Badge variant="outline" className="text-[10px]">{documentTypeLabels[doc.documentType]}</Badge>,
+                    },
+                    {
+                      key: "status",
+                      label: "Status",
+                      render: (doc) => <Badge className={statusColors[doc.status] || ""} variant="secondary">{statusLabels[doc.status] || doc.status}</Badge>,
+                    },
+                    {
+                      key: "amount",
+                      label: "Valor",
+                      sortValue: (doc) => doc.amount ?? 0,
+                      className: "text-right font-medium tabular-nums",
+                      headerClassName: "text-right",
+                      render: (doc) => <span className="whitespace-nowrap">{doc.amount ? `R$ ${doc.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "—"}</span>,
+                    },
+                  ]}
+                  actions={(doc) => (
+                    <RowActions
+                      primaryLabel={`Visualizar ${doc.name}`}
+                      primaryIcon={Eye}
+                      onPrimary={() => void openDocumentInViewer(doc)}
+                      menuItems={[
+                        { label: "Baixar arquivo", icon: Download, onSelect: () => void handleDownloadDocument(doc) },
+                        ...(doc.status === "unread" ? [{ label: "Marcar como lido", icon: Eye, onSelect: () => void handleMarkAsRead(doc.id) }] : []),
+                        ...(viewMode !== "client" && (doc.status === "pending" || doc.status === "overdue") ? [{ label: "Marcar como pago", icon: Check, onSelect: () => void handleMarkAsPaid(doc.id) }, { label: "Enviar lembrete", icon: Send, onSelect: () => handleSendReminder(doc) }] : []),
+                        ...(viewMode !== "client" ? [{ label: "Excluir documento", icon: Trash2, destructive: true, separatorBefore: true, onSelect: () => void handleDeleteDocument(doc.id) }] : []),
+                      ]}
+                    />
+                  )}
+                />
               </TabsContent>
 
               <TabsContent value="arquivos" className="space-y-4 mt-4">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in">
                   {/* File list */}
-                  <div className="lg:col-span-1 space-y-2">
-                    <h3 className="text-sm font-medium text-muted-foreground mb-3">
-                      Arquivos Recentes
-                    </h3>
-                    {documents.filter((doc) => doc.filePath).length === 0 && (
-                      <div className="rounded-2xl border border-dashed border-border p-6 text-center text-muted-foreground">
-                        <FileText className="h-10 w-10 mx-auto mb-3 opacity-40" />
-                        <p className="text-sm font-medium">
-                          Nenhum documento encontrado
-                        </p>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="mt-4 rounded-2xl"
-                          disabled
-                        >
-                          <ScanText className="h-4 w-4" />
-                          Extrair texto
-                        </Button>
-                      </div>
-                    )}
-                    {documents
-                      .filter((doc) => doc.filePath)
-                      .map((file) => (
-                        <button
-                          key={file.id}
-                          onClick={() => {
-                            setSelectedFileId(file.id);
-                            void openDocumentInViewer(file);
-                          }}
-                          className={`w-full text-left p-3 rounded-2xl border transition-all ${
-                            selectedFileId === file.id
-                              ? "border-primary bg-accent/50"
-                              : "border-border hover:bg-accent/30"
-                          }`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-xl bg-accent shrink-0">
-                              {fileTypeIcons[
-                                getFileExtension(file.originalFileName)
-                              ] ?? fileTypeIcons.pdf}
-                            </div>
-                            <div className="min-w-0">
-                              <p className="font-medium text-sm truncate">
-                                {file.name}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                {file.clientName ?? "Sem cliente"} ·{" "}
-                                {formatFileSize(file.fileSize)}
-                              </p>
-                            </div>
-                            <Badge
-                              variant="outline"
-                              className="text-xs shrink-0 ml-auto uppercase"
-                            >
-                              {getFileExtension(file.originalFileName)}
-                            </Badge>
-                          </div>
-                        </button>
-                      ))}
+                  <div className="lg:col-span-1 space-y-3">
+                    <div>
+                      <h3 className="text-sm font-medium">Arquivos recentes</h3>
+                      <p className="mt-1 text-xs text-muted-foreground">Selecione uma linha para abrir a prévia.</p>
+                    </div>
+                    <BentoDataTable
+                      rows={documents.filter((doc) => Boolean(doc.filePath))}
+                      getRowKey={(file) => file.id}
+                      empty="Nenhum documento com arquivo armazenado."
+                      className="lg:[&_table]:min-w-[620px]"
+                      columns={[
+                        {
+                          key: "reference",
+                          label: "Referência",
+                          render: (file) => <div className="min-w-0"><p className="max-w-[180px] truncate font-medium">{file.name}</p><p className="max-w-[180px] truncate text-xs text-muted-foreground">{file.clientName ?? "Sem cliente"}</p></div>,
+                        },
+                        {
+                          key: "date",
+                          label: "Data",
+                          sortValue: (file) => file.createdAt ? new Date(file.createdAt) : null,
+                          render: (file) => <span className="whitespace-nowrap text-xs text-muted-foreground">{file.date}</span>,
+                        },
+                        {
+                          key: "type",
+                          label: "Tipo",
+                          render: (file) => <Badge variant="outline" className="uppercase">{getFileExtension(file.originalFileName)}</Badge>,
+                        },
+                        {
+                          key: "size",
+                          label: "Tamanho",
+                          sortValue: (file) => file.fileSize ?? 0,
+                          render: (file) => <span className="whitespace-nowrap text-xs text-muted-foreground">{formatFileSize(file.fileSize)}</span>,
+                        },
+                      ]}
+                      actions={(file) => (
+                        <RowActions
+                          primaryLabel="Abrir prévia"
+                          primaryIcon={Eye}
+                          onPrimary={() => { setSelectedFileId(file.id); void openDocumentInViewer(file); }}
+                          menuItems={[
+                            { label: "Abrir prévia", icon: Eye, onSelect: () => { setSelectedFileId(file.id); void openDocumentInViewer(file); } },
+                            { label: "Baixar arquivo", icon: Download, onSelect: () => void handleDownloadDocument(file) },
+                            { label: "Excluir arquivo", icon: Trash2, destructive: true, separatorBefore: true, onSelect: () => void handleDeleteDocument(file.id) },
+                          ]}
+                        />
+                      )}
+                    />
                   </div>
 
                   {/* File preview */}

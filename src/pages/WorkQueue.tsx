@@ -7,9 +7,7 @@ import {
   Clock3,
   ExternalLink,
   FileQuestion,
-  Filter,
   Inbox,
-  ListChecks,
   LockKeyhole,
   MessageSquare,
   Play,
@@ -45,6 +43,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useData } from "@/contexts/DataContext";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { FilterPopover } from "@/components/FilterPopover";
+import { BentoStatStrip } from "@/components/dashboard/BentoStatStrip";
 import {
   ClientData,
   ClientPeriodChecklistItemData,
@@ -860,76 +860,62 @@ const WorkQueue = () => {
       <div className="space-y-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Minha fila</h1>
+            <h1 className="text-[28px] font-normal tracking-[-0.035em]">Minha fila</h1>
             <p className="text-muted-foreground">
               Execução diária por colaborador, cliente e competência.
             </p>
           </div>
-          <div className="filter-toolbar flex flex-wrap items-center gap-2">
-            <div className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm text-muted-foreground">
-              <Filter className="h-4 w-4" />
-              <span>{selectedMemberLabel}</span>
+        </div>
+
+        <section className="page-section space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-base font-medium">Execução da fila</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Acompanhe os indicadores e os itens filtrados no mesmo contexto.</p>
             </div>
-            <Select
-              value={selectedMemberId}
-              onValueChange={setSelectedMemberId}
-              disabled={!isAdmin}
-            >
-              <SelectTrigger className="w-[220px] rounded-xl">
-                <SelectValue placeholder="Colaborador" />
-              </SelectTrigger>
-              <SelectContent>
-                {isAdmin && <SelectItem value="all">Todos colaboradores</SelectItem>}
-                {members.map((member) => (
-                  <SelectItem key={member.user_id} value={member.user_id}>
-                    {member.full_name || "Sem nome"}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {isAdmin ? (
+              <FilterPopover
+                title="Responsável da fila"
+                description="Alterne a visão da fila entre todos os colaboradores ou uma pessoa específica."
+                activeCount={selectedMemberId === "all" ? 0 : 1}
+                onClear={() => setSelectedMemberId("all")}
+              >
+                <div className="space-y-1.5">
+                  <Label htmlFor="queue-member">Colaborador</Label>
+                  <Select value={selectedMemberId} onValueChange={setSelectedMemberId}>
+                    <SelectTrigger id="queue-member" className="w-full rounded-xl">
+                      <SelectValue placeholder="Todos colaboradores" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos colaboradores</SelectItem>
+                      {members.map((member) => (
+                        <SelectItem key={member.user_id} value={member.user_id}>
+                          {member.full_name || "Sem nome"}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </FilterPopover>
+            ) : (
+              <div className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm text-muted-foreground">
+                <UserCheck className="h-4 w-4" aria-hidden="true" />
+                <span>{selectedMemberLabel}</span>
+              </div>
+            )}
           </div>
-        </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <Card>
-            <CardContent className="flex items-center gap-3 pt-6">
-              <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-              <div>
-                <p className="text-2xl font-semibold">{stats.completedToday}</p>
-                <p className="text-sm text-muted-foreground">Concluídas hoje</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="flex items-center gap-3 pt-6">
-              <AlertTriangle className="h-5 w-5 text-red-600" />
-              <div>
-                <p className="text-2xl font-semibold">{stats.overdue}</p>
-                <p className="text-sm text-muted-foreground">Atrasadas</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="flex items-center gap-3 pt-6">
-              <LockKeyhole className="h-5 w-5 text-violet-600" />
-              <div>
-                <p className="text-2xl font-semibold">{stats.review}</p>
-                <p className="text-sm text-muted-foreground">Em revisão</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="flex items-center gap-3 pt-6">
-              <UserCheck className="h-5 w-5 text-blue-600" />
-              <div>
-                <p className="text-2xl font-semibold">{stats.clients}</p>
-                <p className="text-sm text-muted-foreground">Clientes sob responsabilidade</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+          <BentoStatStrip
+            className="animate-fade-in"
+            items={[
+              { label: "Concluídas hoje", value: stats.completedToday, icon: CheckCircle2, compact: true },
+              { label: "Atrasadas", value: stats.overdue, icon: AlertTriangle, compact: true },
+              { label: "Em revisão", value: stats.review, icon: LockKeyhole, compact: true },
+              { label: "Clientes sob responsabilidade", value: stats.clients, icon: UserCheck, compact: true },
+            ]}
+          />
 
-        <div className="grid gap-4 xl:grid-cols-2">
+          <div className="grid gap-4 xl:grid-cols-2">
           {(Object.keys(sectionMeta) as QueueSectionKey[]).map((section) => {
             const meta = sectionMeta[section];
             const Icon = meta.icon;
@@ -968,14 +954,12 @@ const WorkQueue = () => {
               </Card>
             );
           })}
-        </div>
+          </div>
+        </section>
 
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <ListChecks className="h-4 w-4 text-muted-foreground" />
-              Critério operacional da fila
-            </CardTitle>
+            <CardTitle className="text-base">Critério operacional da fila</CardTitle>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground">
             A fila combina tarefas atribuídas, clientes sob responsabilidade,
@@ -1001,18 +985,22 @@ const WorkQueue = () => {
           </DialogHeader>
           <div className="grid gap-4 py-2">
             <div className="grid gap-2">
-              <Label>Título</Label>
+              <Label htmlFor="queue-request-title">Título</Label>
               <Input
+                id="queue-request-title"
+                name="document-request-title"
                 value={newRequest.title}
                 onChange={(event) =>
                   setNewRequest((prev) => ({ ...prev, title: event.target.value }))
                 }
-                placeholder="Ex.: Extrato bancário do mês"
+                placeholder="Ex.: Extrato bancário do mês…"
               />
             </div>
             <div className="grid gap-2">
-              <Label>Descrição</Label>
+              <Label htmlFor="queue-request-description">Descrição</Label>
               <Textarea
+                id="queue-request-description"
+                name="document-request-description"
                 value={newRequest.description}
                 onChange={(event) =>
                   setNewRequest((prev) => ({
@@ -1020,13 +1008,15 @@ const WorkQueue = () => {
                     description: event.target.value,
                   }))
                 }
-                placeholder="Detalhe o arquivo esperado"
+                placeholder="Detalhe o arquivo esperado…"
               />
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="grid gap-2">
-                <Label>Tipo</Label>
+                <Label htmlFor="queue-request-type">Tipo</Label>
                 <Input
+                  id="queue-request-type"
+                  name="document-request-type"
                   value={newRequest.documentType}
                   onChange={(event) =>
                     setNewRequest((prev) => ({
@@ -1037,8 +1027,10 @@ const WorkQueue = () => {
                 />
               </div>
               <div className="grid gap-2">
-                <Label>Vencimento</Label>
+                <Label htmlFor="queue-request-due-date">Vencimento</Label>
                 <Input
+                  id="queue-request-due-date"
+                  name="document-request-due-date"
                   type="date"
                   value={newRequest.dueDate}
                   onChange={(event) =>

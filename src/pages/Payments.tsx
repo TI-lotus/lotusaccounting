@@ -1,18 +1,19 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import {
   Plus,
   Calendar,
   List,
-  Barcode,
-  QrCode,
   CreditCard,
   Clock3,
-  ArrowDownCircle,
-  ArrowUpCircle,
   Copy,
   CheckCircle2,
   RotateCcw,
+  ArrowUp,
+  ArrowDown,
+  Eye,
+  ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -41,6 +42,11 @@ import { TimelineView } from "@/components/TimelineView";
 import { useViewMode } from "@/contexts/ViewModeContext";
 import { useData } from "@/contexts/DataContext";
 import { FilterPopover } from "@/components/FilterPopover";
+import { IconTooltipButton } from "@/components/IconTooltipButton";
+import { SortToggle } from "@/components/SortToggle";
+import { BentoDataTable } from "@/components/BentoDataTable";
+import { RowActions } from "@/components/RowActions";
+import { MultiSelectFilter } from "@/components/MultiSelectFilter";
 
 interface Payment {
   id: string;
@@ -67,7 +73,21 @@ const currentMonthRange = () => {
   };
 };
 
+const currentQuarterRange = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const quarterStartMonth = Math.floor(now.getMonth() / 3) * 3;
+  return {
+    start: `${year}-${String(quarterStartMonth + 1).padStart(2, "0")}-01`,
+    end: new Date(year, quarterStartMonth + 3, 0).toISOString().slice(0, 10),
+  };
+};
+
+type PaymentStatusFilter = "completed" | "pending";
+type PaymentDateFilter = "all" | "month" | "quarter" | "custom";
+
 const Payments = () => {
+  const navigate = useNavigate();
   const { viewMode } = useViewMode();
   const {
     tenantId,
@@ -79,12 +99,13 @@ const Payments = () => {
   } = useData();
   const [valueSort, setValueSort] = useState<"none" | "asc" | "desc">("none");
   const [dateSort, setDateSort] = useState<"newest" | "oldest">("newest");
-  const [typeFilter, setTypeFilter] = useState<"all" | "income" | "expense">(
-    "all",
-  );
+  const [typeFilters, setTypeFilters] = useState<Payment["type"][]>([]);
+  const [statusFilters, setStatusFilters] = useState<PaymentStatusFilter[]>([]);
+  const [dateFilter, setDateFilter] = useState<PaymentDateFilter>("all");
   const [view, setView] = useState<"list" | "calendar" | "timeline">("list");
   const [dateRange, setDateRange] = useState(currentMonthRange);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [newPayment, setNewPayment] = useState({
     description: "",
     amount: "",
@@ -93,6 +114,12 @@ const Payments = () => {
     companyId: "",
     invoiceId: "",
   });
+
+  const handleDateFilterChange = (next: PaymentDateFilter) => {
+    setDateFilter(next);
+    if (next === "month") setDateRange(currentMonthRange());
+    if (next === "quarter") setDateRange(currentQuarterRange());
+  };
 
   const fmt = (iso: string | null) =>
     new Date(iso ?? Date.now()).toLocaleDateString("pt-BR", {
@@ -130,7 +157,13 @@ const Payments = () => {
   }, [clients, paymentRows]);
 
   const filteredPayments = payments
-    .filter((p) => typeFilter === "all" || p.type === typeFilter)
+    .filter((p) => typeFilters.length === 0 || typeFilters.includes(p.type))
+    .filter((p) => statusFilters.length === 0 || statusFilters.includes(p.status))
+    .filter((p) => {
+      if (dateFilter === "all") return true;
+      if (!p.rawDate) return false;
+      return p.rawDate.slice(0, 10) >= dateRange.start && p.rawDate.slice(0, 10) <= dateRange.end;
+    })
     .slice()
     .sort((a, b) => {
       if (valueSort === "asc") return a.amount - b.amount;
@@ -195,12 +228,124 @@ const Payments = () => {
     toast.success("Status atualizado!");
   };
 
+  const paymentViewControls = (
+    <div className="flex flex-wrap items-center gap-2">
+      <div className="flex rounded-full border border-border bg-card p-1">
+        {[
+          { value: "list", label: "Lista", icon: List },
+          { value: "calendar", label: "Calendário", icon: Calendar },
+          { value: "timeline", label: "Timeline", icon: Clock3 },
+        ].map((item) => (
+          <IconTooltipButton
+            key={item.value}
+            icon={item.icon}
+            label={item.label}
+            variant={view === item.value ? "default" : "ghost"}
+            className="rounded-full"
+            aria-pressed={view === item.value}
+            onClick={() => setView(item.value as typeof view)}
+          />
+        ))}
+      </div>
+      <FilterPopover
+        title="Filtrar e ordenar pagamentos"
+        description="Combine tipo, status, período e ordenação em um único controle."
+        activeCount={[typeFilters.length > 0, statusFilters.length > 0, dateFilter !== "all", valueSort !== "none", dateSort !== "newest"].filter(Boolean).length}
+        onClear={() => {
+          setTypeFilters([]);
+          setStatusFilters([]);
+          handleDateFilterChange("all");
+          setValueSort("none");
+          setDateSort("newest");
+        }}
+      >
+        <MultiSelectFilter
+          label="Tipo"
+          emptyLabel="Entradas e saídas"
+          options={[
+            { value: "income", label: "Entradas" },
+            { value: "expense", label: "Saídas" },
+          ]}
+          value={typeFilters}
+          onChange={(value) => setTypeFilters(value as Payment["type"][])}
+        />
+        <MultiSelectFilter
+          label="Status"
+          emptyLabel="Todos os status"
+          options={[
+            { value: "completed", label: "Concluídos" },
+            { value: "pending", label: "Pendentes" },
+          ]}
+          value={statusFilters}
+          onChange={(value) => setStatusFilters(value as PaymentStatusFilter[])}
+        />
+        <div className="space-y-1.5">
+          <Label htmlFor="payment-date-filter">Período</Label>
+          <Select value={dateFilter} onValueChange={(value: PaymentDateFilter) => handleDateFilterChange(value)}>
+            <SelectTrigger id="payment-date-filter" className="w-full rounded-xl"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os períodos</SelectItem>
+              <SelectItem value="month">Mês atual</SelectItem>
+              <SelectItem value="quarter">Trimestre atual</SelectItem>
+              <SelectItem value="custom">Personalizado</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        {dateFilter === "custom" && (
+          <div className="grid grid-cols-2 gap-2">
+            <label className="space-y-1 text-xs font-medium text-muted-foreground" htmlFor="payment-date-start">
+              Início
+              <Input id="payment-date-start" type="date" value={dateRange.start} max={dateRange.end} onChange={(event) => event.target.value && setDateRange({ ...dateRange, start: event.target.value })} />
+            </label>
+            <label className="space-y-1 text-xs font-medium text-muted-foreground" htmlFor="payment-date-end">
+              Fim
+              <Input id="payment-date-end" type="date" value={dateRange.end} min={dateRange.start} onChange={(event) => event.target.value && setDateRange({ ...dateRange, end: event.target.value })} />
+            </label>
+          </div>
+        )}
+        <div className="grid grid-cols-2 gap-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="payment-value-sort">Valor</Label>
+            <Select value={valueSort} onValueChange={(value: typeof valueSort) => setValueSort(value)}>
+              <SelectTrigger id="payment-value-sort" className="w-full rounded-xl"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Sem ordenação</SelectItem>
+                <SelectItem value="desc">Maior valor</SelectItem>
+                <SelectItem value="asc">Menor valor</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="payment-date-sort">Data</Label>
+            <Select value={dateSort} onValueChange={(value: typeof dateSort) => setDateSort(value)}>
+              <SelectTrigger id="payment-date-sort" className="w-full rounded-xl"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="newest">Mais novo</SelectItem>
+                <SelectItem value="oldest">Mais antigo</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </FilterPopover>
+      <SortToggle
+        label="data do lançamento"
+        direction={dateSort === "newest" ? "desc" : "asc"}
+        onChange={(direction) => setDateSort(direction === "asc" ? "oldest" : "newest")}
+      />
+      <SortToggle
+        label="valor"
+        direction={valueSort === "asc" ? "asc" : "desc"}
+        onChange={(direction) => setValueSort(direction)}
+      />
+    </div>
+  );
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
         <div className="flex items-center justify-between animate-fade-in">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">
+            <h1 className="text-[28px] font-normal tracking-[-0.035em]">
               Pagamentos
             </h1>
             <p className="text-muted-foreground">
@@ -354,61 +499,6 @@ const Payments = () => {
           )}
         </div>
 
-        <div className="filter-toolbar flex flex-wrap items-center gap-3 animate-fade-in">
-          <div className="flex rounded-2xl border border-border bg-card p-1">
-            {[
-              { value: "list", label: "Lista", icon: List },
-              { value: "calendar", label: "Calendário", icon: Calendar },
-              { value: "timeline", label: "Timeline", icon: Clock3 },
-            ].map((item) => {
-              const Icon = item.icon;
-              return (
-                <Button
-                  key={item.value}
-                  variant={view === item.value ? "default" : "ghost"}
-                  size="sm"
-                  className="rounded-xl"
-                  onClick={() => setView(item.value as typeof view)}
-                >
-                  <Icon className="h-4 w-4" />
-                  {item.label}
-                </Button>
-              );
-            })}
-          </div>
-          <FilterPopover activeCount={typeFilter === "all" ? 0 : 1}>
-            <Button
-              type="button"
-              variant={typeFilter === "all" ? "default" : "ghost"}
-              size="sm"
-              className="rounded-xl"
-              onClick={() => setTypeFilter("all")}
-            >
-              Todos
-            </Button>
-            <Button
-              type="button"
-              variant={typeFilter === "income" ? "default" : "ghost"}
-              size="sm"
-              className="rounded-xl"
-              onClick={() => setTypeFilter("income")}
-            >
-              <ArrowDownCircle className="h-4 w-4" />
-              Entradas
-            </Button>
-            <Button
-              type="button"
-              variant={typeFilter === "expense" ? "default" : "ghost"}
-              size="sm"
-              className="rounded-xl"
-              onClick={() => setTypeFilter("expense")}
-            >
-              <ArrowUpCircle className="h-4 w-4" />
-              Saídas
-            </Button>
-          </FilterPopover>
-        </div>
-
         {viewMode === "client" && (
           <div className="glass rounded-2xl p-5 space-y-4 animate-fade-in">
             <div>
@@ -419,25 +509,10 @@ const Payments = () => {
                 Consulte o extrato mensal. Pagamento online indisponível.
               </p>
             </div>
-            <div className="grid gap-3 md:grid-cols-3">
-              {[
-                { id: "boleto", label: "Gerar boleto", icon: Barcode },
-                { id: "pix", label: "Pagar com Pix", icon: QrCode },
-                { id: "card", label: "Pagar com cartão", icon: CreditCard },
-              ].map((method) => {
-                const Icon = method.icon;
-                return (
-                  <Button
-                    key={method.id}
-                    variant="outline"
-                    className="h-20 rounded-xl flex-col"
-                    disabled
-                  >
-                    <Icon className="h-5 w-5" />
-                    {method.label}
-                  </Button>
-                );
-              })}
+            <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-border/70 bg-secondary/35 p-4">
+              <CreditCard className="h-5 w-5 text-gilver" aria-hidden="true" />
+              <p className="min-w-0 flex-1 text-sm text-muted-foreground">Boleto, Pix e cartão serão habilitados quando a cobrança online estiver conectada.</p>
+              <Button variant="ghost" className="rounded-full border-0" disabled>Em breve</Button>
             </div>
           </div>
         )}
@@ -446,7 +521,8 @@ const Payments = () => {
         {view === "timeline" && (
           <TimelineView
             title="Timeline financeira"
-            events={payments.map((payment, index) => ({
+            headerActions={paymentViewControls}
+            events={filteredPayments.map((payment, index) => ({
               day: payment.rawDate ? new Date(payment.rawDate).getDate() : 1,
               title: payment.description,
               subtitle: payment.category,
@@ -460,10 +536,12 @@ const Payments = () => {
         {view === "calendar" && (
           <CalendarEventView
             title="Calendário financeiro"
+            headerActions={paymentViewControls}
             dateRange={dateRange}
             onDateRangeChange={setDateRange}
-            events={payments.map((payment) => ({
+            events={filteredPayments.map((payment) => ({
               day: payment.rawDate ? new Date(payment.rawDate).getDate() : 1,
+              date: payment.rawDate ?? undefined,
               title: payment.description,
               subtitle: payment.category,
               time: "09:00",
@@ -474,120 +552,92 @@ const Payments = () => {
         )}
 
         {view === "list" && (
-          <div className="glass rounded-2xl p-6 animate-fade-in">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Pagamentos Recentes</h3>
-              <div className="flex gap-2">
-                <Select
-                  value={valueSort}
-                  onValueChange={(value: typeof valueSort) =>
-                    setValueSort(value)
-                  }
-                >
-                  <SelectTrigger className="h-9 w-[170px] rounded-lg">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Valor</SelectItem>
-                    <SelectItem value="desc">Maior valor</SelectItem>
-                    <SelectItem value="asc">Menor valor</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select
-                  value={dateSort}
-                  onValueChange={(value: typeof dateSort) => setDateSort(value)}
-                >
-                  <SelectTrigger className="h-9 w-[150px] rounded-lg">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="newest">Mais novo</SelectItem>
-                    <SelectItem value="oldest">Mais antigo</SelectItem>
-                  </SelectContent>
-                </Select>
+          <section className="page-section animate-fade-in space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="text-base font-medium">Pagamentos recentes</h2>
+                <p className="mt-1 text-sm text-muted-foreground">Extrato de recebimentos e despesas do workspace.</p>
+              </div>
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                <Badge variant="secondary">{filteredPayments.length} registros</Badge>
+                {paymentViewControls}
               </div>
             </div>
-            <div className="space-y-3">
-              {filteredPayments.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-8 text-center">
-                  Nenhum pagamento registrado ainda.
-                </p>
-              ) : (
-                filteredPayments.map((payment, index) => (
-                  <div
-                    key={payment.id}
-                    className="flex items-center gap-4 p-4 rounded-xl hover:bg-accent/50 transition-colors border border-transparent hover:border-border"
-                    style={{ animationDelay: `${index * 50}ms` }}
-                  >
-                    <div
-                      className={cn(
-                        "p-2 rounded-xl w-2 h-8 shrink-0",
-                        payment.type === "income"
-                          ? "bg-emerald-500"
-                          : "bg-red-500",
-                      )}
-                    />
-
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">
-                        {payment.description}
-                      </p>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Calendar className="h-3 w-3" />
-                        <span>{payment.date}</span>
-                        <span>•</span>
-                        <span>{payment.category}</span>
-                        <span>•</span>
-                        <span className="truncate">{payment.clientName}</span>
-                      </div>
-                    </div>
-                    <Badge
-                      variant={
-                        payment.status === "completed" ? "default" : "secondary"
-                      }
-                      className={cn(
-                        payment.status === "completed" &&
-                          "bg-emerald-100 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950 dark:text-emerald-400",
-                      )}
-                    >
-                      {payment.status === "completed"
-                        ? "Concluído"
-                        : "Pendente"}
-                    </Badge>
-                    <p
-                      className={cn(
-                        "font-semibold min-w-[100px] text-right",
-                        payment.type === "income"
-                          ? "text-emerald-600 dark:text-emerald-400"
-                          : "text-red-600 dark:text-red-400",
-                      )}
-                    >
-                      {payment.type === "income" ? "+" : "-"}R${" "}
-                      {payment.amount.toLocaleString("pt-BR")}
-                    </p>
-                    {viewMode !== "client" && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="rounded-xl"
-                        disabled={!!payment.reconciledAt}
-                        onClick={() => handleToggleStatus(payment.id)}
-                      >
-                        {payment.status === "completed" ? (
-                          <RotateCcw className="mr-2 h-4 w-4" />
-                        ) : (
-                          <CheckCircle2 className="mr-2 h-4 w-4" />
-                        )}
-                        {payment.reconciledAt ? "Conciliado" : payment.status === "completed" ? "Reabrir" : "Confirmar"}
-                      </Button>
-                    )}
-                  </div>
-                ))
+            <BentoDataTable
+              rows={filteredPayments}
+              getRowKey={(payment) => payment.id}
+              empty="Nenhum pagamento registrado ainda."
+              columns={[
+                {
+                  key: "reference",
+                  label: "Referência",
+                  render: (payment) => <div className="min-w-0"><p className="max-w-[220px] truncate font-medium">{payment.description}</p><p className="max-w-[220px] truncate text-xs text-muted-foreground">{payment.clientName}</p></div>,
+                },
+                {
+                  key: "date",
+                  label: "Data",
+                  sortValue: (payment) => payment.rawDate ? new Date(payment.rawDate) : null,
+                  render: (payment) => <span className="whitespace-nowrap text-sm text-muted-foreground">{payment.date}</span>,
+                },
+                {
+                  key: "type",
+                  label: "Tipo",
+                  render: (payment) => { const Icon = payment.type === "income" ? ArrowUp : ArrowDown; return <span className={cn("inline-flex items-center gap-2 text-sm", payment.type === "income" ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400")}><Icon className="h-4 w-4" aria-hidden="true" />{payment.type === "income" ? "Receita" : "Despesa"}</span>; },
+                },
+                {
+                  key: "category",
+                  label: "Categoria",
+                  render: (payment) => <span className="text-sm text-muted-foreground">{payment.category}</span>,
+                },
+                {
+                  key: "value",
+                  label: "Valor",
+                  sortValue: (payment) => payment.amount,
+                  className: "text-right font-medium tabular-nums",
+                  headerClassName: "text-right",
+                  render: (payment) => <span className={cn("whitespace-nowrap", payment.type === "income" ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400")}>{payment.type === "income" ? "+" : "-"} {payment.amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>,
+                },
+                {
+                  key: "status",
+                  label: "Status",
+                  render: (payment) => <Badge variant={payment.status === "completed" ? "default" : "secondary"}>{payment.status === "completed" ? "Concluído" : "Pendente"}</Badge>,
+                },
+              ]}
+              actions={(payment) => (
+                <RowActions
+                  primaryLabel={viewMode === "client" ? "Ver detalhes" : payment.reconciledAt ? "Já conciliado" : payment.status === "completed" ? "Reabrir pagamento" : "Confirmar pagamento"}
+                  primaryIcon={viewMode === "client" ? Eye : payment.status === "completed" ? RotateCcw : CheckCircle2}
+                  primaryDisabled={viewMode !== "client" && Boolean(payment.reconciledAt)}
+                  onPrimary={() => { if (viewMode === "client") setSelectedPayment(payment); else void handleToggleStatus(payment.id); }}
+                  menuItems={[
+                    { label: "Ver detalhes", icon: Eye, onSelect: () => setSelectedPayment(payment) },
+                    { label: "Abrir conciliação", icon: ExternalLink, onSelect: () => navigate("/reconciliation") },
+                  ]}
+                />
               )}
-            </div>
-          </div>
+            />
+          </section>
         )}
       </div>
+      <Dialog open={Boolean(selectedPayment)} onOpenChange={(open) => !open && setSelectedPayment(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{selectedPayment?.description}</DialogTitle>
+            <DialogDescription>Detalhes do lançamento financeiro.</DialogDescription>
+          </DialogHeader>
+          {selectedPayment && (
+            <dl className="grid grid-cols-2 gap-4 rounded-2xl border border-border/70 bg-secondary/35 p-4 text-sm">
+              <div><dt className="text-xs text-muted-foreground">Referência</dt><dd className="mt-1 font-medium break-words">{selectedPayment.description}</dd></div>
+              <div><dt className="text-xs text-muted-foreground">Valor</dt><dd className="mt-1 font-medium tabular-nums">{selectedPayment.amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</dd></div>
+              <div><dt className="text-xs text-muted-foreground">Data</dt><dd className="mt-1">{selectedPayment.date}</dd></div>
+              <div><dt className="text-xs text-muted-foreground">Tipo</dt><dd className="mt-1">{selectedPayment.type === "income" ? "Receita" : "Despesa"}</dd></div>
+              <div><dt className="text-xs text-muted-foreground">Categoria</dt><dd className="mt-1">{selectedPayment.category}</dd></div>
+              <div><dt className="text-xs text-muted-foreground">Cliente</dt><dd className="mt-1 break-words">{selectedPayment.clientName}</dd></div>
+            </dl>
+          )}
+          <DialogFooter><Button variant="ghost" className="border-0" onClick={() => setSelectedPayment(null)}>Fechar</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 };

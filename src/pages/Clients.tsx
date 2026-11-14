@@ -39,6 +39,13 @@ import { ClientData } from "@/types";
 import type { ClientPeriodStatus } from "@/types";
 import { cn } from "@/lib/utils";
 import { useWorkspaceMembers } from "@/hooks/useWorkspaceMembers";
+import { FilterPopover } from "@/components/FilterPopover";
+import { IconTooltipButton } from "@/components/IconTooltipButton";
+import { MultiSelectFilter } from "@/components/MultiSelectFilter";
+import { SortToggle } from "@/components/SortToggle";
+import { BentoDataTable } from "@/components/BentoDataTable";
+import { RowActions } from "@/components/RowActions";
+import { getBentoGridClass } from "@/components/dashboard/bentoGrid";
 
 const taxRegimeLabels: Record<string, string> = {
   simples_nacional: "Simples Nacional",
@@ -90,6 +97,8 @@ const Clients = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [feeRange, setFeeRange] = useState({ min: "", max: "" });
   const [contractSort, setContractSort] = useState("contract-desc");
+  const [statusFilters, setStatusFilters] = useState<string[]>([]);
+  const [serviceFilters, setServiceFilters] = useState<string[]>([]);
   const [sizeFilter, setSizeFilter] = useState("all");
   const [responsibleFilter, setResponsibleFilter] = useState("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -163,7 +172,9 @@ const Clients = () => {
     const matchesFee = (minFee === null || client.serviceFee >= minFee) && (maxFee === null || client.serviceFee <= maxFee);
     const matchesSize = sizeFilter === "all" || getClientSize(client) === sizeFilter;
     const matchesResponsible = responsibleFilter === "all" || client.responsibleUserName === responsibleFilter;
-    return matchesSearch && matchesFee && matchesSize && matchesResponsible;
+    const matchesStatus = statusFilters.length === 0 || statusFilters.includes(client.status);
+    const matchesServices = serviceFilters.length === 0 || serviceFilters.some((service) => client.serviceAreas.includes(service as ClientData["serviceAreas"][number]));
+    return matchesSearch && matchesFee && matchesSize && matchesResponsible && matchesStatus && matchesServices;
   }).sort((a, b) => {
     if (contractSort === "contract-asc") return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
@@ -213,7 +224,7 @@ const Clients = () => {
       <div className="space-y-6">
         <div className="page-header flex items-center justify-between gap-4 animate-fade-in">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Clientes</h1>
+            <h1 className="text-[28px] font-normal tracking-[-0.035em]">Clientes</h1>
             <p className="text-muted-foreground">Gerencie seus relacionamentos com clientes</p>
           </div>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -256,9 +267,9 @@ const Clients = () => {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
-                    <Label>Regime Tributário</Label>
+                    <Label htmlFor="client-tax-regime">Regime Tributário</Label>
                     <Select value={newClient.taxRegime} onValueChange={(v: ClientData["taxRegime"]) => setNewClient({ ...newClient, taxRegime: v })}>
-                      <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+                      <SelectTrigger id="client-tax-regime" className="rounded-xl"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="simples_nacional">Simples Nacional</SelectItem>
                         <SelectItem value="lucro_presumido">Lucro Presumido</SelectItem>
@@ -309,41 +320,115 @@ const Clients = () => {
           <div className="filter-toolbar mb-6 flex flex-wrap items-center gap-3">
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Buscar por nome, email ou CNPJ..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10 rounded-xl" />
+              <Input
+                name="client-search"
+                autoComplete="off"
+                aria-label="Buscar clientes"
+                placeholder="Buscar por nome, e-mail ou CNPJ…"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 rounded-xl"
+              />
             </div>
-            <div className="filter-control flex items-center gap-2 rounded-xl border border-input/80 bg-card/70 px-2 py-1">
-              <span className="text-xs text-muted-foreground">Honorários</span>
-              <Input inputMode="numeric" pattern="[0-9]*" value={feeRange.min} onChange={(e) => setFeeRange({ ...feeRange, min: e.target.value.replace(/\D/g, "") })} placeholder="Mín." className="h-8 w-20 rounded-lg" />
-              <Input inputMode="numeric" pattern="[0-9]*" value={feeRange.max} onChange={(e) => setFeeRange({ ...feeRange, max: e.target.value.replace(/\D/g, "") })} placeholder="Máx." className="h-8 w-20 rounded-lg" />
-            </div>
-            <Select value={sizeFilter} onValueChange={setSizeFilter}>
-              <SelectTrigger className="w-[170px] rounded-xl"><SelectValue placeholder="Porte" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos portes</SelectItem>
-                <SelectItem value="MEI">MEI</SelectItem>
-                <SelectItem value="ME">ME</SelectItem>
-                <SelectItem value="EPP">EPP</SelectItem>
-                <SelectItem value="Médio porte">Médio porte</SelectItem>
-                <SelectItem value="Grande porte">Grande porte</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={contractSort} onValueChange={setContractSort}>
-              <SelectTrigger className="w-[180px] rounded-xl"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="contract-desc">Contrato mais novo</SelectItem>
-                <SelectItem value="contract-asc">Contrato mais antigo</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={responsibleFilter} onValueChange={setResponsibleFilter}>
-              <SelectTrigger className="w-[190px] rounded-xl"><SelectValue placeholder="Responsável" /></SelectTrigger>
-              <SelectContent><SelectItem value="all">Todos responsáveis</SelectItem>{responsibles.map((name) => <SelectItem key={name} value={name}>{name}</SelectItem>)}</SelectContent>
-            </Select>
+            <FilterPopover
+              title="Filtrar clientes"
+              description="Refine por honorários, porte, responsável ou ordem da lista."
+              activeCount={[
+                Boolean(feeRange.min),
+                Boolean(feeRange.max),
+                sizeFilter !== "all",
+                responsibleFilter !== "all",
+                contractSort !== "contract-desc",
+                statusFilters.length > 0,
+                serviceFilters.length > 0,
+              ].filter(Boolean).length}
+              onClear={() => {
+                setFeeRange({ min: "", max: "" });
+                setSizeFilter("all");
+                setResponsibleFilter("all");
+                setContractSort("contract-desc");
+                setStatusFilters([]);
+                setServiceFilters([]);
+              }}
+            >
+              <div className="space-y-1.5">
+                <Label htmlFor="client-fee-min">Honorários</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <Input
+                    id="client-fee-min"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={feeRange.min}
+                    onChange={(e) => setFeeRange({ ...feeRange, min: e.target.value.replace(/\D/g, "") })}
+                    placeholder="Mínimo…"
+                    className="rounded-xl"
+                  />
+                  <Input
+                    id="client-fee-max"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={feeRange.max}
+                    onChange={(e) => setFeeRange({ ...feeRange, max: e.target.value.replace(/\D/g, "") })}
+                    placeholder="Máximo…"
+                    className="rounded-xl"
+                  />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="client-size-filter">Porte</Label>
+                <Select value={sizeFilter} onValueChange={setSizeFilter}>
+                  <SelectTrigger id="client-size-filter" className="w-full rounded-xl"><SelectValue placeholder="Todos portes" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos portes</SelectItem>
+                    <SelectItem value="MEI">MEI</SelectItem>
+                    <SelectItem value="ME">ME</SelectItem>
+                    <SelectItem value="EPP">EPP</SelectItem>
+                    <SelectItem value="Médio porte">Médio porte</SelectItem>
+                    <SelectItem value="Grande porte">Grande porte</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="client-sort">Ordenar por</Label>
+                <Select value={contractSort} onValueChange={setContractSort}>
+                  <SelectTrigger id="client-sort" className="w-full rounded-xl"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="contract-desc">Contrato mais novo</SelectItem>
+                    <SelectItem value="contract-asc">Contrato mais antigo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="client-responsible-filter">Responsável</Label>
+                <Select value={responsibleFilter} onValueChange={setResponsibleFilter}>
+                  <SelectTrigger id="client-responsible-filter" className="w-full rounded-xl"><SelectValue placeholder="Todos responsáveis" /></SelectTrigger>
+                  <SelectContent><SelectItem value="all">Todos responsáveis</SelectItem>{responsibles.map((name) => <SelectItem key={name} value={name}>{name}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <MultiSelectFilter
+                label="Status"
+                options={[{ value: "active", label: "Ativos" }, { value: "pending", label: "Pendentes" }, { value: "inactive", label: "Inativos" }]}
+                value={statusFilters}
+                onChange={setStatusFilters}
+              />
+              <MultiSelectFilter
+                label="Serviços"
+                options={serviceAreaOptions}
+                value={serviceFilters}
+                onChange={setServiceFilters}
+              />
+            </FilterPopover>
             <Badge variant="secondary" className="px-3 py-1.5">
               {filteredClients.length} clientes
             </Badge>
-            <div className="ml-auto flex rounded-xl border border-border bg-card p-1">
-              <Button variant={viewMode === "grid" ? "default" : "ghost"} size="sm" className="rounded-lg" onClick={() => setViewMode("grid")}><Grid2X2 className="h-4 w-4" />Grade</Button>
-              <Button variant={viewMode === "list" ? "default" : "ghost"} size="sm" className="rounded-lg" onClick={() => setViewMode("list")}><List className="h-4 w-4" />Lista</Button>
+            <SortToggle
+              label="data de cadastro"
+              direction={contractSort === "contract-asc" ? "asc" : "desc"}
+              onChange={(direction) => setContractSort(direction === "asc" ? "contract-asc" : "contract-desc")}
+            />
+            <div className="ml-auto flex rounded-full border border-border bg-card p-1">
+              <IconTooltipButton icon={Grid2X2} label="Grade" variant={viewMode === "grid" ? "default" : "ghost"} aria-pressed={viewMode === "grid"} onClick={() => setViewMode("grid")} />
+              <IconTooltipButton icon={List} label="Lista" variant={viewMode === "list" ? "default" : "ghost"} aria-pressed={viewMode === "list"} onClick={() => setViewMode("list")} />
             </div>
           </div>
 
@@ -353,7 +438,65 @@ const Clients = () => {
               <p className="text-sm">Carregando clientes...</p>
             </div>
           ) : (
-            <div className={cn("grid gap-3", viewMode === "grid" ? "sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "grid-cols-1")}>
+            viewMode === "list" ? (
+              <BentoDataTable
+                rows={filteredClients}
+                getRowKey={(client) => client.id}
+                empty={<span>Nenhum cliente encontrado.</span>}
+                columns={[
+                  {
+                    key: "client",
+                    label: "Cliente",
+                    render: (client) => <div className="min-w-0"><p className="max-w-[240px] truncate font-medium">{client.name}</p><p className="flex max-w-[240px] items-center gap-1 truncate text-xs text-muted-foreground"><Mail className="h-3 w-3 shrink-0" />{client.email || "Sem e-mail"}</p></div>,
+                  },
+                  {
+                    key: "responsible",
+                    label: "Responsável",
+                    render: (client) => <span className="block max-w-[160px] truncate text-sm text-muted-foreground">{client.responsibleUserName || "Sem responsável"}</span>,
+                  },
+                  {
+                    key: "tags",
+                    label: "Tags",
+                    render: (client) => <div className="flex max-w-[210px] flex-wrap gap-1"><Badge variant="outline" className="text-[10px]">{taxRegimeLabels[client.taxRegime]}</Badge><Badge variant="outline" className="text-[10px]">{client.serviceAreas.length} serviços</Badge><Badge variant="outline" className="text-[10px]">{getClientSize(client)}</Badge><Badge className={cn("text-[10px]", periodStatusStyles[currentPeriodByClient.get(client.id)?.status ?? "not_created"])}>{periodStatusLabels[currentPeriodByClient.get(client.id)?.status ?? "not_created"]}</Badge></div>,
+                  },
+                  {
+                    key: "status",
+                    label: "Status",
+                    render: (client) => <Badge variant={client.status === "active" ? "default" : client.status === "pending" ? "secondary" : "outline"}>{client.status === "active" ? "Ativo" : client.status === "pending" ? "Pendente" : "Inativo"}</Badge>,
+                  },
+                  {
+                    key: "fee",
+                    label: "Honorários",
+                    sortValue: (client) => client.serviceFee,
+                    className: "text-right font-medium tabular-nums",
+                    headerClassName: "text-right",
+                    render: (client) => <span className="whitespace-nowrap">R$ {client.serviceFee.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>,
+                  },
+                  {
+                    key: "progress",
+                    label: "Competência",
+                    sortValue: (client) => { const period = currentPeriodByClient.get(client.id); return period?.status === "closed" ? 100 : period?.progressPercent ?? 0; },
+                    render: (client) => { const period = currentPeriodByClient.get(client.id); const progress = period?.status === "closed" ? 100 : period?.progressPercent ?? 0; return <div className="w-[120px] space-y-1"><div className="flex justify-between text-[10px] text-muted-foreground"><span>{progress}%</span><span>{periodStatusLabels[period?.status ?? "not_created"]}</span></div><Progress value={progress} className="h-1.5" /></div>; },
+                  },
+                ]}
+                actions={(client) => (
+                  <RowActions
+                    primaryLabel={`Abrir detalhes de ${client.name}`}
+                    primaryIcon={Eye}
+                    onPrimary={() => setSelectedClient(client)}
+                    menuItems={[
+                      { label: "Editar cadastro", icon: Edit, onSelect: () => navigate(`/clients/${client.id}`) },
+                      { label: "Enviar e-mail", icon: Mail, onSelect: () => undefined },
+                      { label: "Remover cliente", icon: Trash2, destructive: true, separatorBefore: true, onSelect: () => void handleDeleteClient(client.id) },
+                    ]}
+                  />
+                )}
+              />
+            ) : (
+            <div className={cn(
+              "overflow-hidden rounded-2xl border border-border/70 bg-border/70",
+              viewMode === "grid" ? cn("grid gap-px", getBentoGridClass(filteredClients.length)) : "divide-y divide-border/70",
+            )}>
               {filteredClients.map((client, index) => (
               (() => {
                 const period = currentPeriodByClient.get(client.id);
@@ -362,7 +505,7 @@ const Clients = () => {
                 return (
               <div
                 key={client.id}
-                className={cn("rounded-2xl border border-border/70 bg-card/70 p-4 hover:border-foreground/20 hover:bg-accent/30 transition-[background-color,border-color,box-shadow] duration-200 flex gap-4", viewMode === "grid" ? "flex-col" : "items-center")}
+                className={cn("flex gap-4 bg-card p-4 transition-colors duration-200 hover:bg-accent/30", viewMode === "grid" ? "flex-col" : "items-center")}
                 style={{ animationDelay: `${index * 50}ms` }}
               >
                 <button
@@ -406,7 +549,7 @@ const Clients = () => {
                   <div><p className="font-semibold text-sm">R$ {client.serviceFee.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p><p className="text-[10px] text-muted-foreground">{client.city}/{client.state}</p></div>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button aria-label={`Ações de ${client.name}`} variant="ghost" size="icon" className="rounded-lg" onClick={(event) => event.stopPropagation()}>
+                    <Button aria-label={`Ações de ${client.name}`} title={`Ações de ${client.name}`} variant="ghost" size="icon" className="h-8 w-8 rounded-full border-0" onClick={(event) => event.stopPropagation()}>
                       <MoreHorizontal className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
@@ -448,7 +591,8 @@ const Clients = () => {
                   </Button>
                 </div>
               )}
-              </div>
+            </div>
+            )
           )}
         </div>
 

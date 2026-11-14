@@ -402,7 +402,7 @@ const OperationalTemplates = () => {
       <div className="space-y-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Templates operacionais</h1>
+            <h1 className="text-[28px] font-normal tracking-[-0.035em]">Templates operacionais</h1>
             <p className="text-muted-foreground">
               Configure checklists e obrigações usadas na geração das competências.
             </p>
@@ -422,7 +422,7 @@ const OperationalTemplates = () => {
         )}
 
         <Tabs defaultValue="checklists" className="space-y-4">
-          <TabsList className="grid w-full max-w-lg grid-cols-2 rounded-xl">
+          <TabsList className="segmented-tabs grid w-full max-w-lg grid-cols-2">
             <TabsTrigger value="checklists">Checklists</TabsTrigger>
             <TabsTrigger value="obligations">Obrigações</TabsTrigger>
           </TabsList>

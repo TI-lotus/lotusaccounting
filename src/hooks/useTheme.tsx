@@ -41,6 +41,11 @@ export const useTheme = () => {
     const root = window.document.documentElement;
     root.classList.remove("light", "dark");
     root.classList.add(theme);
+    root.style.colorScheme = theme;
+    const themeColor = window.document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+    if (themeColor) {
+      themeColor.content = theme === "dark" ? "#141414" : "#ffffff";
+    }
     localStorage.setItem("lotus-theme", theme);
   }, [theme]);
 

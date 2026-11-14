@@ -5,23 +5,33 @@ import {
   Download,
   Calendar,
   TrendingUp,
-  PieChart,
   DollarSign,
   FileText,
   Users,
   LayoutDashboard,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { RevenueChart } from "@/components/dashboard/RevenueChart";
 import { QuickStats } from "@/components/dashboard/QuickStats";
+import { BentoStatStrip } from "@/components/dashboard/BentoStatStrip";
 import { CalendarEventView } from "@/components/CalendarEventView";
 import { useData } from "@/contexts/DataContext";
 import { useViewMode } from "@/contexts/ViewModeContext";
 import { withinDateRange } from "@/lib/financialMetrics";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { FilterPopover } from "@/components/FilterPopover";
+import { IconTooltipButton } from "@/components/IconTooltipButton";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const formatCurrency = (value: number) =>
   value.toLocaleString("pt-BR", {
@@ -49,6 +59,32 @@ const currentMonthRange = () => {
   };
 };
 
+type ReportPeriod = "month" | "quarter" | "year" | "custom";
+type ReportType = "overview" | "financial" | "tax" | "analytics";
+
+const reportTypeOptions: { value: ReportType; label: string }[] = [
+  { value: "overview", label: "Visão financeira" },
+  { value: "financial", label: "DRE e fluxo de caixa" },
+  { value: "tax", label: "Indicadores fiscais" },
+  { value: "analytics", label: "Indicadores operacionais" },
+];
+
+const reportPeriodRange = (period: Exclude<ReportPeriod, "custom">) => {
+  const now = new Date();
+  const year = now.getFullYear();
+  if (period === "year") {
+    return { start: `${year}-01-01`, end: `${year}-12-31` };
+  }
+  if (period === "quarter") {
+    const quarterStartMonth = Math.floor(now.getMonth() / 3) * 3;
+    return {
+      start: `${year}-${String(quarterStartMonth + 1).padStart(2, "0")}-01`,
+      end: new Date(year, quarterStartMonth + 3, 0).toISOString().slice(0, 10),
+    };
+  }
+  return currentMonthRange();
+};
+
 const Reports = () => {
   const { viewMode } = useViewMode();
   const {
@@ -63,11 +99,28 @@ const Reports = () => {
   } = useData();
   const [view, setView] = useState<"dashboard" | "calendar">("dashboard");
   const [dateRange, setDateRange] = useState(currentMonthRange);
-  const documents = useMemo(() => allDocuments.filter((doc) => withinDateRange(doc.createdAt, dateRange)), [allDocuments, dateRange]);
-  const invoices = useMemo(() => allInvoices.filter((invoice) => withinDateRange(invoice.issued_at ?? invoice.created_at, dateRange)), [allInvoices, dateRange]);
-  const payments = useMemo(() => allPayments.filter((payment) => withinDateRange(payment.paid_at ?? payment.created_at, dateRange)), [allPayments, dateRange]);
-  const tasks = useMemo(() => allTasks.filter((task) => withinDateRange(task.completedAt ?? task.createdAt, dateRange)), [allTasks, dateRange]);
-  const fiscalObligations = useMemo(() => allFiscalObligations.filter((obligation) => withinDateRange(obligation.due_date, dateRange)), [allFiscalObligations, dateRange]);
+  const [periodPreset, setPeriodPreset] = useState<ReportPeriod>("month");
+  const [reportType, setReportType] = useState<ReportType>("overview");
+  const [clientFilter, setClientFilter] = useState("all");
+  const handlePeriodChange = (period: ReportPeriod) => {
+    setPeriodPreset(period);
+    if (period !== "custom") setDateRange(reportPeriodRange(period));
+  };
+  const documents = useMemo(() => allDocuments.filter((doc) =>
+    (clientFilter === "all" || doc.clientId === clientFilter) && withinDateRange(doc.createdAt, dateRange),
+  ), [allDocuments, clientFilter, dateRange]);
+  const invoices = useMemo(() => allInvoices.filter((invoice) =>
+    (clientFilter === "all" || invoice.company_id === clientFilter) && withinDateRange(invoice.issued_at ?? invoice.created_at, dateRange),
+  ), [allInvoices, clientFilter, dateRange]);
+  const payments = useMemo(() => allPayments.filter((payment) =>
+    (clientFilter === "all" || payment.company_id === clientFilter) && withinDateRange(payment.paid_at ?? payment.created_at, dateRange),
+  ), [allPayments, clientFilter, dateRange]);
+  const tasks = useMemo(() => allTasks.filter((task) =>
+    (clientFilter === "all" || task.clientId === clientFilter) && withinDateRange(task.completedAt ?? task.createdAt, dateRange),
+  ), [allTasks, clientFilter, dateRange]);
+  const fiscalObligations = useMemo(() => allFiscalObligations.filter((obligation) =>
+    (clientFilter === "all" || obligation.company_id === clientFilter) && withinDateRange(obligation.due_date, dateRange),
+  ), [allFiscalObligations, clientFilter, dateRange]);
 
   const paidRevenue = useMemo(
     () =>
@@ -100,7 +153,9 @@ const Reports = () => {
   const delinquencyRate = invoices.length
     ? Math.round((overdueInvoices.length / invoices.length) * 1000) / 10
     : 0;
-  const activeClients = clients.filter((client) => client.status === "active");
+  const activeClients = clients.filter((client) =>
+    client.status === "active" && (clientFilter === "all" || client.id === clientFilter),
+  );
   const completedTasks = tasks.filter((task) => task.status === "completed");
   const overdueTasks = tasks.filter((task) => task.status === "overdue");
   const overdueObligations = fiscalObligations.filter(
@@ -158,53 +213,58 @@ const Reports = () => {
       withinDateRange(date, dateRange);
 
     return [
-      ...allInvoices
+      ...invoices
         .filter((invoice) => isInRange(invoice.due_date))
         .map((invoice) => ({
           day: eventDay(invoice.due_date as string),
+          date: invoice.due_date as string,
           title: `Fatura ${invoice.number ?? invoice.id.slice(0, 8)}`,
           subtitle: clients.find((client) => client.id === invoice.company_id)?.name ?? "Sem cliente",
           amount: formatCurrency(Number(invoice.amount ?? 0)),
           status: invoice.status === "paid" ? "Recebida" : invoice.status === "overdue" ? "Vencida" : "A receber",
         })),
-      ...allPayments
+      ...payments
         .filter((payment) => isInRange(payment.due_date ?? payment.paid_at ?? payment.created_at))
         .map((payment) => {
           const date = (payment.due_date ?? payment.paid_at ?? payment.created_at) as string;
           return {
             day: eventDay(date),
+              date,
             title: payment.description ?? "Pagamento",
             subtitle: clients.find((client) => client.id === payment.company_id)?.name ?? "Sem cliente",
             amount: formatCurrency(Number(payment.amount ?? 0)),
             status: payment.status === "completed" ? "Concluido" : payment.status ?? "Pendente",
           };
         }),
-      ...allTasks
+      ...tasks
         .filter((task) => isInRange(task.dueDate))
         .map((task) => ({
           day: eventDay(task.dueDate),
+          date: task.dueDate,
           title: task.title,
           subtitle: task.clientName ?? "Sem cliente",
           status: task.status === "completed" ? "Concluida" : task.status === "overdue" ? "Atrasada" : "Tarefa",
         })),
-      ...allDocuments
+      ...documents
         .filter((document) => isInRange(document.createdAt))
         .map((document) => ({
           day: eventDay(document.createdAt),
+          date: document.createdAt,
           title: document.name,
           subtitle: document.clientName ?? "Sem cliente",
           status: document.status === "processed" ? "Processado" : "Documento",
         })),
-      ...allFiscalObligations
+      ...fiscalObligations
         .filter((obligation) => isInRange(obligation.due_date))
         .map((obligation) => ({
           day: eventDay(obligation.due_date),
+          date: obligation.due_date,
           title: obligation.name,
           subtitle: clients.find((client) => client.id === obligation.company_id)?.name ?? "Sem cliente",
           status: obligation.status === "completed" ? "Entregue" : "Obrigacao fiscal",
         })),
     ];
-  }, [allDocuments, allFiscalObligations, allInvoices, allPayments, allTasks, clients, dateRange]);
+  }, [clients, dateRange, documents, fiscalObligations, invoices, payments, tasks]);
   const kpiData = [
     {
       label: "Receita Total",
@@ -216,7 +276,7 @@ const Reports = () => {
     {
       label: "Clientes Ativos",
       value: String(activeClients.length),
-      change: `${clients.length} cadastrados`,
+      change: `${activeClients.length} ativos no escopo`,
       icon: Users,
       positive: true,
     },
@@ -292,12 +352,110 @@ const Reports = () => {
     URL.revokeObjectURL(url);
   };
 
+  const reportControls = (
+    <div className="flex flex-wrap items-center justify-end gap-2">
+      <div className="space-y-1.5">
+        <Label htmlFor="report-type" className="sr-only">Tipo de relatório</Label>
+        <Select value={reportType} onValueChange={(value: ReportType) => setReportType(value)}>
+          <SelectTrigger id="report-type" className="h-10 w-[220px] rounded-xl">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {reportTypeOptions.map((option) => (
+              <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <FilterPopover
+        title="Filtros do relatório"
+        description="Escolha período e cliente sem abrir uma barra extensa de filtros."
+        activeCount={[periodPreset !== "month", clientFilter !== "all"].filter(Boolean).length}
+        onClear={() => {
+          handlePeriodChange("month");
+          setClientFilter("all");
+        }}
+      >
+        <div className="space-y-1.5">
+          <p className="text-xs font-medium text-muted-foreground">Período</p>
+          <Select value={periodPreset} onValueChange={(value) => handlePeriodChange(value as ReportPeriod)}>
+            <SelectTrigger className="w-full rounded-xl">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="month">Mês atual</SelectItem>
+              <SelectItem value="quarter">Trimestre atual</SelectItem>
+              <SelectItem value="year">Ano atual</SelectItem>
+              <SelectItem value="custom">Personalizado</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        {periodPreset === "custom" && (
+          <div className="grid grid-cols-2 gap-2">
+            <label className="space-y-1 text-xs font-medium text-muted-foreground" htmlFor="report-start">
+              Início
+              <Input
+                id="report-start"
+                type="date"
+                value={dateRange.start}
+                max={dateRange.end}
+                onChange={(event) => event.target.value && setDateRange({ ...dateRange, start: event.target.value })}
+              />
+            </label>
+            <label className="space-y-1 text-xs font-medium text-muted-foreground" htmlFor="report-end">
+              Fim
+              <Input
+                id="report-end"
+                type="date"
+                value={dateRange.end}
+                min={dateRange.start}
+                onChange={(event) => event.target.value && setDateRange({ ...dateRange, end: event.target.value })}
+              />
+            </label>
+          </div>
+        )}
+        <div className="space-y-1.5">
+          <Label htmlFor="report-client">Cliente</Label>
+          <Select value={clientFilter} onValueChange={setClientFilter}>
+            <SelectTrigger id="report-client" className="w-full rounded-xl">
+              <SelectValue placeholder="Todos os clientes" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os clientes</SelectItem>
+              {clients.filter((client) => client.status === "active").map((client) => (
+                <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </FilterPopover>
+      <div className="flex rounded-full border border-border bg-card p-1">
+        <IconTooltipButton
+          icon={LayoutDashboard}
+          label="Dashboard"
+          variant={view === "dashboard" ? "default" : "ghost"}
+          className="rounded-full"
+          aria-pressed={view === "dashboard"}
+          onClick={() => setView("dashboard")}
+        />
+        <IconTooltipButton
+          icon={Calendar}
+          label="Calendário"
+          variant={view === "calendar" ? "default" : "ghost"}
+          className="rounded-full"
+          aria-pressed={view === "calendar"}
+          onClick={() => setView("calendar")}
+        />
+      </div>
+    </div>
+  );
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
         <div className="flex flex-wrap gap-4 items-center justify-between animate-fade-in">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">
+            <h1 className="text-[28px] font-normal tracking-[-0.035em]">
               Relatórios
             </h1>
             <p className="text-muted-foreground">
@@ -308,96 +466,47 @@ const Reports = () => {
             className="rounded-xl gap-2"
             onClick={() => handleExportCsv()}
           >
-            <BarChart3 className="h-4 w-4" />
-            Gerar Relatório
+            <Download className="h-4 w-4" />
+            Exportar CSV
           </Button>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 animate-fade-in">
-          <div className="flex rounded-2xl border border-border bg-card p-1">
-            <Button
-              variant={view === "dashboard" ? "default" : "ghost"}
-              size="sm"
-              className="rounded-xl"
-              onClick={() => setView("dashboard")}
-            >
-              <LayoutDashboard className="h-4 w-4" /> Dashboard
-            </Button>
-            <Button
-              variant={view === "calendar" ? "default" : "ghost"}
-              size="sm"
-              className="rounded-xl"
-              onClick={() => setView("calendar")}
-            >
-              <Calendar className="h-4 w-4" /> Calendário
-            </Button>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap gap-3">
-          <label className="text-sm space-y-1">Início<Input type="date" value={dateRange.start} max={dateRange.end} onChange={(event) => event.target.value && setDateRange({ ...dateRange, start: event.target.value })} /></label>
-          <label className="text-sm space-y-1">Fim<Input type="date" value={dateRange.end} min={dateRange.start} onChange={(event) => event.target.value && setDateRange({ ...dateRange, end: event.target.value })} /></label>
-        </div>
         {view === "calendar" && (
           <CalendarEventView
             title="Calendário operacional"
             dateRange={dateRange}
             onDateRangeChange={setDateRange}
             events={calendarEvents}
+            headerActions={reportControls}
           />
         )}
 
         {view === "dashboard" && (
-          <>
-            {/* KPI Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4 animate-fade-in">
-              {kpiData.map((kpi) => {
-                const Icon = kpi.icon;
-                return (
-                  <Card key={kpi.label}>
-                    <CardContent className="pt-6">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm text-muted-foreground">
-                          {kpi.label}
-                        </span>
-                        <Icon className="h-4 w-4 text-muted-foreground" />
-                      </div>
-                      <p className="text-2xl font-semibold">{kpi.value}</p>
-                      <p
-                        className={`text-xs ${kpi.positive ? "text-emerald-600" : "text-red-600"}`}
-                      >
-                        {kpi.change}
-                      </p>
-                    </CardContent>
-                  </Card>
-                );
-              })}
+          <section className="page-section space-y-4 animate-fade-in">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="text-base font-medium">Visão do relatório</h2>
+                <p className="mt-1 text-sm text-muted-foreground">Escolha o tipo, período e filtros no mesmo espaço dos dados.</p>
+              </div>
+              {reportControls}
             </div>
+            <BentoStatStrip
+              className="animate-fade-in"
+              items={kpiData.map((kpi) => ({
+                label: kpi.label,
+                value: kpi.value,
+                hint: kpi.change,
+                icon: kpi.icon,
+                compact: true,
+              }))}
+            />
 
-            <Tabs defaultValue="overview" className="animate-fade-in">
-              <TabsList>
-                <TabsTrigger value="overview" className="gap-2">
-                  <BarChart3 className="h-4 w-4" />
-                  Visão Geral
-                </TabsTrigger>
-                <TabsTrigger value="financial" className="gap-2">
-                  <DollarSign className="h-4 w-4" />
-                  Financeiro
-                </TabsTrigger>
-                <TabsTrigger value="tax" className="gap-2">
-                  <FileText className="h-4 w-4" />
-                  Fiscal
-                </TabsTrigger>
-                <TabsTrigger value="analytics" className="gap-2">
-                  <PieChart className="h-4 w-4" />
-                  Analítico
-                </TabsTrigger>
-              </TabsList>
+            <Tabs value={reportType} onValueChange={(value) => setReportType(value as ReportType)} className="animate-fade-in">
 
               <TabsContent value="overview" className="space-y-6 mt-6">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  <RevenueChart className="lg:col-span-2" dateRange={dateRange} />
-                  <QuickStats dateRange={dateRange} />
+                  <RevenueChart className="lg:col-span-2" dateRange={dateRange} payments={payments} />
+                  <QuickStats dateRange={dateRange} payments={payments} />
                 </div>
               </TabsContent>
 
@@ -710,6 +819,8 @@ const Reports = () => {
                       variant="ghost"
                       size="icon"
                       className="rounded-lg shrink-0"
+                      aria-label={`Exportar ${report.name}`}
+                      title={`Exportar ${report.name}`}
                       onClick={() =>
                         handleExportCsv(
                           report.name.toLowerCase().replace(/\s+/g, "-"),
@@ -722,7 +833,7 @@ const Reports = () => {
                 ))}
               </div>
             </div>
-          </>
+          </section>
         )}
       </div>
     </DashboardLayout>

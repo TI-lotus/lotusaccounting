@@ -1,12 +1,5 @@
 import { DashboardLayout } from "@/layouts/DashboardLayout";
-import {
-  Settings as SettingsIcon,
-  User,
-  Bell,
-  Shield,
-  Building,
-  Camera,
-} from "lucide-react";
+import { Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -43,6 +36,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 type ThemePreference = "light" | "dark" | "system";
+export type SettingsSection = "all" | "profile" | "organization" | "preferences" | "security";
 type MfaFactor = {
   id: string;
   friendly_name?: string;
@@ -53,8 +47,10 @@ const isThemePreference = (value: string | null): value is ThemePreference =>
 
 export const SettingsContent = ({
   showHeader = true,
+  section = "all",
 }: {
   showHeader?: boolean;
+  section?: SettingsSection;
 }) => {
   const profile = useUserProfile();
   const { workspaceSettings, updateWorkspaceSettings } = useData();
@@ -104,6 +100,7 @@ export const SettingsContent = ({
   const [mfaCode, setMfaCode] = useState("");
   const [mfaLoading, setMfaLoading] = useState(false);
   const isAdmin = authProfile?.account_type === "admin";
+  const showSection = (target: Exclude<SettingsSection, "all">) => section === "all" || section === target;
 
   const loadMfaFactors = useCallback(async () => {
     const { data, error } = await supabase.auth.mfa.listFactors();
@@ -231,7 +228,7 @@ export const SettingsContent = ({
       ...defaultAutomationPreferences,
       ...automations,
     });
-  }, [workspaceSettings]);
+  }, [showHeader, workspaceSettings]);
 
   const handleSaveSettings = async () => {
     if (!isAdmin) {
@@ -292,7 +289,7 @@ export const SettingsContent = ({
     <div className="space-y-6 max-w-3xl">
       {showHeader && (
         <div className="animate-fade-in">
-          <h1 className="text-2xl font-semibold tracking-tight">
+          <h1 className="text-[28px] font-normal tracking-[-0.035em]">
             Configurações
           </h1>
           <p className="text-muted-foreground">
@@ -302,10 +299,10 @@ export const SettingsContent = ({
       )}
 
       {/* Profile */}
-      <div className="glass rounded-2xl p-6 animate-fade-in">
-        <div className="flex items-center gap-2 mb-4">
-          <User className="h-5 w-5 text-primary" />
-          <h3 className="font-semibold">Perfil</h3>
+      {showSection("profile") && <div className="page-section animate-fade-in">
+        <div className="mb-5">
+          <h2 className="text-base font-medium">Perfil</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Dados pessoais e identificação de acesso.</p>
         </div>
         <div className="flex items-start gap-6">
           <div className="relative">
@@ -383,13 +380,13 @@ export const SettingsContent = ({
             </div>
           </div>
         </div>
-      </div>
+      </div>}
 
       {/* Company */}
-      <div className="glass rounded-2xl p-6 animate-fade-in">
-        <div className="flex items-center gap-2 mb-4">
-          <Building className="h-5 w-5 text-primary" />
-          <h3 className="font-semibold">Empresa</h3>
+      {showSection("organization") && <div className="page-section animate-fade-in">
+        <div className="mb-5">
+          <h2 className="text-base font-medium">Empresa</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Identidade e período fiscal do escritório.</p>
         </div>
         <div className="space-y-4">
           <div className="space-y-2">
@@ -419,13 +416,13 @@ export const SettingsContent = ({
             </div>
           </div>
         </div>
-      </div>
+      </div>}
 
       {/* Preferences */}
-      <div className="glass rounded-2xl p-6 animate-fade-in">
-        <div className="flex items-center gap-2 mb-4">
-          <SettingsIcon className="h-5 w-5 text-primary" />
-          <h3 className="font-semibold">Preferências</h3>
+      {showSection("preferences") && <div className="page-section animate-fade-in">
+        <div className="mb-5">
+          <h2 className="text-base font-medium">Preferências</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Ajustes de visualização e moeda.</p>
         </div>
         <div className="space-y-4">
           <div className="flex items-center justify-between">
@@ -463,13 +460,13 @@ export const SettingsContent = ({
             <span className="text-sm text-muted-foreground">BRL (R$)</span>
           </div>
         </div>
-      </div>
+      </div>}
 
       {/* Notifications */}
-      <div className="glass rounded-2xl p-6 animate-fade-in">
-        <div className="flex items-center gap-2 mb-4">
-          <Bell className="h-5 w-5 text-primary" />
-          <h3 className="font-semibold">Notificações</h3>
+      {showSection("preferences") && <div className="page-section animate-fade-in">
+        <div className="mb-5">
+          <h2 className="text-base font-medium">Notificações</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Escolha quais avisos chegam a você.</p>
         </div>
         <div className="space-y-4">
           <div className="flex items-center justify-between">
@@ -555,13 +552,13 @@ export const SettingsContent = ({
             )}
           </div>
         </div>
-      </div>
+      </div>}
 
       {/* Automations */}
-      <div className="glass rounded-2xl p-6 animate-fade-in">
-        <div className="flex items-center gap-2 mb-4">
-          <SettingsIcon className="h-5 w-5 text-primary" />
-          <h3 className="font-semibold">Automações</h3>
+      {showSection("preferences") && <div className="page-section animate-fade-in">
+        <div className="mb-5">
+          <h2 className="text-base font-medium">Automações</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Regras que ajudam o escritório a manter o ciclo em dia.</p>
         </div>
         <div className="space-y-4">
           {(
@@ -600,13 +597,13 @@ export const SettingsContent = ({
             </div>
           ))}
         </div>
-      </div>
+      </div>}
 
       {/* Security */}
-      <div className="glass rounded-2xl p-6 animate-fade-in">
-        <div className="flex items-center gap-2 mb-4">
-          <Shield className="h-5 w-5 text-primary" />
-          <h3 className="font-semibold">Segurança</h3>
+      {showSection("security") && <div className="page-section animate-fade-in">
+        <div className="mb-5">
+          <h2 className="text-base font-medium">Segurança</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Proteja sua conta e seus dados de trabalho.</p>
         </div>
         <div className="space-y-4">
           <div className="flex items-center justify-between">
@@ -633,13 +630,13 @@ export const SettingsContent = ({
             <Button variant="outline" size="sm" className="rounded-lg" onClick={handlePasswordUpdate}>Atualizar senha</Button>
           </div>
         </div>
-      </div>
+      </div>}
 
-      <div className="flex justify-end">
+      {section !== "security" && <div className="flex justify-end">
         <Button className="rounded-xl px-8" onClick={handleSaveSettings}>
           Salvar Alterações
         </Button>
-      </div>
+      </div>}
 
       <Dialog open={mfaDialogOpen} onOpenChange={(open) => void openMfaDialog(open)}>
         <DialogContent className="sm:max-w-md">

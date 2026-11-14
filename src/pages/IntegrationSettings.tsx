@@ -32,7 +32,6 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -48,6 +47,8 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useData } from "@/contexts/DataContext";
 import { getIntegrationCatalogItem } from "@/lib/integrationCatalog";
+import { BentoStatStrip } from "@/components/dashboard/BentoStatStrip";
+import { IconTooltipButton } from "@/components/IconTooltipButton";
 import type { Json } from "@/integrations/supabase/types";
 import { getConnectionHealthLabel, readCredentialMetadata } from "@/services/integrations/integrationConnections";
 import { revokeIntegrationCredentials, storeIntegrationCredential } from "@/services/integrations/integrationCredentials";
@@ -96,7 +97,7 @@ const IntegrationSettings = () => {
       limit: integration?.usageLimit ?? 0,
       period: "Ciclo atual",
     };
-  }, [connection?.usage, integration?.usageLimit, isConnected]);
+  }, [connection?.usage, integration?.usageLimit]);
 
   useEffect(() => {
     const config = connection?.config;
@@ -347,16 +348,9 @@ const IntegrationSettings = () => {
       <div className="space-y-6">
         {/* Header */}
         <div className="page-header flex items-center gap-4 animate-fade-in">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate("/integrations")}
-            className="rounded-xl"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
+          <IconTooltipButton icon={ArrowLeft} label="Voltar para integrações" onClick={() => navigate("/integrations")} />
           <div className="flex-1">
-            <h1 className="text-2xl font-semibold tracking-tight">
+            <h1 className="text-[28px] font-normal tracking-[-0.035em]">
               {integration.name}
             </h1>
             <p className="text-muted-foreground">{integration.description}</p>
@@ -552,10 +546,7 @@ const IntegrationSettings = () => {
           <TabsContent value="config" className="space-y-6 mt-6">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Key className="h-5 w-5" />
-                  Chaves e Tokens
-                </CardTitle>
+                <CardTitle>Chaves e Tokens</CardTitle>
                 <CardDescription>
                   Configure as credenciais de acesso para {integration.name}
                 </CardDescription>
@@ -587,6 +578,8 @@ const IntegrationSettings = () => {
                             variant="ghost"
                             size="icon"
                             className="absolute right-0 top-0 h-full rounded-r-xl"
+                            aria-label={showSecret[field.key] ? `Ocultar ${field.label}` : `Mostrar ${field.label}`}
+                            title={showSecret[field.key] ? `Ocultar ${field.label}` : `Mostrar ${field.label}`}
                             onClick={() =>
                               setShowSecret({
                                 ...showSecret,
@@ -606,6 +599,8 @@ const IntegrationSettings = () => {
                         variant="outline"
                         size="icon"
                         className="rounded-xl"
+                        aria-label={`Copiar ${field.label}`}
+                        title={`Copiar ${field.label}`}
                         onClick={() =>
                           copyToClipboard(fieldValues[field.key] || "")
                         }
@@ -737,6 +732,8 @@ const IntegrationSettings = () => {
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 rounded-lg"
+                          aria-label="Copiar referência"
+                          title="Copiar referência"
                           onClick={() => copyToClipboard(cred.keyHint)}
                         >
                           <Copy className="h-3 w-3" />
@@ -779,55 +776,32 @@ const IntegrationSettings = () => {
 
           {/* Usage Tab */}
           <TabsContent value="usage" className="space-y-6 mt-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-muted-foreground">
-                      Chamadas API
-                    </span>
-                    <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                  <p className="text-2xl font-semibold">
-                    {usage.calls.toLocaleString("pt-BR")}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    de {usage.limit.toLocaleString("pt-BR")}
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-muted-foreground">
-                      Período
-                    </span>
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                  <p className="text-2xl font-semibold">{usage.period}</p>
-                  <p className="text-sm text-muted-foreground">Ciclo atual</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-muted-foreground">
-                      Utilização
-                    </span>
-                    <span className="text-sm font-medium">
-                      {usagePercent.toFixed(1)}%
-                    </span>
-                  </div>
-                  <Progress value={usagePercent} className="h-2" />
-                  <p className="text-sm text-muted-foreground mt-2">
-                    {Math.max(usage.limit - usage.calls, 0).toLocaleString(
-                      "pt-BR",
-                    )}{" "}
-                    chamadas restantes
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
+            <BentoStatStrip
+              className="md:grid-cols-3 xl:grid-cols-3"
+              items={[
+                {
+                  label: "Chamadas API",
+                  value: usage.calls.toLocaleString("pt-BR"),
+                  hint: `de ${usage.limit.toLocaleString("pt-BR")}`,
+                  icon: BarChart3,
+                  compact: true,
+                },
+                {
+                  label: "Período",
+                  value: usage.period,
+                  hint: "Ciclo atual",
+                  icon: Clock,
+                  compact: true,
+                },
+                {
+                  label: "Utilização",
+                  value: `${usagePercent.toFixed(1)}%`,
+                  hint: `${Math.max(usage.limit - usage.calls, 0).toLocaleString("pt-BR")} chamadas restantes`,
+                  icon: BarChart3,
+                  compact: true,
+                },
+              ]}
+            />
 
             <Card>
               <CardHeader>

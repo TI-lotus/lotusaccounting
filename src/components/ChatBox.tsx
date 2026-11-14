@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  MessageCircle,
   X,
   Send,
   Sparkles,
@@ -119,32 +118,9 @@ export const ChatBox = ({ state, onStateChange }: ChatBoxProps) => {
     setPendingFiles((prev) => [...prev, ...Array.from(files)]);
   };
 
-  // Closed state: floating button to reopen
-  if (state === "closed") {
-    return (
-      <Button
-        size="icon"
-        className="fixed bottom-5 right-5 z-50 h-14 w-14 rounded-full border border-white/20 bg-black/70 text-white backdrop-blur-[22px] backdrop-saturate-150 hover:bg-black/60 hover:text-white"
-        onClick={() => onStateChange("open")}
-        aria-label="Abrir chat com a Lia"
-      >
-        <MessageCircle className="h-5 w-5" />
-      </Button>
-    );
-  }
-
-  // Minimized state: thin vertical rail on the right
-  if (state === "minimized") {
-    return (
-      <button
-        onClick={() => onStateChange("open")}
-        className="fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full border border-white/20 bg-black/70 text-white backdrop-blur-[22px] backdrop-saturate-150 transition-colors hover:bg-black/60"
-        aria-label="Expandir chat com a Lia"
-      >
-        <MessageCircle className="h-5 w-5" />
-      </button>
-    );
-  }
+  // The Lia assistant is available on its dedicated route. The floating trigger
+  // stays hidden so it does not compete with the workspace messaging flow.
+  if (state !== "open") return null;
 
   // Open state: full side panel
   return (

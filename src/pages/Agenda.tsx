@@ -2,17 +2,15 @@ import { useMemo, useState } from "react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import {
   Calendar as CalendarIcon,
+  CalendarClock,
+  DollarSign,
   FileText,
-  Receipt,
   CheckSquare,
-  ScrollText,
-  Filter,
   ExternalLink,
   Trash2,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Dialog,
@@ -24,12 +22,14 @@ import {
 } from "@/components/ui/dialog";
 import { useData } from "@/contexts/DataContext";
 import { cn } from "@/lib/utils";
-import { format, isSameDay, startOfDay } from "date-fns";
+import { format, isSameDay, startOfDay, startOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspacePermission } from "@/hooks/useWorkspacePermission";
 import { FilterPopover } from "@/components/FilterPopover";
+import { largeCalendarClassNames } from "@/components/calendarStyles";
+import { CalendarMonthSelector } from "@/components/CalendarMonthSelector";
 
 type AgendaKind = "task" | "payment" | "document" | "obligation";
 
@@ -55,7 +55,7 @@ const kindConfig: Record<
   },
   payment: {
     label: "Pagamento",
-    icon: Receipt,
+    icon: DollarSign,
     color: "text-emerald-600 dark:text-emerald-400",
     badge:
       "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
@@ -69,7 +69,7 @@ const kindConfig: Record<
   },
   obligation: {
     label: "Obrigação",
-    icon: ScrollText,
+    icon: CalendarClock,
     color: "text-amber-600 dark:text-amber-400",
     badge: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300",
   },
@@ -98,6 +98,7 @@ const Agenda = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(
     startOfDay(new Date()),
   );
+  const [visibleMonth, setVisibleMonth] = useState<Date>(startOfMonth(new Date()));
   const [activeFilter, setActiveFilter] = useState<AgendaKind | "all">("all");
   const [selectedItem, setSelectedItem] = useState<AgendaItem | null>(null);
 
@@ -205,11 +206,6 @@ const Agenda = () => {
     .filter((i) => isSameDay(i.date, selectedDate))
     .sort((a, b) => a.date.getTime() - b.date.getTime());
 
-  const upcoming = filtered
-    .filter((i) => i.date >= startOfDay(new Date()))
-    .sort((a, b) => a.date.getTime() - b.date.getTime())
-    .slice(0, 8);
-
   const openModule = (item: AgendaItem) => {
     if (item.kind === "task") navigate("/tasks");
     if (item.kind === "document") navigate("/documents");
@@ -221,18 +217,22 @@ const Agenda = () => {
     <DashboardLayout>
       <div className="space-y-6">
         <div className="animate-fade-in">
-          <h1 className="text-2xl font-semibold tracking-tight">Agenda</h1>
+          <h1 className="text-[28px] font-normal tracking-[-0.035em]">Agenda</h1>
           <p className="text-muted-foreground">
             Visão unificada de tarefas, pagamentos, documentos e obrigações.
           </p>
         </div>
 
-        <div className="filter-toolbar flex items-center justify-between gap-3 animate-fade-in">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Filter className="h-4 w-4" aria-hidden="true" />
-            <span>Eventos e obrigações</span>
-          </div>
-          <FilterPopover activeCount={activeFilter === "all" ? 0 : 1}>
+        <section className="space-y-4 animate-fade-in">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-base font-medium">Eventos e obrigações</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Filtre a agenda sem separar o controle da área que ele atualiza.</p>
+            </div>
+          <FilterPopover
+            activeCount={activeFilter === "all" ? 0 : 1}
+            onClear={() => setActiveFilter("all")}
+          >
             <div className="grid grid-cols-2 gap-2">
               {filterOptions.map((opt) => (
                 <Button
@@ -248,67 +248,44 @@ const Agenda = () => {
               ))}
             </div>
           </FilterPopover>
-        </div>
+          </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-6">
-          <Card className="animate-fade-in">
-            <CardContent className="p-4">
+        <div className="grid items-stretch grid-cols-1 gap-4 lg:grid-cols-2">
+          <div className="flex h-full min-h-[600px] flex-col rounded-2xl border border-border/70 bg-card p-4 sm:p-5">
+              <div className="mb-3 border-b border-border/70 pb-3">
+                <CalendarMonthSelector
+                  value={visibleMonth}
+                  onChange={(nextMonth) => {
+                    const normalized = startOfMonth(nextMonth);
+                    setVisibleMonth(normalized);
+                    setSelectedDate(normalized);
+                  }}
+                />
+              </div>
               <Calendar
                 mode="single"
+                month={visibleMonth}
+                onMonthChange={setVisibleMonth}
                 selected={selectedDate}
-                onSelect={(d) => d && setSelectedDate(startOfDay(d))}
+                onSelect={(d) => {
+                  if (!d) return;
+                  setSelectedDate(startOfDay(d));
+                  setVisibleMonth(startOfMonth(d));
+                }}
                 locale={ptBR}
                 modifiers={{
                   hasEvents: (date) => daySet.has(format(date, "yyyy-MM-dd")),
                 }}
                 modifiersClassNames={{
                   hasEvents:
-                    "font-semibold underline decoration-primary decoration-2 underline-offset-4",
+                    "border-gilver/70 bg-gilver/10 font-semibold",
                 }}
-                className="rounded-md"
+                className="w-full max-w-none p-0"
+                classNames={{ ...largeCalendarClassNames, caption: "hidden" }}
               />
-              <div className="mt-4 space-y-2">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                  Próximos eventos
-                </p>
-                {upcoming.length === 0 ? (
-                  <p className="text-xs text-muted-foreground py-4 text-center">
-                    Sem eventos
-                  </p>
-                ) : (
-                  upcoming.map((item) => {
-                    const cfg = kindConfig[item.kind];
-                    const Icon = cfg.icon;
-                    return (
-                      <button
-                        key={item.id}
-                        onClick={() => {
-                          setSelectedDate(startOfDay(item.date));
-                          setSelectedItem(item);
-                        }}
-                        className="w-full text-left flex items-start gap-2 p-2 rounded-lg hover:bg-accent/50 transition-colors"
-                      >
-                        <Icon
-                          className={cn("h-4 w-4 mt-0.5 shrink-0", cfg.color)}
-                        />
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs font-medium truncate">
-                            {item.title}
-                          </p>
-                          <p className="text-[11px] text-muted-foreground">
-                            {format(item.date, "dd 'de' MMM", { locale: ptBR })}
-                          </p>
-                        </div>
-                      </button>
-                    );
-                  })
-                )}
-              </div>
-            </CardContent>
-          </Card>
+          </div>
 
-          <Card className="animate-fade-in">
-            <CardContent className="p-6">
+          <div className="flex h-full min-h-[600px] flex-col rounded-2xl border border-border/70 bg-card p-5 sm:p-6">
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h2 className="text-lg font-semibold capitalize">
@@ -323,12 +300,12 @@ const Agenda = () => {
                 </div>
               </div>
               {dayItems.length === 0 ? (
-                <div className="py-16 text-center text-muted-foreground">
+                <div className="flex min-h-64 flex-1 flex-col items-center justify-center text-center text-muted-foreground">
                   <CalendarIcon className="h-10 w-10 mx-auto mb-3 opacity-50" />
                   <p className="text-sm">Nenhum evento para esta data</p>
                 </div>
               ) : (
-                <div className="space-y-2">
+                <div className="custom-scroll min-h-0 flex-1 space-y-0 overflow-y-auto pr-1">
                   {dayItems.map((item) => {
                     const cfg = kindConfig[item.kind];
                     const Icon = cfg.icon;
@@ -336,10 +313,10 @@ const Agenda = () => {
                       <button
                         key={item.id}
                         onClick={() => setSelectedItem(item)}
-                        className="flex w-full items-start gap-3 p-3 rounded-xl border border-border text-left hover:bg-accent/40 transition-colors"
+                        className="group flex w-full items-start gap-3 border-b border-border/70 px-2 py-3 text-left transition-colors last:border-b-0 hover:bg-accent/30"
                       >
-                        <div className={cn("p-2 rounded-lg", cfg.badge)}>
-                          <Icon className="h-4 w-4" />
+                        <div className={cn("mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-current/20 bg-transparent", cfg.color)}>
+                          <Icon className="h-4 w-4" aria-hidden="true" />
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-medium truncate">
@@ -364,9 +341,9 @@ const Agenda = () => {
                   })}
                 </div>
               )}
-            </CardContent>
-          </Card>
+          </div>
         </div>
+        </section>
 
         <Dialog open={Boolean(selectedItem)} onOpenChange={(open) => !open && setSelectedItem(null)}>
           <DialogContent className="sm:max-w-[520px]">
@@ -377,7 +354,7 @@ const Agenda = () => {
                 <>
                   <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
-                      <span className={cn("rounded-lg p-2", cfg.badge)}><Icon className="h-4 w-4" /></span>
+                       <span className={cn("rounded-full border border-current/20 bg-transparent p-2", cfg.color)}><Icon className="h-4 w-4" /></span>
                       {selectedItem.title}
                     </DialogTitle>
                     <DialogDescription>{cfg.label} · {format(selectedItem.date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</DialogDescription>

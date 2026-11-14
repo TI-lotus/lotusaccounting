@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import {
@@ -12,7 +13,14 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { KPITrend } from "@/components/dashboard/KPICard";
+import { BentoStatStrip } from "@/components/dashboard/BentoStatStrip";
+import { getBentoGridClass } from "@/components/dashboard/bentoGrid";
+import { IconTooltipButton } from "@/components/IconTooltipButton";
+import { FilterPopover } from "@/components/FilterPopover";
+import { MultiSelectFilter } from "@/components/MultiSelectFilter";
+import { SortToggle } from "@/components/SortToggle";
+import { RowActions } from "@/components/RowActions";
+import { BentoDataTable } from "@/components/BentoDataTable";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -58,7 +66,6 @@ import {
   List,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { WorkflowFlow } from "@/components/WorkflowFlow";
 import { useData } from "@/contexts/DataContext";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database, Json } from "@/integrations/supabase/types";
@@ -380,6 +387,7 @@ const statusConfig: Record<
 };
 
 export default function Agents() {
+  const navigate = useNavigate();
   const { clients, documents, payments, invoices, tasks, fiscalObligations } =
     useData();
   const [agents, setAgents] = useState<Agent[]>(initialAgents);
@@ -393,6 +401,8 @@ export default function Agents() {
   const [execFilter, setExecFilter] = useState<string>("all");
   const [execStatusFilter, setExecStatusFilter] = useState<string>("all");
   const [agentView, setAgentView] = useState<"grid" | "list">("grid");
+  const [agentStatusFilters, setAgentStatusFilters] = useState<Agent["status"][]>([]);
+  const [agentSort, setAgentSort] = useState<"asc" | "desc">("desc");
   const [activityLogs, setActivityLogs] = useState<ActivityLogRow[]>([]);
 
   useEffect(() => {
@@ -453,15 +463,6 @@ export default function Agents() {
     setEditingAgent(null);
   };
 
-  const groupedAgents = agents.reduce(
-    (acc, agent) => {
-      if (!acc[agent.category]) acc[agent.category] = [];
-      acc[agent.category].push(agent);
-      return acc;
-    },
-    {} as Record<Agent["category"], Agent[]>,
-  );
-
   const totalActive = agents.filter((a) => a.enabled).length;
   const executions = useMemo<Execution[]>(
     () =>
@@ -516,6 +517,20 @@ export default function Agents() {
     ...agent,
     actionsToday: actionsByAgent.get(agent.id) ?? 0,
   }));
+  const groupedAgents = displayedAgents
+    .filter((agent) => agentStatusFilters.length === 0 || agentStatusFilters.includes(agent.status))
+    .sort((a, b) => {
+      if (agentSort === "asc") return a.actionsToday - b.actionsToday;
+      return b.actionsToday - a.actionsToday;
+    })
+    .reduce(
+      (acc, agent) => {
+        if (!acc[agent.category]) acc[agent.category] = [];
+        acc[agent.category].push(agent);
+        return acc;
+      },
+      {} as Record<Agent["category"], typeof displayedAgents>,
+    );
   const totalActions = displayedAgents.reduce(
     (sum, a) => sum + a.actionsToday,
     0,
@@ -614,67 +629,80 @@ export default function Agents() {
       <div className="space-y-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold">Agentes de IA</h1>
+            <h1 className="text-[28px] font-normal tracking-[-0.035em]">Agentes de IA</h1>
             <p className="text-muted-foreground">
               Gerencie automações inteligentes para sua contabilidade
             </p>
           </div>
-          <div className="flex gap-4">
-            <Card className="px-4 py-2">
-              <div className="text-sm text-muted-foreground">
-                Agentes Ativos
-              </div>
-              <div className="text-2xl font-semibold">{totalActive}</div>
-            </Card>
-            <Card className="px-4 py-2">
-              <div className="text-sm text-muted-foreground">Ações Hoje</div>
-              <div className="text-2xl font-semibold">{totalActions}</div>
-            </Card>
-          </div>
+          <BentoStatStrip
+            className="w-full max-w-md sm:grid-cols-2 xl:grid-cols-2"
+            items={[
+              { label: "Agentes ativos", value: totalActive, icon: Zap, compact: true },
+              { label: "Ações hoje", value: totalActions, icon: Play, compact: true },
+            ]}
+          />
         </div>
 
         <Tabs defaultValue="agents">
-          <TabsList>
-            <TabsTrigger value="agents" className="gap-2">
-              <Zap className="h-4 w-4" />
-              Biblioteca
-            </TabsTrigger>
-            <TabsTrigger value="workflow" className="gap-2">
-              <FileSearch className="h-4 w-4" />
-              Workflow
-            </TabsTrigger>
-            <TabsTrigger value="executions" className="gap-2">
-              <Play className="h-4 w-4" />
-              Execuções
-            </TabsTrigger>
-            <TabsTrigger value="approvals" className="gap-2">
-              <CheckCircle className="h-4 w-4" />
-              Aprovações
-            </TabsTrigger>
-          </TabsList>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <TabsList>
+              <TabsTrigger value="agents" className="gap-2">
+                <Zap className="h-4 w-4" />
+                Biblioteca
+              </TabsTrigger>
+              <TabsTrigger value="workflow" className="gap-2">
+                <FileSearch className="h-4 w-4" />
+                Workflow
+              </TabsTrigger>
+              <TabsTrigger value="executions" className="gap-2">
+                <Play className="h-4 w-4" />
+                Execuções
+              </TabsTrigger>
+              <TabsTrigger value="approvals" className="gap-2">
+                <CheckCircle className="h-4 w-4" />
+                Aprovações
+              </TabsTrigger>
+            </TabsList>
+            <div className="flex rounded-full border border-border bg-card p-1">
+              <IconTooltipButton
+                icon={LayoutGrid}
+                label="Grade"
+                variant={agentView === "grid" ? "default" : "ghost"}
+                className="rounded-full"
+                aria-pressed={agentView === "grid"}
+                onClick={() => setAgentView("grid")}
+              />
+              <IconTooltipButton
+                icon={List}
+                label="Lista"
+                variant={agentView === "list" ? "default" : "ghost"}
+                className="rounded-full"
+                aria-pressed={agentView === "list"}
+                onClick={() => setAgentView("list")}
+              />
+            </div>
+            <FilterPopover
+              title="Filtrar agentes"
+              activeCount={agentStatusFilters.length}
+              onClear={() => setAgentStatusFilters([])}
+            >
+              <MultiSelectFilter
+                label="Status"
+                options={[
+                  { value: "active", label: "Ativos" },
+                  { value: "idle", label: "Inativos" },
+                  { value: "learning", label: "Aprendendo" },
+                ]}
+                value={agentStatusFilters}
+                onChange={(value) => setAgentStatusFilters(value as Agent["status"][])}
+              />
+            </FilterPopover>
+            <SortToggle label="ações de hoje" direction={agentSort} onChange={setAgentSort} />
+          </div>
 
           <TabsContent value="agents" className="space-y-6 mt-6">
-            <div className="flex justify-end">
-              <div className="flex rounded-xl border border-border bg-card p-1">
-                <Button
-                  variant={agentView === "grid" ? "default" : "ghost"}
-                  size="sm"
-                  className="rounded-lg"
-                  onClick={() => setAgentView("grid")}
-                >
-                  <LayoutGrid className="h-4 w-4" />
-                  Grade
-                </Button>
-                <Button
-                  variant={agentView === "list" ? "default" : "ghost"}
-                  size="sm"
-                  className="rounded-lg"
-                  onClick={() => setAgentView("list")}
-                >
-                  <List className="h-4 w-4" />
-                  Lista
-                </Button>
-              </div>
+            <div className="rounded-2xl border border-gilver/30 bg-gilver/10 px-4 py-3 text-sm text-foreground">
+              A biblioteca de agentes é uma camada de configuração visual. Ativações e execuções reais dependem de providers e jobs conectados; alterações nesta tela ficam apenas nesta sessão.
             </div>
             {(Object.keys(groupedAgents) as Agent["category"][]).map(
               (category) => (
@@ -682,12 +710,52 @@ export default function Agents() {
                   <h2 className="text-lg font-medium">
                     {categoryLabels[category]}
                   </h2>
-                  <div
+                    {agentView === "list" ? (
+                      <BentoDataTable
+                        rows={groupedAgents[category]}
+                        getRowKey={(agent) => agent.id}
+                        empty={<span>Nenhum agente nesta categoria.</span>}
+                        columns={[
+                          {
+                            key: "agent",
+                            label: "Agente",
+                            render: (agent) => { const Icon = agent.icon; return <div className="flex min-w-0 items-center gap-3"><Icon className="h-4 w-4 shrink-0 text-gilver" aria-hidden="true" /><div className="min-w-0"><p className="max-w-[300px] truncate font-medium">{agent.name}</p><p className="max-w-[300px] truncate text-xs text-muted-foreground">{agent.description}</p></div></div>; },
+                          },
+                          {
+                            key: "status",
+                            label: "Status",
+                            render: (agent) => <Badge variant="secondary" className={statusConfig[agent.status].className}>{statusConfig[agent.status].label}</Badge>,
+                          },
+                          {
+                            key: "schedule",
+                            label: "Agenda",
+                            render: (agent) => <span className="text-sm text-muted-foreground">{agent.schedule || "Sob demanda"}</span>,
+                          },
+                          {
+                            key: "actionsToday",
+                            label: "Ações hoje",
+                            sortValue: (agent) => agent.actionsToday,
+                            className: "text-right font-medium tabular-nums",
+                            headerClassName: "text-right",
+                            render: (agent) => <span>{agent.actionsToday}</span>,
+                          },
+                        ]}
+                        actions={(agent) => (
+                          <RowActions
+                            primaryLabel={`Editar ${agent.name}`}
+                            primaryIcon={Pencil}
+                            onPrimary={() => openEdit(agent)}
+                            menuItems={[{ label: agent.enabled ? "Desativar agente" : "Ativar agente", icon: Zap, onSelect: () => toggleAgent(agent.id) }]}
+                          />
+                        )}
+                      />
+                    ) : (
+                    <div
                     className={cn(
-                      "grid gap-4",
+                      "overflow-hidden rounded-2xl border border-border/70 bg-border/70 gap-px",
                       agentView === "grid"
-                        ? "md:grid-cols-2 lg:grid-cols-3"
-                        : "grid-cols-1",
+                        ? cn("grid", getBentoGridClass(groupedAgents[category].length))
+                        : "divide-y divide-border/70",
                     )}
                   >
                     {groupedAgents[category].map((agent) => {
@@ -700,30 +768,18 @@ export default function Agents() {
                         <Card
                           key={agent.id}
                           className={cn(
-                            "transition-all duration-200",
+                            "rounded-none border-0 transition-[background-color,border-color,box-shadow] duration-200",
                             agent.enabled
                               ? "border-primary/20 bg-card"
                               : "border-border bg-muted/30",
                           )}
                         >
                           <CardHeader
-                            className={cn(
-                              "pb-3",
-                              agentView === "list" && "pb-4",
-                            )}
+                            className="pb-3"
                           >
                             <div className="flex items-start justify-between gap-3">
                               <div className="flex items-center gap-3">
-                                <div
-                                  className={cn(
-                                    "p-2 rounded-lg",
-                                    agent.enabled
-                                      ? "bg-primary/10 text-primary"
-                                      : "bg-muted text-muted-foreground",
-                                  )}
-                                >
-                                  <Icon className="h-5 w-5" />
-                                </div>
+                                <Icon className="h-5 w-5 text-gilver" aria-hidden="true" title={agent.name} />
                                 <div className="space-y-1">
                                   <CardTitle className="text-base">
                                     {agent.name}
@@ -748,6 +804,8 @@ export default function Agents() {
                                   variant="ghost"
                                   size="icon"
                                   className="h-7 w-7"
+                                  aria-label={`Editar ${agent.name}`}
+                                  title={`Editar ${agent.name}`}
                                   onClick={() => openEdit(agent)}
                                 >
                                   <Pencil className="h-3.5 w-3.5" />
@@ -760,7 +818,7 @@ export default function Agents() {
                             </div>
                           </CardHeader>
                           <CardContent
-                            className={cn(agentView === "list" && "pt-0")}
+                            className="pt-0"
                           >
                             <CardDescription className="text-sm">
                               {agent.description}
@@ -779,57 +837,40 @@ export default function Agents() {
                       );
                     })}
                   </div>
+                    )}
                 </div>
               ),
             )}
           </TabsContent>
 
           <TabsContent value="workflow" className="mt-6">
-            <WorkflowFlow />
+            <Card>
+              <CardHeader>
+                <CardTitle>Construtor de workflows</CardTitle>
+                <CardDescription>
+                  O construtor visual tem uma área própria para evitar duplicação entre biblioteca e workflows.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-wrap items-center justify-between gap-4">
+                <p className="max-w-2xl text-sm text-muted-foreground">
+                  Consulte e edite o fluxo em um único local. Persistência, execução genérica e jobs ainda precisam da camada de automação definitiva.
+                </p>
+                <Button className="rounded-xl" onClick={() => navigate("/workflows")}>
+                  Abrir construtor
+                </Button>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="executions" className="mt-6 space-y-4">
-            {/* Execution stats */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              <Card className="px-4 py-3">
-                <div className="flex items-end justify-between gap-3">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4 text-foreground" />
-                      <span className="text-sm text-muted-foreground">Sucesso</span>
-                    </div>
-                    <div className="text-xl font-semibold text-foreground mt-1">{successCount}</div>
-                  </div>
-                  <KPITrend tone="positive" />
-                </div>
-              </Card>
-              <Card className="px-4 py-3">
-                <div className="flex items-end justify-between gap-3">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <XCircle className="h-4 w-4 text-foreground" />
-                      <span className="text-sm text-muted-foreground">Erros</span>
-                    </div>
-                    <div className="text-xl font-semibold text-foreground mt-1">{errorCount}</div>
-                  </div>
-                  <KPITrend tone="negative" />
-                </div>
-              </Card>
-              <Card className="px-4 py-3">
-                <div className="flex items-end justify-between gap-3">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <Play className="h-4 w-4 text-foreground" />
-                      <span className="text-sm text-muted-foreground">
-                        Executando
-                      </span>
-                    </div>
-                    <div className="text-xl font-semibold text-foreground mt-1">{runningCount}</div>
-                  </div>
-                  <KPITrend />
-                </div>
-              </Card>
-            </div>
+            <BentoStatStrip
+              className="sm:grid-cols-3 xl:grid-cols-3"
+              items={[
+                { label: "Sucesso", value: successCount, icon: CheckCircle, compact: true },
+                { label: "Erros", value: errorCount, icon: XCircle, compact: true },
+                { label: "Executando", value: runningCount, icon: Play, compact: true },
+              ]}
+            />
 
             {/* Filters */}
             <div className="filter-toolbar flex items-center gap-2 flex-wrap">
@@ -920,6 +961,8 @@ export default function Agents() {
                           variant="ghost"
                           size="icon"
                           className="h-7 w-7 shrink-0"
+                          aria-label="Tentar novamente"
+                          title="Tentar novamente"
                         >
                           <RotateCcw className="h-3.5 w-3.5" />
                         </Button>

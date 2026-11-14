@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
-import { CheckCheck, MessageSquare, Plus, Search, Send, Users } from "lucide-react";
+import { Archive, ArchiveRestore, CheckCheck, MessageSquare, Mic, MoreHorizontal, Paperclip, Pin, Plus, Search, Send, Smile, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -13,7 +14,15 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
@@ -26,10 +35,11 @@ import { useData } from "@/contexts/DataContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
-import { formatDistanceToNow } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { useWorkspaceMembers } from "@/hooks/useWorkspaceMembers";
+import { IconTooltipButton } from "@/components/IconTooltipButton";
 
 type ConversationRow = Database["public"]["Tables"]["conversations"]["Row"];
 type MessageRow = Database["public"]["Tables"]["messages"]["Row"];
@@ -38,6 +48,10 @@ type Recipient = { userId: string; name: string; role: "Administrador" | "Colabo
 const relativeTime = (value?: string | null) => value
   ? formatDistanceToNow(new Date(value), { addSuffix: true, locale: ptBR })
   : "Sem data";
+
+const messageTime = (value?: string | null) => value
+  ? format(new Date(value), "HH:mm")
+  : "";
 
 const initials = (value: string) => value.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase() || "LT";
 
@@ -48,10 +62,12 @@ const Messages = () => {
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [showArchived, setShowArchived] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
   const [recipientId, setRecipientId] = useState("");
   const [conversationRows, setConversationRows] = useState<ConversationRow[]>([]);
   const [messages, setMessages] = useState<MessageRow[]>([]);
+  const [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const { members } = useWorkspaceMembers();
 
@@ -95,6 +111,40 @@ const Messages = () => {
     return () => { void supabase.removeChannel(channel); };
   }, [loadMessages, tenantId, user]);
 
+  useEffect(() => {
+    if (!tenantId || !user) {
+      setOnlineUserIds(new Set());
+      return;
+    }
+
+    const presenceChannel = supabase.channel(`workspace-presence:${tenantId}`, {
+      config: { presence: { key: user.id } },
+    });
+    const syncPresence = () => {
+      try {
+        setOnlineUserIds(new Set(Object.keys(presenceChannel.presenceState())));
+      } catch {
+        setOnlineUserIds(new Set());
+      }
+    };
+
+    presenceChannel
+      .on("presence", { event: "sync" }, syncPresence)
+      .on("presence", { event: "join" }, syncPresence)
+      .on("presence", { event: "leave" }, syncPresence)
+      .subscribe((status) => {
+        if (status !== "SUBSCRIBED") return;
+        void presenceChannel
+          .track({ online_at: new Date().toISOString() })
+          .then(syncPresence)
+          .catch(() => setOnlineUserIds(new Set()));
+      });
+
+    return () => {
+      void supabase.removeChannel(presenceChannel);
+    };
+  }, [tenantId, user]);
+
   const recipients = useMemo<Recipient[]>(() => {
     if (isClient) {
       if (!ownCompany?.responsibleUserId) return [];
@@ -137,14 +187,20 @@ const Messages = () => {
       ...conversation,
       name: recipient?.name || otherMember?.fullName || client?.name || conversation.title || "Conversa interna",
       role: recipient?.role || (client ? "Cliente" : "Colaborador"),
+      otherUserId,
       avatarUrl: recipient?.avatarUrl || otherMember?.avatarUrl || null,
       lastMessage: threadMessages.at(-1),
     };
   }), [clientById, conversationRows, members, messagesByConversation, recipientById, user?.id]);
 
-  const filteredConversations = conversations.filter((conversation) => {
+  const visibleConversations = conversations.filter((conversation) => Boolean(conversation.is_archived) === showArchived);
+  const filteredConversations = visibleConversations.filter((conversation) => {
     const query = searchTerm.trim().toLowerCase();
     return !query || conversation.name.toLowerCase().includes(query) || (conversation.lastMessage?.message || "").toLowerCase().includes(query);
+  });
+  const orderedConversations = [...filteredConversations].sort((a, b) => {
+    if (Boolean(a.is_pinned) !== Boolean(b.is_pinned)) return a.is_pinned ? -1 : 1;
+    return new Date(b.lastMessage?.created_at ?? b.created_at ?? 0).getTime() - new Date(a.lastMessage?.created_at ?? a.created_at ?? 0).getTime();
   });
   const requestedConversationId = searchParams.get("conversation");
   useEffect(() => {
@@ -152,9 +208,10 @@ const Messages = () => {
     setSelectedConversation(requestedConversationId);
     setSearchParams({}, { replace: true });
   }, [conversationRows, requestedConversationId, setSearchParams]);
-  const effectiveSelectedId = selectedConversation ?? filteredConversations[0]?.id ?? null;
+  const effectiveSelectedId = selectedConversation ?? orderedConversations[0]?.id ?? null;
   const currentConversation = conversations.find((conversation) => conversation.id === effectiveSelectedId);
   const currentMessages = effectiveSelectedId ? messagesByConversation.get(effectiveSelectedId) ?? [] : [];
+  const currentContactOnline = Boolean(currentConversation?.otherUserId && onlineUserIds.has(currentConversation.otherUserId));
 
   useEffect(() => {
     if (!effectiveSelectedId || !user) return;
@@ -191,6 +248,34 @@ const Messages = () => {
     setRecipientId("");
   };
 
+  const updateConversationPreference = async (
+    conversationId: string,
+    updates: Pick<Database["public"]["Tables"]["conversations"]["Update"], "is_pinned" | "is_archived">,
+  ) => {
+    const { data, error } = await supabase.rpc("set_internal_conversation_preference", {
+      target_conversation_id: conversationId,
+      next_is_pinned: updates.is_pinned ?? null,
+      next_is_archived: updates.is_archived ?? null,
+    });
+    if (error || !data) {
+      toast.error(error?.message ?? "Não foi possível atualizar a conversa.");
+      return false;
+    }
+    setConversationRows((current) => current.map((conversation) => conversation.id === conversationId ? data : conversation));
+    return true;
+  };
+
+  const toggleConversationPinned = async (conversation: ConversationRow) => {
+    await updateConversationPreference(conversation.id, { is_pinned: !conversation.is_pinned });
+  };
+
+  const toggleConversationArchived = async (conversation: ConversationRow) => {
+    const archived = await updateConversationPreference(conversation.id, { is_archived: !conversation.is_archived });
+    if (archived && !conversation.is_archived && selectedConversation === conversation.id) {
+      setSelectedConversation(null);
+    }
+  };
+
   const handleSendMessage = async () => {
     const content = newMessage.trim();
     if (!content || !tenantId || !currentConversation || !user) return;
@@ -209,32 +294,82 @@ const Messages = () => {
   };
 
   return (
-    <DashboardLayout className="h-[calc(100vh-4rem)] overflow-hidden p-4 md:p-6">
-      <div className="grid h-full min-h-0 grid-cols-1 grid-rows-[minmax(180px,0.42fr)_minmax(280px,1fr)] gap-4 overflow-hidden lg:gap-6 xl:grid-cols-[minmax(280px,380px)_minmax(0,1fr)] xl:grid-rows-1">
-          <aside className="glass flex min-h-0 flex-col overflow-hidden rounded-2xl p-3 sm:p-4">
-            <div className="mb-3 flex items-center gap-2">
+    <DashboardLayout className="min-h-0 overflow-hidden !p-0 lg:!pl-[3.75rem] lg:!pr-0">
+      <div className="flex h-full min-h-0 w-full max-w-none flex-col overflow-hidden bg-card lg:flex-row">
+          <aside className="flex h-[42%] min-h-0 w-full shrink-0 flex-col overflow-hidden border-b border-border bg-card lg:h-auto lg:w-[340px] lg:border-b-0 lg:border-r">
+            <div className="flex shrink-0 items-center gap-2 border-b border-border/70 px-3 py-3 sm:px-4">
               <Dialog open={contactOpen} onOpenChange={setContactOpen}>
-                <Button size="icon" className="h-10 w-10 shrink-0 rounded-xl" onClick={() => setContactOpen(true)} disabled={!recipients.length} aria-label="Nova conversa" title="Nova conversa"><Plus className="h-4 w-4" /></Button>
-                <DialogContent className="sm:max-w-md">
-                  <DialogHeader><DialogTitle>Nova conversa</DialogTitle><DialogDescription>{isClient ? "Seu responsavel e o unico contato disponivel." : "Selecione um colaborador ou administrador ativo."}</DialogDescription></DialogHeader>
-                  <Select value={recipientId} onValueChange={setRecipientId}><SelectTrigger><SelectValue placeholder="Selecione o destinatario" /></SelectTrigger><SelectContent>{recipients.map((recipient) => <SelectItem key={recipient.userId} value={recipient.userId}>{recipient.name} - {recipient.role}</SelectItem>)}</SelectContent></Select>
-                  <DialogFooter><Button variant="outline" onClick={() => setContactOpen(false)}>Cancelar</Button><Button onClick={() => void startConversation()} disabled={!recipientId}>Iniciar conversa</Button></DialogFooter>
+                <DialogTrigger asChild>
+                  <Button type="button" size="icon" aria-label="Nova conversa" title="Nova conversa" className="h-10 w-10 shrink-0 rounded-full" disabled={!recipients.length}>
+                    <Plus className="h-4 w-4" aria-hidden="true" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="dialog-window new-conversation-dialog">
+                  <DialogHeader className="dialog-header">
+                    <DialogTitle>Nova conversa</DialogTitle>
+                    <DialogDescription>{isClient ? "Seu responsável é o único contato disponível." : "Selecione um colaborador ou administrador ativo."}</DialogDescription>
+                  </DialogHeader>
+                  <div className="dialog-body space-y-2">
+                    <Label htmlFor="new-conversation-recipient">Destinatário</Label>
+                    <Select value={recipientId} onValueChange={setRecipientId}>
+                      <SelectTrigger id="new-conversation-recipient" className="h-11 rounded-xl">
+                        <SelectValue placeholder="Selecione o destinatário" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {recipients.map((recipient) => <SelectItem key={recipient.userId} value={recipient.userId}>{recipient.name} · {recipient.role}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <DialogFooter className="dialog-footer">
+                    <Button variant="outline" onClick={() => setContactOpen(false)}>Cancelar</Button>
+                    <Button onClick={() => void startConversation()} disabled={!recipientId}>Iniciar conversa</Button>
+                  </DialogFooter>
                 </DialogContent>
               </Dialog>
               <div className="relative min-w-0 flex-1"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input placeholder="Buscar conversas" className="rounded-xl pl-10" value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} /></div>
             </div>
-            <div className="sidebar-scroll min-h-0 flex-1 space-y-1 overflow-y-auto">
+            <div className="sidebar-scroll min-h-0 flex-1 space-y-1 overflow-y-auto px-3 py-2 sm:px-4">
               {loading && <p className="py-8 text-center text-sm text-muted-foreground">Carregando conversas...</p>}
-              {!loading && filteredConversations.length === 0 && <div className="py-12 text-center text-muted-foreground"><MessageSquare className="mx-auto mb-3 h-8 w-8 opacity-60" /><p className="text-sm font-medium text-foreground">Nenhuma conversa ainda</p><p className="mt-1 text-xs">Inicie uma conversa com um contato autorizado.</p></div>}
-              {filteredConversations.map((conversation) => <button key={conversation.id} onClick={() => setSelectedConversation(conversation.id)} className={cn("flex w-full items-center gap-3 rounded-xl p-3 text-left transition-colors", effectiveSelectedId === conversation.id ? "bg-gilver/20" : "hover:bg-accent/50")}><Avatar className="h-10 w-10 shrink-0"><AvatarImage src={conversation.avatarUrl ?? undefined} /><AvatarFallback className="bg-gilver/20 text-sm font-medium text-gilver">{initials(conversation.name)}</AvatarFallback></Avatar><div className="min-w-0 flex-1"><div className="flex items-center justify-between gap-2"><p className="truncate text-sm font-medium">{conversation.name}</p><span className="shrink-0 text-[10px] text-muted-foreground">{relativeTime(conversation.lastMessage?.created_at ?? conversation.created_at)}</span></div><p className="truncate text-xs text-muted-foreground">{conversation.lastMessage?.message || "Nenhuma mensagem enviada"}</p></div></button>)}
+              {!loading && orderedConversations.length === 0 && <div className="py-12 text-center text-muted-foreground"><MessageSquare className="mx-auto mb-3 h-8 w-8 opacity-60" /><p className="text-sm font-medium text-foreground">{showArchived ? "Nenhuma conversa arquivada" : "Nenhuma conversa ainda"}</p><p className="mt-1 text-xs">{showArchived ? "As conversas arquivadas aparecerão aqui." : "Inicie uma conversa com um contato autorizado."}</p></div>}
+              {orderedConversations.map((conversation) => <div key={conversation.id} className={cn("flex w-full items-center gap-1 rounded-xl p-1.5 text-left transition-colors", effectiveSelectedId === conversation.id ? "bg-gilver/20" : "hover:bg-accent/50")}>
+                <button type="button" onClick={() => setSelectedConversation(conversation.id)} className="flex min-w-0 flex-1 items-center gap-3 rounded-lg p-1.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  <Avatar className="h-10 w-10 shrink-0"><AvatarImage src={conversation.avatarUrl ?? undefined} /><AvatarFallback className="bg-gilver/20 text-sm font-medium text-gilver">{initials(conversation.name)}</AvatarFallback></Avatar>
+                  <div className="min-w-0 flex-1"><div className="flex items-center gap-1.5"><p className="truncate text-sm font-medium">{conversation.name}</p>{conversation.is_pinned && <Pin className="h-3 w-3 shrink-0 text-gilver" fill="currentColor" aria-label="Conversa fixada" />}<span className="ml-auto shrink-0 text-[10px] text-muted-foreground">{relativeTime(conversation.lastMessage?.created_at ?? conversation.created_at)}</span></div><p className="truncate text-xs text-muted-foreground">{conversation.lastMessage?.message || "Nenhuma mensagem enviada"}</p></div>
+                </button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button type="button" aria-label={`Ações da conversa com ${conversation.name}`} title="Ações da conversa" className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><MoreHorizontal className="h-4 w-4" aria-hidden="true" /></button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" sideOffset={6} className="min-w-[190px]">
+                    <DropdownMenuItem onSelect={() => void toggleConversationPinned(conversation)}><Pin className="mr-2 h-4 w-4" />{conversation.is_pinned ? "Desafixar conversa" : "Fixar conversa"}</DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onSelect={() => void toggleConversationArchived(conversation)}>{conversation.is_archived ? <ArchiveRestore className="mr-2 h-4 w-4" /> : <Archive className="mr-2 h-4 w-4" />}{conversation.is_archived ? "Desarquivar conversa" : "Arquivar conversa"}</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>)}
+            </div>
+            <div className="shrink-0 border-t border-border/70 px-3 py-3 sm:px-4">
+              <button type="button" onClick={() => setShowArchived((current) => !current)} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                {showArchived ? <ArchiveRestore className="h-4 w-4 shrink-0" aria-hidden="true" /> : <Archive className="h-4 w-4 shrink-0" aria-hidden="true" />}
+                <span>{showArchived ? "Conversas ativas" : "Arquivadas"}</span>
+                {!showArchived && conversations.filter((conversation) => conversation.is_archived).length > 0 && <span className="ml-auto text-xs">{conversations.filter((conversation) => conversation.is_archived).length}</span>}
+              </button>
             </div>
           </aside>
 
-          <section className="glass flex min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl p-4 sm:p-6">
+          <section className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background">
             {!currentConversation ? <div className="grid flex-1 place-items-center text-center text-muted-foreground"><div><MessageSquare className="mx-auto mb-3 h-10 w-10 opacity-60" /><p className="text-sm font-medium text-foreground">Selecione uma conversa</p></div></div> : <>
-              <div className="flex shrink-0 items-center gap-3 border-b border-border pb-4"><Avatar className="h-10 w-10"><AvatarImage src={currentConversation.avatarUrl ?? undefined} /><AvatarFallback className="bg-gilver/20 font-medium text-gilver">{initials(currentConversation.name)}</AvatarFallback></Avatar><div className="min-w-0"><p className="truncate font-medium">{currentConversation.name}</p><Badge variant="outline" className="mt-1 h-4 px-1.5 text-[10px]">{currentConversation.role}</Badge></div></div>
-              <div className="sidebar-scroll min-h-0 flex-1 space-y-4 overflow-y-auto py-4 sm:py-6">{currentMessages.length === 0 && <div className="grid h-full place-items-center text-center text-muted-foreground"><div><Users className="mx-auto mb-3 h-8 w-8 opacity-60" /><p className="text-sm">Envie a primeira mensagem.</p></div></div>}{currentMessages.map((message) => { const isMe = message.sender_id === user?.id; const isRead = Boolean(message.read_at); return <div key={message.id} className={cn("flex", isMe ? "justify-end" : "justify-start")}><div className={cn("max-w-[82%] break-words rounded-2xl px-4 py-2.5", isMe ? "rounded-tr-md bg-gilver text-[hsl(0,0%,9%)]" : "rounded-tl-md bg-muted")}><p className="text-sm">{message.message}</p><div className={cn("mt-1 flex items-center justify-end gap-1 text-[10px]", isMe ? "text-[hsl(0,0%,9%)]/60" : "text-muted-foreground")}><span>{relativeTime(message.created_at)}</span>{isMe && <CheckCheck className={cn("h-3.5 w-3.5", isRead ? "text-sky-600 dark:text-sky-300" : "text-slate-500")} aria-label={isRead ? "Lida" : "Entregue"} />}</div></div></div>; })}</div>
-              <div className="flex shrink-0 items-center gap-2 border-t border-border pt-4"><Input placeholder="Digite uma mensagem" className="flex-1 rounded-xl" value={newMessage} onChange={(event) => setNewMessage(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void handleSendMessage(); } }} /><Button size="icon" className="h-10 w-10 shrink-0 rounded-xl" onClick={() => void handleSendMessage()} disabled={!newMessage.trim()}><Send className="h-4 w-4" /></Button></div>
+              <div className="flex shrink-0 items-center gap-3 border-b border-border bg-card px-4 py-3 sm:px-6"><Avatar className="h-9 w-9"><AvatarImage src={currentConversation.avatarUrl ?? undefined} /><AvatarFallback className="bg-gilver/20 font-medium text-gilver">{initials(currentConversation.name)}</AvatarFallback></Avatar><div className="min-w-0"><div className="flex min-w-0 flex-wrap items-center gap-2"><p className="truncate text-sm font-medium">{currentConversation.name}</p><Badge variant="outline" className="h-4 px-1.5 text-[10px]">{currentConversation.role}</Badge></div><p className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground"><span className={cn("h-1.5 w-1.5 rounded-full", currentContactOnline ? "bg-emerald-500" : "bg-muted-foreground/50")} aria-hidden="true" />{currentContactOnline ? "Online" : "Offline"}</p></div></div>
+              <div className="sidebar-scroll min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain bg-background px-4 py-4 pb-40 sm:px-6 sm:py-6 sm:pb-44">{currentMessages.length === 0 && <div className="grid h-full place-items-center text-center text-muted-foreground"><div><Users className="mx-auto mb-3 h-8 w-8 opacity-60" /><p className="text-sm">Envie a primeira mensagem.</p></div></div>}{currentMessages.map((message, index) => { const isMe = message.sender_id === user?.id; const isRead = Boolean(message.read_at); const previous = currentMessages[index - 1]; const next = currentMessages[index + 1]; const sameAsPrevious = previous?.sender_id === message.sender_id; const sameAsNext = next?.sender_id === message.sender_id; return <div key={message.id} className={cn("flex", isMe ? "justify-end" : "justify-start", index > 0 && !sameAsPrevious && "pt-3")}><div className={cn("max-w-[40%] break-words rounded-2xl px-4 py-2.5", isMe ? "bg-primary text-primary-foreground" : "bg-gilver text-white", isMe ? (sameAsPrevious ? "rounded-t-md" : "rounded-tr-md") : (sameAsPrevious ? "rounded-t-md" : "rounded-tl-md"), sameAsNext && "rounded-b-md")}><p className="text-sm">{message.message}</p><div className={cn("mt-1 flex items-center justify-end gap-1 text-[10px]", isMe ? "text-primary-foreground/65" : "text-white/70")}><span>{messageTime(message.created_at)}</span>{isMe && <CheckCheck className={cn("h-3.5 w-3.5", isRead ? "text-sky-300" : "text-primary-foreground/70")} aria-label={isRead ? "Lida" : "Entregue"} />}</div></div></div>; })}</div>
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-10 bg-background/95 sm:h-12" aria-hidden="true" />
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 px-3 pb-1 sm:px-5 sm:pb-2">
+                <div className="pointer-events-auto flex items-center gap-2 rounded-full border border-border/80 bg-card/95 px-3 py-1.5 shadow-[0_10px_30px_hsl(var(--foreground)/0.12)] backdrop-blur-xl transition-colors focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20">
+                  <Paperclip className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                  <Input placeholder="Digite uma mensagem" className="h-9 min-w-0 flex-1 rounded-none border-0 bg-transparent p-0 text-sm shadow-none focus-visible:ring-0" value={newMessage} onChange={(event) => setNewMessage(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void handleSendMessage(); } }} />
+                  <Smile className="hidden h-5 w-5 shrink-0 text-muted-foreground sm:block" aria-hidden="true" />
+                  <IconTooltipButton icon={newMessage.trim() ? Send : Mic} label={newMessage.trim() ? "Enviar mensagem" : "Gravar áudio"} className="h-9 w-9 shrink-0 bg-transparent text-muted-foreground hover:bg-foreground/10 hover:text-foreground" onClick={() => { if (newMessage.trim()) void handleSendMessage(); }} disabled={!newMessage.trim()} />
+                </div>
+              </div>
             </>}
           </section>
       </div>

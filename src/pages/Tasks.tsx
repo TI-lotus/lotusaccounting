@@ -12,12 +12,11 @@ import {
   LayoutList,
   Columns3,
   Trash2,
+  Eye,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import {
   Dialog,
@@ -46,6 +45,12 @@ import { useViewMode } from "@/contexts/ViewModeContext";
 import { CalendarEventView } from "@/components/CalendarEventView";
 import { useWorkspacePermission } from "@/hooks/useWorkspacePermission";
 import { FilterPopover } from "@/components/FilterPopover";
+import { MultiSelectFilter } from "@/components/MultiSelectFilter";
+import { BentoStatStrip } from "@/components/dashboard/BentoStatStrip";
+import { IconTooltipButton } from "@/components/IconTooltipButton";
+import { SortToggle } from "@/components/SortToggle";
+import { BentoDataTable } from "@/components/BentoDataTable";
+import { RowActions } from "@/components/RowActions";
 
 const currentMonthRange = () => {
   const now = new Date();
@@ -68,10 +73,11 @@ const Tasks = () => {
     resource: "tasks",
     action: "delete",
   });
-  const [statusFilter, setStatusFilter] = useState<TaskStatus | "all">("all");
+  const [statusFilters, setStatusFilters] = useState<TaskStatus[]>([]);
   const [clientFilter, setClientFilter] = useState<string>("all");
   const [assigneeFilter, setAssigneeFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [taskSort, setTaskSort] = useState<"asc" | "desc">("asc");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [viewType, setViewType] = useState<"list" | "grid" | "calendar">(
     viewMode === "client" ? "grid" : "list",
@@ -114,11 +120,16 @@ const Tasks = () => {
     : user?.id ? [[user.id, currentUserName] as [string, string]] : [];
 
   const filteredTasks = filterTasks(tasks, {
-    status: statusFilter,
+    status: "all",
     clientId: clientFilter,
     assignedToId: assigneeFilter,
     type: typeFilter,
-  });
+  }).filter((task) => statusFilters.length === 0 || statusFilters.includes(task.status))
+    .sort((a, b) => {
+      const first = new Date(a.dueDate).getTime();
+      const second = new Date(b.dueDate).getTime();
+      return taskSort === "asc" ? first - second : second - first;
+    });
 
   const toggleTaskStatus = (taskId: string) => {
     const task = tasks.find((t) => t.id === taskId);
@@ -233,7 +244,8 @@ const Tasks = () => {
   };
 
   const KanbanCard = ({ task }: { task: TaskData }) => (
-    <div
+    <button
+      type="button"
       draggable={viewMode !== "client"}
       onDragStart={(event) => {
         if (viewMode === "client") return;
@@ -246,72 +258,108 @@ const Tasks = () => {
         setDragOverStatus(null);
       }}
       onClick={() => setSelectedTask(task)}
+      aria-label={`Abrir detalhes de ${task.title}`}
       className={cn(
-        "glass rounded-xl p-3 space-y-2.5 cursor-grab active:cursor-grabbing",
+        "block w-full rounded-xl border border-border/70 bg-background/70 p-3 text-left transition-[transform,background-color,border-color] duration-200 hover:-translate-y-0.5 hover:border-gilver/50 hover:bg-accent/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
+        viewMode !== "client" ? "cursor-grab active:cursor-grabbing" : "cursor-pointer",
         draggedTaskId === task.id && "opacity-45",
-        (task.status === "overdue" || task.status === "blocked") && "border border-red-500/30 bg-red-500/5",
+        (task.status === "overdue" || task.status === "blocked") && "border-red-500/30 bg-red-500/5",
       )}
     >
-      <div className="flex items-start justify-between gap-2">
-        <h4
-          className={cn(
-            "text-sm font-medium leading-tight",
-            task.status === "completed" && "line-through text-muted-foreground",
-          )}
-        >
-          {task.title}
-        </h4>
-        {getPriorityBadge(task.priority)}
-      </div>
-      {task.description && (
-        <p className="text-xs text-muted-foreground line-clamp-2">
-          {task.description}
-        </p>
-      )}
-      {task.blockedReason && (
-        <p className="rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-xs text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
-          {task.blockedReason}
-        </p>
-      )}
-      <div className="flex items-center gap-1.5 flex-wrap">
-        {task.clientName && (
-          <Badge variant="outline" className="text-[10px] py-0 px-1.5">
-            {task.clientName}
-          </Badge>
-        )}
-        {getTypeBadge(task.type)}
-      </div>
-      <div className="flex items-center justify-between pt-1.5 border-t border-border/50">
-        <div className="flex items-center gap-1.5">
-          <Avatar className="h-5 w-5">
-            <AvatarImage src={activeAssignees.find((member) => member.user_id === task.assignedToId)?.avatar_url ?? undefined} />
-            <AvatarFallback className="text-[9px] font-medium text-muted-foreground">{task.assignedToName?.charAt(0)}</AvatarFallback>
-          </Avatar>
-          <span className="text-[11px] text-muted-foreground">
-            {task.assignedToName}
-          </span>
-        </div>
-        <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-          <Calendar className="h-2.5 w-2.5" />
+      <span className="block truncate text-sm font-medium leading-tight">
+        {task.title}
+      </span>
+      <span className="mt-2 flex items-center justify-between gap-2 border-t border-border/50 pt-2 text-[11px] text-muted-foreground">
+        <span className="min-w-0 truncate">{task.clientName || "Sem cliente"}</span>
+        <span className="flex shrink-0 items-center gap-1 whitespace-nowrap">
+          <Calendar className="h-3 w-3" aria-hidden="true" />
           {new Date(task.dueDate).toLocaleDateString("pt-BR")}
         </span>
+      </span>
+    </button>
+  );
+
+  const taskViewControls = (
+    <div className="flex flex-wrap items-center justify-end gap-2">
+      <div className="flex gap-1 rounded-full border border-border bg-card p-1">
+        {[
+          { icon: LayoutList, label: "Lista", value: "list" },
+          { icon: Columns3, label: "Kanban", value: "grid" },
+          { icon: Calendar, label: "Calendário", value: "calendar" },
+        ].map((item) => (
+          <IconTooltipButton
+            key={item.value}
+            icon={item.icon}
+            label={item.label}
+            variant={viewType === item.value ? "default" : "ghost"}
+            className="rounded-full"
+            aria-pressed={viewType === item.value}
+            onClick={() => setViewType(item.value as typeof viewType)}
+          />
+        ))}
       </div>
-      {task.status !== "completed" && (
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-full text-xs h-7 rounded-lg"
-          onClick={(event) => {
-            event.stopPropagation();
-            if (task.status === "pending" || task.status === "overdue" || task.status === "blocked")
-              updateTaskStatus(task.id, "in_progress");
-            else if (task.status === "in_progress")
-              updateTaskStatus(task.id, "completed");
-          }}
-        >
-          {task.status === "in_progress" ? "✓ Concluir" : "▶ Iniciar"}
-        </Button>
-      )}
+      <FilterPopover
+        title="Filtrar tarefas"
+        activeCount={[statusFilters.length > 0, typeFilter !== "all", clientFilter !== "all", assigneeFilter !== "all"].filter(Boolean).length}
+        description="Combine status, tipo, cliente e responsável."
+        onClear={() => {
+          setStatusFilters([]);
+          setTypeFilter("all");
+          setClientFilter("all");
+          setAssigneeFilter("all");
+        }}
+      >
+        <MultiSelectFilter
+          label="Status"
+          options={[
+            { value: "overdue", label: "Atrasadas" },
+            { value: "blocked", label: "Bloqueadas" },
+            { value: "pending", label: "Pendentes" },
+            { value: "in_progress", label: "Em andamento" },
+            { value: "completed", label: "Concluídas" },
+          ]}
+          value={statusFilters}
+          onChange={(value) => setStatusFilters(value as TaskStatus[])}
+        />
+        <Select value={typeFilter} onValueChange={setTypeFilter}>
+          <SelectTrigger className="w-full text-sm"><SelectValue placeholder="Tipo" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos tipos</SelectItem>
+            <SelectItem value="monthly">Mensal</SelectItem>
+            <SelectItem value="annual">Anual</SelectItem>
+            <SelectItem value="one_time">Única</SelectItem>
+          </SelectContent>
+        </Select>
+        {viewMode !== "client" && (
+          <Select value={clientFilter} onValueChange={setClientFilter}>
+            <SelectTrigger className="w-full text-sm"><SelectValue placeholder="Cliente" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos clientes</SelectItem>
+              {activeClients.map((client) => <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        )}
+        {viewMode !== "client" && (
+          <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
+            <SelectTrigger className="w-full text-sm"><SelectValue placeholder="Responsável" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              {assignees.map(([id, name]) => <SelectItem key={id} value={id}>{name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        )}
+        <div className="space-y-1.5">
+          <p className="text-xs font-medium text-muted-foreground">Ordenar</p>
+          <Select value={taskSort} onValueChange={(value: "asc" | "desc") => setTaskSort(value)}>
+            <SelectTrigger className="w-full text-sm"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="asc">Prazo mais próximo</SelectItem>
+              <SelectItem value="desc">Prazo mais distante</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </FilterPopover>
+      <SortToggle label="prazo" direction={taskSort} onChange={setTaskSort} />
     </div>
   );
 
@@ -320,7 +368,7 @@ const Tasks = () => {
       <div className="space-y-6">
         <div className="flex items-center justify-between animate-fade-in">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">
+            <h1 className="text-[28px] font-normal tracking-[-0.035em]">
               Minhas Tarefas
             </h1>
             <p className="text-muted-foreground">
@@ -328,32 +376,6 @@ const Tasks = () => {
             </p>
           </div>
           <div className="flex gap-2">
-            <div className="flex border border-border rounded-xl overflow-hidden">
-              <Button
-                variant={viewType === "list" ? "default" : "ghost"}
-                size="sm"
-                className="rounded-none rounded-l-xl"
-                onClick={() => setViewType("list")}
-              >
-                <LayoutList className="h-4 w-4" />
-              </Button>
-              <Button
-                variant={viewType === "grid" ? "default" : "ghost"}
-                size="sm"
-                className="rounded-none rounded-r-xl"
-                onClick={() => setViewType("grid")}
-              >
-                <Columns3 className="h-4 w-4" />
-              </Button>
-              <Button
-                variant={viewType === "calendar" ? "default" : "ghost"}
-                size="sm"
-                className="rounded-none"
-                onClick={() => setViewType("calendar")}
-              >
-                <Calendar className="h-4 w-4" />
-              </Button>
-            </div>
             {viewMode !== "client" && (
               <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                 <DialogTrigger asChild>
@@ -502,147 +524,26 @@ const Tasks = () => {
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 gap-4 animate-fade-in md:grid-cols-5">
-          <div className="glass rounded-2xl p-4 flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-red-500/10">
-              <AlertTriangle className="h-5 w-5 text-red-500" />
-            </div>
-            <div>
-              <p className="text-2xl font-semibold">{overdueCount}</p>
-              <p className="text-sm text-muted-foreground">Atrasadas</p>
-            </div>
-          </div>
-          <div className="glass rounded-2xl p-4 flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-red-500/10">
-              <LockKeyhole className="h-5 w-5 text-red-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-semibold">{blockedCount}</p>
-              <p className="text-sm text-muted-foreground">Bloqueadas</p>
-            </div>
-          </div>
-          <div className="glass rounded-2xl p-4 flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-amber-500/10">
-              <AlertCircle className="h-5 w-5 text-amber-500" />
-            </div>
-            <div>
-              <p className="text-2xl font-semibold">{pendingCount}</p>
-              <p className="text-sm text-muted-foreground">Pendentes</p>
-            </div>
-          </div>
-          <div className="glass rounded-2xl p-4 flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-primary/10">
-              <Clock className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-2xl font-semibold">{inProgressCount}</p>
-              <p className="text-sm text-muted-foreground">Em Andamento</p>
-            </div>
-          </div>
-          <div className="glass rounded-2xl p-4 flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-emerald-500/10">
-              <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-            </div>
-            <div>
-              <p className="text-2xl font-semibold">{completedCount}</p>
-              <p className="text-sm text-muted-foreground">Concluídas</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Filters */}
-        <div className="filter-toolbar flex items-center justify-between gap-3 animate-fade-in">
-          <div className="flex min-w-0 items-center gap-2">
-            <FilterPopover
-              activeCount={[statusFilter !== "all", typeFilter !== "all", clientFilter !== "all", assigneeFilter !== "all"].filter(Boolean).length}
-              description="Combine status, tipo, cliente e responsável."
-            >
-                <div className="space-y-2">
-                  <p className="text-xs font-medium text-muted-foreground">Status</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    {(
-                      [
-                        ["all", "Todas"],
-                        ["overdue", "Atrasadas"],
-                        ["blocked", "Bloqueadas"],
-                        ["pending", "Pendentes"],
-                        ["in_progress", "Em andamento"],
-                        ["completed", "Concluídas"],
-                      ] as const
-                    ).map(([value, label]) => (
-                      <Button
-                        key={value}
-                        type="button"
-                        variant={statusFilter === value ? "default" : "outline"}
-                        size="sm"
-                        className="justify-start"
-                        onClick={() => setStatusFilter(value)}
-                      >
-                        {label}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-full text-sm">
-                <SelectValue placeholder="Tipo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos tipos</SelectItem>
-                <SelectItem value="monthly">Mensal</SelectItem>
-                <SelectItem value="annual">Anual</SelectItem>
-                <SelectItem value="one_time">Única</SelectItem>
-              </SelectContent>
-            </Select>
-            {viewMode !== "client" && (
-              <Select value={clientFilter} onValueChange={setClientFilter}>
-                <SelectTrigger className="w-full text-sm">
-                  <SelectValue placeholder="Cliente" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos clientes</SelectItem>
-                  {activeClients.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-            {viewMode !== "client" && (
-              <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
-                <SelectTrigger className="w-full text-sm">
-                  <SelectValue placeholder="Responsável" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  {assignees.map(([id, name]) => (
-                    <SelectItem key={id} value={id}>
-                      {name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-            </FilterPopover>
-          </div>
-        </div>
-
-        {viewMode === "client" && (
-          <div className="glass rounded-2xl p-4 text-sm text-muted-foreground animate-fade-in">
-            As tarefas do cliente reúnem dados, documentos e pagamentos enviados
-            para a Lotus.
-          </div>
-        )}
+        <BentoStatStrip
+          className="animate-fade-in"
+          items={[
+            { label: "Atrasadas", value: overdueCount, icon: AlertTriangle, compact: true },
+            { label: "Bloqueadas", value: blockedCount, icon: LockKeyhole, compact: true },
+            { label: "Pendentes", value: pendingCount, icon: AlertCircle, compact: true },
+            { label: "Em andamento", value: inProgressCount, icon: Clock, compact: true },
+            { label: "Concluídas", value: completedCount, icon: CheckCircle2, compact: true },
+          ]}
+        />
 
         {viewType === "calendar" ? (
           <CalendarEventView
             title="Calendário de tarefas"
+            headerActions={taskViewControls}
             dateRange={dateRange}
             onDateRangeChange={setDateRange}
             events={filteredTasks.map((task) => ({
               day: new Date(task.dueDate).getDate(),
+              date: task.dueDate,
               title: task.title,
               subtitle: `${task.category} • ${task.clientName ?? "Lotus"}`,
               time: "10:00",
@@ -656,8 +557,23 @@ const Tasks = () => {
                     : "Pendente",
             }))}
           />
-        ) : viewType === "grid" ? (
-          <div className="grid grid-cols-1 gap-4 animate-fade-in md:grid-cols-2 xl:grid-cols-5">
+        ) : (
+          <section className="page-section space-y-4 animate-fade-in">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="text-base font-medium">{viewType === "grid" ? "Kanban de tarefas" : "Lista de tarefas"}</h2>
+                <p className="mt-1 text-sm text-muted-foreground">Acompanhe e atualize as tarefas deste escopo.</p>
+              </div>
+              {taskViewControls}
+            </div>
+            {viewMode === "client" && (
+              <div className="rounded-xl border border-border/70 bg-secondary/35 p-4 text-sm text-muted-foreground">
+                As tarefas do cliente reúnem dados, documentos e pagamentos enviados para a Lotus.
+              </div>
+            )}
+            {viewType === "grid" ? (
+          <div className="custom-scroll min-w-0 overflow-x-auto pb-2">
+            <div className="grid min-w-[1180px] grid-cols-5 gap-4 animate-fade-in">
             {(
               [
                 {
@@ -710,29 +626,33 @@ const Tasks = () => {
                     void moveTaskToStatus(col.key);
                   }}
                   className={cn(
-                    "min-h-[300px] space-y-3 rounded-2xl border bg-card/50 p-3 transition-colors",
+                    "min-h-[360px] rounded-2xl border border-border/70 bg-card p-4 transition-[border-color,background-color,box-shadow] duration-200",
                     dragOverStatus === col.key && "border-gilver bg-gilver/10",
+                    draggedTaskId && "shadow-sm",
                   )}
                 >
-                  <div
-                    className={cn(
-                      "flex items-center justify-between rounded-xl px-3 py-2",
-                      col.bg,
-                    )}
-                  >
-                    <h3 className={cn("text-sm font-semibold", col.color)}>
-                      {col.label}
-                    </h3>
-                    <Badge variant="secondary" className="rounded-full text-xs">
+                  <div className="flex items-start justify-between gap-3 border-b border-border/70 pb-3">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-xl", col.bg, col.color)}>
+                        {getStatusIcon(col.key)}
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className={cn("truncate text-xs font-medium uppercase tracking-[0.12em]", col.color)}>
+                          {col.label}
+                        </h3>
+                        <p className="mt-1 text-xs text-muted-foreground">Tarefas neste estágio</p>
+                      </div>
+                    </div>
+                    <span className="text-2xl font-semibold tabular-nums tracking-tight">
                       {colTasks.length}
-                    </Badge>
+                    </span>
                   </div>
-                  <div className="space-y-2">
+                  <div className="custom-scroll mt-3 max-h-[min(58vh,560px)] space-y-2 overflow-y-auto pr-1">
                     {colTasks.map((task) => (
                       <KanbanCard key={task.id} task={task} />
                     ))}
                     {colTasks.length === 0 && (
-                      <p className="text-xs text-muted-foreground text-center py-6">
+                      <p className="rounded-xl border border-dashed border-border/70 px-3 py-8 text-center text-xs text-muted-foreground">
                         Vazio
                       </p>
                     )}
@@ -740,85 +660,62 @@ const Tasks = () => {
                 </div>
               );
             })}
+            </div>
           </div>
         ) : (
           /* List View */
-          <div className="space-y-3 animate-fade-in">
-            {filteredTasks.map((task, index) => (
-              <div
-                key={task.id}
-                onClick={() => setSelectedTask(task)}
-                className={cn(
-                  "glass rounded-2xl p-4 flex items-start gap-4 transition-all cursor-pointer hover:bg-accent/35",
-                  task.status === "completed" && "opacity-60",
-                  (task.status === "overdue" || task.status === "blocked") && "border border-red-500/30",
-                )}
-                style={{ animationDelay: `${index * 50}ms` }}
-              >
-                <Checkbox
-                  checked={task.status === "completed"}
-                  onCheckedChange={() => toggleTaskStatus(task.id)}
-                  onClick={(event) => event.stopPropagation()}
-                  className="mt-1"
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3
-                      className={cn(
-                        "font-medium",
-                        task.status === "completed" &&
-                          "line-through text-muted-foreground",
-                      )}
-                    >
-                      {task.title}
-                    </h3>
-                    {getPriorityBadge(task.priority)}
-                    {getTypeBadge(task.type)}
-                    <Badge variant="outline" className="text-xs">
-                      {task.category}
-                    </Badge>
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {task.description}
-                  </p>
-                  {task.blockedReason && (
-                    <p className="mt-2 rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-xs text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
-                      {task.blockedReason}
-                    </p>
-                  )}
-                  <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground flex-wrap">
-                    <span className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3" />
-                      Prazo:{" "}
-                      {new Date(task.dueDate).toLocaleDateString("pt-BR")}
-                    </span>
-                    {task.clientName && <span>Cliente: {task.clientName}</span>}
-                    <span>Responsável: {task.assignedToName}</span>
-                  </div>
-                </div>
-                <div className="flex flex-col items-center gap-1">
-                  {getStatusIcon(task.status)}
-                  {task.status !== "completed" && task.status !== "overdue" && task.status !== "blocked" && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-xs h-6 px-2"
-                      onClick={(event) => { event.stopPropagation(); void updateTaskStatus(task.id, "in_progress"); }}
-                    >
-                      Iniciar
-                    </Button>
-                  )}
-                </div>
-              </div>
-            ))}
-
-            {filteredTasks.length === 0 && (
-              <div className="text-center py-12 text-muted-foreground">
-                <CheckCircle2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Nenhuma tarefa encontrada</p>
-              </div>
+          <BentoDataTable
+            rows={filteredTasks}
+            getRowKey={(task) => task.id}
+            empty={<span>Nenhuma tarefa encontrada.</span>}
+            columns={[
+              {
+                key: "task",
+                label: "Tarefa",
+                render: (task) => <div className="min-w-0"><p className={cn("max-w-[300px] truncate font-medium", task.status === "completed" && "text-muted-foreground line-through")}>{task.title}</p><p className="max-w-[300px] truncate text-xs text-muted-foreground">{task.description || task.category}</p></div>,
+              },
+              {
+                key: "client",
+                label: "Cliente",
+                render: (task) => <span className="block max-w-[180px] truncate text-sm text-muted-foreground">{task.clientName || "Sem cliente"}</span>,
+              },
+              {
+                key: "responsible",
+                label: "Responsável",
+                render: (task) => <span className="block max-w-[150px] truncate text-sm text-muted-foreground">{task.assignedToName || "Sem responsável"}</span>,
+              },
+              {
+                key: "dueDate",
+                label: "Prazo",
+                sortValue: (task) => task.dueDate ? new Date(task.dueDate) : null,
+                render: (task) => <span className="whitespace-nowrap text-sm text-muted-foreground">{new Date(task.dueDate).toLocaleDateString("pt-BR")}</span>,
+              },
+              {
+                key: "tags",
+                label: "Tags",
+                render: (task) => <div className="flex max-w-[180px] flex-wrap gap-1">{getPriorityBadge(task.priority)}{getTypeBadge(task.type)}<Badge variant="outline" className="text-[10px]">{task.category}</Badge></div>,
+              },
+              {
+                key: "status",
+                label: "Status",
+                render: (task) => <div className="flex items-center gap-2">{getStatusIcon(task.status)}<Badge variant="outline" className="text-[10px]">{task.status === "completed" ? "Concluída" : task.status === "in_progress" ? "Em andamento" : task.status === "overdue" ? "Atrasada" : task.status === "blocked" ? "Bloqueada" : "Pendente"}</Badge></div>,
+              },
+            ]}
+            actions={(task) => (
+              <RowActions
+                primaryLabel={`Abrir tarefa ${task.title}`}
+                primaryIcon={Eye}
+                onPrimary={() => setSelectedTask(task)}
+                menuItems={[
+                  ...(task.status !== "completed" ? [{ label: "Concluir", icon: CheckCircle2, onSelect: () => void updateTaskStatus(task.id, "completed") }] : []),
+                  ...(task.status !== "in_progress" && task.status !== "completed" ? [{ label: "Iniciar", icon: Clock, onSelect: () => void updateTaskStatus(task.id, "in_progress") }] : []),
+                  ...(viewMode !== "client" && canDeleteTasks ? [{ label: "Remover tarefa", icon: Trash2, destructive: true, separatorBefore: true, onSelect: () => void deleteTask(task.id) }] : []),
+                ]}
+              />
             )}
-          </div>
+          />
+            )}
+          </section>
         )}
 
         <Dialog open={Boolean(selectedTask)} onOpenChange={(open) => !open && setSelectedTask(null)}>

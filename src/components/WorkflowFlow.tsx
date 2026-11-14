@@ -75,15 +75,27 @@ export const WorkflowFlow = () => {
           <Plus className="h-4 w-4" />
           Adicionar node
         </Button>
-        <Button variant="outline" className="rounded-xl gap-2">
+        <Button
+          variant="outline"
+          className="rounded-xl gap-2"
+          disabled
+          title="A persistência real será habilitada quando o backend de workflows estiver conectado."
+        >
           <FileCheck className="h-4 w-4" />
           Salvar
         </Button>
-        <Button className="rounded-xl gap-2">
+        <Button
+          className="rounded-xl gap-2"
+          disabled
+          title="A execução real será habilitada quando o backend de workflows estiver conectado."
+        >
           <Play className="h-4 w-4" />
           Executar
         </Button>
       </div>
+      <p className="text-xs text-muted-foreground">
+        O canvas permite montar e conectar etapas nesta sessão. Salvar e executar ainda dependem da camada de automação definitiva.
+      </p>
       <div
         className="h-[500px] rounded-2xl border border-border bg-card overflow-hidden workflow-flow-container"
         style={

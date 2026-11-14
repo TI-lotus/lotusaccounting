@@ -17,6 +17,10 @@ import {
   Crown,
   LogOut,
   Check,
+  UserRound,
+  Building2,
+  Palette,
+  ShieldCheck,
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react";
@@ -40,7 +44,7 @@ import {
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useViewMode } from "@/contexts/ViewModeContext";
 import { useUserProfile } from "@/contexts/UserProfileContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -53,12 +57,13 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { SettingsContent } from "@/pages/Settings";
+import { SettingsContent, type SettingsSection } from "@/pages/Settings";
 import { useData } from "@/contexts/DataContext";
 import { integrationCatalog } from "@/lib/integrationCatalog";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { getTenantSubscription, type TenantSubscription } from "@/services/commercialMvp";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface SearchResult {
   category: string;
@@ -75,6 +80,20 @@ const aiKeywords = [
   "lotus ia",
   "perguntar",
   "pergunta",
+];
+
+const lotusPlanPrices: Record<string, string> = {
+  starter: "R$ 220",
+  business: "R$ 450",
+  enterprise: "R$ 630",
+};
+
+const settingsSections: Array<{ id: SettingsSection | "billing"; label: string; description: string; icon: React.ElementType }> = [
+  { id: "profile", label: "Perfil", description: "Nome, foto e e-mail", icon: UserRound },
+  { id: "organization", label: "Organização", description: "Escritório e dados fiscais", icon: Building2 },
+  { id: "preferences", label: "Preferências", description: "Tema, avisos e automações", icon: Palette },
+  { id: "security", label: "Segurança", description: "Senha e autenticação", icon: ShieldCheck },
+  { id: "billing", label: "Plano e cobrança", description: "Plano atual e assinatura", icon: CreditCard },
 ];
 
 interface TopBarProps {
@@ -128,9 +147,12 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
   const [notificationOpen, setNotificationOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsSection, setSettingsSection] = useState<SettingsSection | "billing">("profile");
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [subscription, setSubscription] = useState<TenantSubscription | null>(null);
   const navigate = useNavigate();
+  const location = useLocation();
+  const isMessagesPage = location.pathname === "/messages";
   const { viewMode, role, isCollapsed, setIsCollapsed } = useViewMode();
   const { theme } = useTheme();
   const profile = useUserProfile();
@@ -444,9 +466,9 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
       <header
         data-theme={theme}
         className={cn(
-          "topbar-shell h-14 transition-all duration-500 lg:h-[4.25rem]",
-          "flex items-center justify-between px-3 md:px-8 gap-2 md:gap-6 sticky top-0 lg:transition-[margin] lg:duration-300",
-          isCollapsed ? "lg:ml-[4.5rem]" : "lg:ml-64",
+          "topbar-shell h-12 transition-[background-color,border-color,margin] duration-300 lg:h-14",
+          "flex items-center justify-between px-2.5 md:px-6 gap-2 md:gap-5 sticky top-0 lg:transition-[margin] lg:duration-300",
+          isCollapsed ? "lg:ml-[3.75rem]" : "lg:ml-64",
           "isolate border-b backdrop-blur-[28px] backdrop-saturate-150",
           isDropdownVisible ? "z-50" : "z-40",
           className,
@@ -456,10 +478,11 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
           <button
             type="button"
             aria-label={isCollapsed ? "Expandir menu lateral" : "Recolher menu lateral"}
-            title={isCollapsed ? "Expandir menu" : "Recolher menu"}
-            onClick={() => setIsCollapsed(!isCollapsed)}
+            title={isMessagesPage ? "Menu lateral fixo nesta tela" : isCollapsed ? "Expandir menu" : "Recolher menu"}
+            onClick={() => !isMessagesPage && setIsCollapsed(!isCollapsed)}
+            disabled={isMessagesPage}
             className={cn(
-              "rounded-xl p-2 transition-colors",
+              "rounded-full p-2 transition-[background-color,color] disabled:cursor-default disabled:opacity-60",
               theme === "dark" ? "text-white/60 hover:bg-white/10 hover:text-white" : "text-muted-foreground hover:bg-black/5 hover:text-foreground",
             )}
           >
@@ -527,6 +550,8 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
                       setQuery("");
                       setShowResults(false);
                     }}
+                    aria-label="Limpar busca"
+                    title="Limpar busca"
                     className="topbar-search-clear text-muted-foreground hover:text-foreground"
                   >
                     <X className="h-4 w-4" />
@@ -613,27 +638,41 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
           </Popover>
         </div>
         <div className="flex items-center gap-1 md:gap-2 shrink-0">
-          <Button
-            variant="ghost"
-            size="icon"
-            className={cn("h-9 w-9 rounded-xl", theme === "dark" ? "text-white hover:bg-white/15 hover:text-white" : "text-foreground hover:bg-black/5")}
-            onClick={() => navigate("/messages")}
-          >
-            <MessageSquare className="h-4 w-4" />
-          </Button>
-          <Popover open={notificationOpen} onOpenChange={setNotificationOpen}>
-            <PopoverTrigger asChild>
+          <Tooltip>
+            <TooltipTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
-                className={cn("relative h-9 w-9 rounded-xl", theme === "dark" ? "text-white hover:bg-white/15 hover:text-white" : "text-foreground hover:bg-black/5")}
+                aria-label="Mensagens"
+                title="Mensagens"
+                className={cn("h-8 w-8 rounded-full border-0", theme === "dark" ? "text-white hover:bg-white/15 hover:text-white" : "text-foreground hover:bg-black/5")}
+                onClick={() => navigate("/messages")}
               >
-                <Bell className="h-4 w-4" />
-                {unreadCount > 0 && (
-                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-destructive rounded-full" />
-                )}
+                <MessageSquare className="h-4 w-4" aria-hidden="true" />
               </Button>
-            </PopoverTrigger>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" sideOffset={8} className="judex-floating sidebar-tooltip">Mensagens</TooltipContent>
+          </Tooltip>
+          <Popover open={notificationOpen} onOpenChange={setNotificationOpen}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Notificações"
+                    title="Notificações"
+                    className={cn("relative h-8 w-8 rounded-full border-0", theme === "dark" ? "text-white hover:bg-white/15 hover:text-white" : "text-foreground hover:bg-black/5")}
+                  >
+                    <Bell className="h-4 w-4" aria-hidden="true" />
+                    {unreadCount > 0 && (
+                      <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-destructive" />
+                    )}
+                  </Button>
+                </PopoverTrigger>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" sideOffset={8} className="judex-floating sidebar-tooltip">Notificações</TooltipContent>
+            </Tooltip>
             <PopoverContent
               align="end"
               className="legal-notifications judex-floating z-[99999] w-[400px] overflow-hidden p-0"
@@ -770,8 +809,64 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
             <DialogTitle>Configurações</DialogTitle>
             <DialogDescription>Seu espaço, do seu jeito.</DialogDescription>
           </DialogHeader>
-          <div className="dialog-body account-settings-body custom-scroll">
-            <SettingsContent showHeader={false} />
+          <div className="dialog-body account-settings-body settings-modal-body">
+            <div className="settings-modal-layout">
+              <nav className="settings-modal-nav" aria-label="Seções das configurações">
+                {settingsSections.map((item) => {
+                  const Icon = item.icon;
+                  const active = settingsSection === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setSettingsSection(item.id)}
+                      className={cn("settings-modal-nav-item", active && "is-active")}
+                      aria-current={active ? "page" : undefined}
+                    >
+                      <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                      <span className="min-w-0 text-left">
+                        <strong>{item.label}</strong>
+                        <small>{item.description}</small>
+                      </span>
+                    </button>
+                  );
+                })}
+              </nav>
+              <div className="settings-modal-content custom-scroll">
+                {settingsSection === "billing" ? (
+                  <div className="space-y-5">
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">Plano e cobrança</p>
+                      <h3 className="mt-2 text-xl font-medium tracking-tight">Sua assinatura Lotus</h3>
+                      <p className="mt-1 text-sm text-muted-foreground">Veja o plano ativo e escolha a estrutura certa para o seu escritório.</p>
+                    </div>
+                    <div className="rounded-2xl border border-border bg-card p-5">
+                      <div className="flex flex-wrap items-start justify-between gap-4">
+                        <div>
+                          <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">Plano atual</p>
+                          <p className="mt-2 text-2xl font-medium capitalize">{subscription?.plan_id || "Nenhum plano ativo"}</p>
+                          <p className="mt-1 text-sm text-muted-foreground">{subscription?.plan_id ? `${lotusPlanPrices[subscription.plan_id]}/mês · ${subscription.status === "active" ? "Assinatura ativa" : "Configuração comercial"}` : "Escolha um plano para ativar a cobrança."}</p>
+                        </div>
+                        <Button onClick={() => { setSettingsOpen(false); setUpgradeOpen(true); }}>Ver planos</Button>
+                      </div>
+                    </div>
+                    <div className="grid gap-2 sm:grid-cols-3">
+                      {Object.entries(lotusPlanPrices).map(([id, price]) => {
+                        const selected = subscription?.plan_id === id;
+                        return (
+                          <div key={id} className={cn("rounded-xl border p-3", selected ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card")}>
+                            <p className="text-sm font-medium capitalize">{id}</p>
+                            <p className={cn("mt-1 text-xs", selected ? "text-primary-foreground/75" : "text-muted-foreground")}>{price}/mês</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <SettingsContent showHeader={false} section={settingsSection} />
+                )}
+              </div>
+            </div>
           </div>
           <DialogFooter className="dialog-footer">
             <span className="settings-saved">Preferências salvas automaticamente</span>
@@ -795,12 +890,12 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
             ].map((plan) => (
               (() => {
                 const current = subscription?.plan_id === plan.id;
-                return <article key={plan.name} className={cn("judex-plan", plan.featured && "featured", current && "current")}>
+                return <article key={plan.name} className={cn("judex-plan", plan.featured && "featured", current && "current !border-primary !bg-primary !text-primary-foreground")}>
                 <span className="plan-eyebrow">{current ? "LOTUS · PLANO ATUAL" : plan.featured ? "LOTUS · MAIS POSSIBILIDADES" : "LOTUS"}</span>
                 <h3>{plan.name}</h3>
-                <p>{plan.description}</p>
-                <strong className="plan-price">Valor a definir</strong>
-                <small>Limites em definição</small>
+                <p className={cn(current && "!text-primary-foreground/80")}>{plan.description}</p>
+                <strong className="plan-price">{lotusPlanPrices[plan.id]}</strong>
+                <small className={cn(current && "!text-primary-foreground/70")}>por mês</small>
                 <div className="plan-features-label">Recursos previstos</div>
                 <ul>
                   {plan.features.map((feature) => (
@@ -810,7 +905,7 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
                 <Button
                   variant={current || plan.featured ? "default" : "outline"}
                   disabled={current}
-                  className={cn("w-full", (current || plan.featured) && "bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-100")}
+                  className={cn("w-full", (current || plan.featured) && "bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-100", current && "!bg-primary-foreground !text-primary")}
                   onClick={() => {
                     setUpgradeOpen(false);
                     navigate("/upgrade");

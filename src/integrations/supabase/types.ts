@@ -318,6 +318,8 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           id: string
+          is_archived: boolean
+          is_pinned: boolean
           recipient_id: string | null
           tenant_id: string | null
           title: string | null
@@ -328,6 +330,8 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           id?: string
+          is_archived?: boolean
+          is_pinned?: boolean
           recipient_id?: string | null
           tenant_id?: string | null
           title?: string | null
@@ -338,6 +342,8 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           id?: string
+          is_archived?: boolean
+          is_pinned?: boolean
           recipient_id?: string | null
           tenant_id?: string | null
           title?: string | null
@@ -1992,6 +1998,14 @@ export type Database = {
       mark_internal_conversation_read: {
         Args: { target_conversation_id: string }
         Returns: number
+      }
+      set_internal_conversation_preference: {
+        Args: {
+          next_is_archived?: boolean | null
+          next_is_pinned?: boolean | null
+          target_conversation_id: string
+        }
+        Returns: Database["public"]["Tables"]["conversations"]["Row"]
       }
       generate_monthly_service_fee_invoices: {
         Args: { target_period?: string }

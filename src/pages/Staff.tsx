@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database, Json } from "@/integrations/supabase/types";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
-import { Building2, CheckSquare, Copy, Grid2X2, List, Mail, Pencil, Plus, Search, Shield, ShieldAlert, ShieldCheck, UserCog, UserPlus } from "lucide-react";
+import { Building2, CheckSquare, Copy, Grid2X2, List, Mail, Pencil, Plus, Search, Shield, ShieldAlert, ShieldCheck, UserCog, UserPlus, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -31,6 +31,13 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useData } from "@/contexts/DataContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { BentoStatStrip } from "@/components/dashboard/BentoStatStrip";
+import { getBentoGridClass } from "@/components/dashboard/bentoGrid";
+import { IconTooltipButton } from "@/components/IconTooltipButton";
+import { RowActions } from "@/components/RowActions";
+import { BentoDataTable } from "@/components/BentoDataTable";
+import { FilterPopover } from "@/components/FilterPopover";
+import { MultiSelectFilter } from "@/components/MultiSelectFilter";
 
 type ProfileRow = Pick<Database["public"]["Tables"]["profiles"]["Row"], "id" | "user_id" | "full_name" | "phone" | "job_title" | "avatar_url" | "account_type" | "company_id" | "status" | "created_at">;
 type InviteRow = Pick<Database["public"]["Tables"]["invites"]["Row"], "id" | "email" | "full_name" | "account_type" | "company_id" | "token" | "status" | "expires_at" | "created_at">;
@@ -108,6 +115,9 @@ const Staff = () => {
   const [permissionMemberId, setPermissionMemberId] = useState("");
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [inviteSearch, setInviteSearch] = useState("");
+  const [inviteStatusFilters, setInviteStatusFilters] = useState<string[]>([]);
+  const [inviteAccessFilters, setInviteAccessFilters] = useState<string[]>([]);
   const [peopleViewMode, setPeopleViewMode] = useState<"grid" | "list">("grid");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
@@ -171,6 +181,13 @@ const Staff = () => {
   const filteredMembers = members.filter((member) => {
     const haystack = `${member.full_name ?? ""} ${member.job_title ?? ""} ${member.account_type}`.toLowerCase();
     return haystack.includes(searchTerm.toLowerCase());
+  });
+  const filteredInvites = invites.filter((invite) => {
+    const search = inviteSearch.trim().toLowerCase();
+    const searchMatch = !search || `${invite.full_name ?? ""} ${invite.email}`.toLowerCase().includes(search);
+    const statusMatch = inviteStatusFilters.length === 0 || inviteStatusFilters.includes(invite.status);
+    const accessMatch = inviteAccessFilters.length === 0 || inviteAccessFilters.includes(invite.account_type);
+    return searchMatch && statusMatch && accessMatch;
   });
 
   const handleInvite = async () => {
@@ -406,7 +423,7 @@ const Staff = () => {
       <div className="space-y-6">
         <div className="page-header flex items-center justify-between gap-4 animate-fade-in">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Equipe e acessos</h1>
+            <h1 className="text-[28px] font-normal tracking-[-0.035em]">Equipe e acessos</h1>
             <p className="text-muted-foreground">Convide usuários, acompanhe papéis e controle vínculos por cliente</p>
           </div>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -420,17 +437,17 @@ const Staff = () => {
               </DialogHeader>
               <div className="dialog-body custom-scroll grid gap-4">
                 <div className="grid gap-2">
-                  <Label>Nome</Label>
-                  <Input value={inviteForm.fullName} onChange={(event) => setInviteForm({ ...inviteForm, fullName: event.target.value })} placeholder="Nome completo" className="rounded-xl" />
+                  <Label htmlFor="invite-full-name">Nome</Label>
+                  <Input id="invite-full-name" name="full-name" autoComplete="name" value={inviteForm.fullName} onChange={(event) => setInviteForm({ ...inviteForm, fullName: event.target.value })} placeholder="Nome completo" className="rounded-xl" />
                 </div>
                 <div className="grid gap-2">
-                  <Label>Email</Label>
-                  <Input type="email" value={inviteForm.email} onChange={(event) => setInviteForm({ ...inviteForm, email: event.target.value })} placeholder="email@empresa.com" className="rounded-xl" />
+                  <Label htmlFor="invite-email">E-mail</Label>
+                  <Input id="invite-email" name="email" autoComplete="email" type="email" value={inviteForm.email} onChange={(event) => setInviteForm({ ...inviteForm, email: event.target.value })} placeholder="email@empresa.com" className="rounded-xl" />
                 </div>
                 <div className="grid gap-2">
-                  <Label>Tipo de acesso</Label>
+                  <Label htmlFor="invite-account-type">Tipo de acesso</Label>
                   <Select value={inviteForm.accountType} onValueChange={(value: InviteForm["accountType"]) => setInviteForm({ ...inviteForm, accountType: value, companyId: "" })}>
-                    <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+                    <SelectTrigger id="invite-account-type" className="rounded-xl"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="collaborator">Colaborador</SelectItem>
                       <SelectItem value="client">Cliente</SelectItem>
@@ -439,9 +456,9 @@ const Staff = () => {
                 </div>
                 {inviteForm.accountType === "client" && (
                   <div className="grid gap-2">
-                    <Label>Empresa vinculada</Label>
+                    <Label htmlFor="invite-company">Empresa vinculada</Label>
                     <Select value={inviteForm.companyId} onValueChange={(value) => setInviteForm({ ...inviteForm, companyId: value })}>
-                      <SelectTrigger className="rounded-xl"><SelectValue placeholder="Selecione um cliente" /></SelectTrigger>
+                      <SelectTrigger id="invite-company" className="rounded-xl"><SelectValue placeholder="Selecione um cliente" /></SelectTrigger>
                       <SelectContent>
                         {clients.filter((client) => client.status === "active").map((client) => <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>)}
                       </SelectContent>
@@ -457,24 +474,15 @@ const Staff = () => {
           </Dialog>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-fade-in">
-          <div className="kpi-card flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-gilver/10"><UserCog className="h-5 w-5 text-gilver" /></div>
-            <div><p className="text-2xl font-semibold">{members.length}</p><p className="text-sm text-muted-foreground">Equipe</p></div>
-          </div>
-          <div className="kpi-card flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-emerald-500/10"><ShieldCheck className="h-5 w-5 text-emerald-500" /></div>
-            <div><p className="text-2xl font-semibold">{activeMembers.length}</p><p className="text-sm text-muted-foreground">Ativos</p></div>
-          </div>
-          <div className="kpi-card flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-amber-500/10"><UserPlus className="h-5 w-5 text-amber-500" /></div>
-            <div><p className="text-2xl font-semibold">{pendingInvites.length}</p><p className="text-sm text-muted-foreground">Convites</p></div>
-          </div>
-          <div className="kpi-card flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-blue-500/10"><CheckSquare className="h-5 w-5 text-blue-500" /></div>
-            <div><p className="text-2xl font-semibold">{clientsProfiles.length}</p><p className="text-sm text-muted-foreground">Acessos cliente</p></div>
-          </div>
-        </div>
+        <BentoStatStrip
+          className="animate-fade-in"
+          items={[
+            { label: "Equipe", value: members.length, icon: UserCog, compact: true },
+            { label: "Ativos", value: activeMembers.length, icon: ShieldCheck, compact: true },
+            { label: "Convites", value: pendingInvites.length, icon: UserPlus, compact: true },
+            { label: "Acessos cliente", value: clientsProfiles.length, icon: CheckSquare, compact: true },
+          ]}
+        />
 
         <Tabs defaultValue="people" className="animate-fade-in">
           <TabsList>
@@ -489,20 +497,100 @@ const Staff = () => {
               <div className="filter-toolbar mb-6 flex flex-wrap items-center gap-3">
                 <div className="relative flex-1 max-w-sm">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input placeholder="Buscar por nome, cargo ou papel..." value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} className="pl-10 rounded-xl" />
+                  <Input
+                    name="staff-search"
+                    autoComplete="off"
+                    aria-label="Buscar colaboradores"
+                    placeholder="Buscar por nome, cargo ou papel…"
+                    value={searchTerm}
+                    onChange={(event) => setSearchTerm(event.target.value)}
+                    className="pl-10 rounded-xl"
+                  />
                 </div>
                 <Badge variant="secondary" className="px-3 py-1.5">{filteredMembers.length} membros</Badge>
-                <div className="ml-auto flex rounded-xl border border-border bg-card p-1">
-                  <Button variant={peopleViewMode === "grid" ? "default" : "ghost"} size="sm" className="h-8 rounded-lg gap-1.5" onClick={() => setPeopleViewMode("grid")}>
-                    <Grid2X2 className="h-3.5 w-3.5" />Grade
-                  </Button>
-                  <Button variant={peopleViewMode === "list" ? "default" : "ghost"} size="sm" className="h-8 rounded-lg gap-1.5" onClick={() => setPeopleViewMode("list")}>
-                    <List className="h-3.5 w-3.5" />Lista
-                  </Button>
+                <div className="ml-auto flex rounded-full border border-border bg-card p-1">
+                  <IconTooltipButton icon={Grid2X2} label="Grade" variant={peopleViewMode === "grid" ? "default" : "ghost"} aria-pressed={peopleViewMode === "grid"} onClick={() => setPeopleViewMode("grid")} />
+                  <IconTooltipButton icon={List} label="Lista" variant={peopleViewMode === "list" ? "default" : "ghost"} aria-pressed={peopleViewMode === "list"} onClick={() => setPeopleViewMode("list")} />
                 </div>
               </div>
 
-              <div className={cn("grid gap-4", peopleViewMode === "grid" ? "sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "grid-cols-1")}>
+              {peopleViewMode === "list" ? (
+                <BentoDataTable
+                  rows={filteredMembers}
+                  getRowKey={(member) => member.id}
+                  empty={<span>Nenhum membro encontrado.</span>}
+                  columns={[
+                    {
+                      key: "member",
+                      label: "Colaborador",
+                      render: (member) => {
+                        const name = member.full_name || "Sem nome";
+                        return (
+                          <div className="flex min-w-0 items-center gap-3">
+                            <Avatar className="h-9 w-9 shrink-0 ring-2 ring-gilver/30">
+                              <AvatarImage src={member.avatar_url ?? undefined} />
+                              <AvatarFallback className="bg-gilver/15 text-xs font-medium text-gilver">{initials(name)}</AvatarFallback>
+                            </Avatar>
+                            <div className="min-w-0">
+                              <p className="max-w-[220px] truncate font-medium">{name}</p>
+                              <p className="max-w-[220px] truncate text-xs text-muted-foreground">{roleLabel(member.account_type)}</p>
+                            </div>
+                          </div>
+                        );
+                      },
+                    },
+                    {
+                      key: "jobTitle",
+                      label: "Cargo",
+                      render: (member) => <span className="block max-w-[180px] truncate text-sm text-muted-foreground">{member.job_title || "—"}</span>,
+                    },
+                    {
+                      key: "status",
+                      label: "Status",
+                      render: (member) => <Badge className={cn("text-[10px]", member.status === "active" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400" : "bg-muted text-muted-foreground")}>{member.status === "active" ? "Ativo" : "Inativo"}</Badge>,
+                    },
+                    {
+                      key: "tasks",
+                      label: "Tarefas",
+                      sortValue: (member) => tasks.filter((task) => task.assignedToId === member.user_id).length,
+                      render: (member) => {
+                        const memberTasks = tasks.filter((task) => task.assignedToId === member.user_id);
+                        const completed = memberTasks.filter((task) => task.status === "completed").length;
+                        const progress = memberTasks.length ? Math.round((completed / memberTasks.length) * 100) : 0;
+                        return (
+                          <div className="w-[140px] space-y-1">
+                            <div className="flex justify-between gap-2 text-[10px] text-muted-foreground"><span>{completed}/{memberTasks.length} concluídas</span><span>{progress}%</span></div>
+                            <Progress value={progress} className="h-1.5" />
+                          </div>
+                        );
+                      },
+                    },
+                    {
+                      key: "created",
+                      label: "Desde",
+                      sortValue: (member) => member.created_at ? new Date(member.created_at) : null,
+                      render: (member) => <span className="whitespace-nowrap text-sm text-muted-foreground">{member.created_at ? new Date(member.created_at).toLocaleDateString("pt-BR") : "—"}</span>,
+                    },
+                  ]}
+                  actions={(member) => {
+                    const name = member.full_name || "Sem nome";
+                    return (
+                      <RowActions
+                        primaryLabel={`Abrir detalhes de ${name}`}
+                        primaryIcon={Eye}
+                        onPrimary={() => setDetailMember(member)}
+                        menuItems={[
+                          { label: "Atribuir tarefas", icon: CheckSquare, onSelect: () => { setSelectedMember(member); setAssignDialogOpen(true); } },
+                          ...(member.user_id !== profile?.user_id && profile?.account_type === "admin" ? [{ label: "Atribuir clientes", icon: Building2, onSelect: () => { setSelectedMember(member); setClientAssignmentOpen(true); } }] : []),
+                          ...(member.user_id !== profile?.user_id && profile?.account_type === "admin" ? [{ label: "Editar colaborador", icon: Pencil, onSelect: () => openMemberEditor(member) }, { label: "Editar acesso", icon: Shield, onSelect: () => openAccessEditor(member) }] : []),
+                          ...(member.user_id !== profile?.user_id ? [{ label: member.status === "active" ? "Desativar acesso" : "Ativar acesso", icon: ShieldAlert, onSelect: () => void toggleStatus(member) }] : []),
+                        ]}
+                      />
+                    );
+                  }}
+                />
+              ) : (
+              <div className={cn("overflow-hidden rounded-2xl border border-border/70 bg-border/70", "grid gap-px", getBentoGridClass(filteredMembers.length))}>
                 {filteredMembers.map((member) => {
                   const memberTasks = tasks.filter((task) => task.assignedToId === member.user_id);
                   const completed = memberTasks.filter((task) => task.status === "completed").length;
@@ -510,7 +598,7 @@ const Staff = () => {
                   return (
                     <div
                       key={member.id}
-                      className="flex flex-col gap-3 rounded-2xl border border-border/70 bg-card/70 p-4 transition-[background-color,border-color,box-shadow] duration-200 hover:border-foreground/20 hover:bg-accent/30"
+                      className="flex flex-col gap-3 bg-card p-4 transition-colors duration-200 hover:bg-accent/30"
                     >
                       <button
                         type="button"
@@ -548,31 +636,18 @@ const Staff = () => {
                         </div>
                       </button>
 
-                      <div className={cn("flex flex-wrap gap-2", peopleViewMode === "list" && "md:justify-end")}>
-                        <Button variant="outline" size="sm" className="flex-1 rounded-xl gap-1.5" onClick={(event) => { event.stopPropagation(); setSelectedMember(member); setAssignDialogOpen(true); }}>
-                          <CheckSquare className="h-3.5 w-3.5" />Tarefas
-                        </Button>
-                        {member.user_id !== profile?.user_id && profile?.account_type === "admin" && (
-                          <Button variant="outline" size="sm" className="flex-1 rounded-xl gap-1.5" onClick={(event) => { event.stopPropagation(); setSelectedMember(member); setClientAssignmentOpen(true); }}>
-                            <Building2 className="h-3.5 w-3.5" />Clientes
-                          </Button>
-                        )}
-                        {member.user_id !== profile?.user_id && profile?.account_type === "admin" && (
-                          <Button variant="outline" size="sm" className="flex-1 rounded-xl gap-1.5" onClick={(event) => { event.stopPropagation(); openMemberEditor(member); }}>
-                            <Pencil className="h-3.5 w-3.5" />Editar
-                          </Button>
-                        )}
-                        {member.user_id !== profile?.user_id && profile?.account_type === "admin" && (
-                          <Button variant="outline" size="sm" className="flex-1 rounded-xl" onClick={(event) => { event.stopPropagation(); openAccessEditor(member); }}>
-                            Acesso
-                          </Button>
-                        )}
-                        {member.user_id !== profile?.user_id && (
-                          <Button variant={member.status === "active" ? "outline" : "default"} size="sm" className="flex-1 rounded-xl gap-1.5" onClick={(event) => { event.stopPropagation(); void toggleStatus(member); }}>
-                            <ShieldAlert className="h-3.5 w-3.5" />
-                            {member.status === "active" ? "Desativar" : "Ativar"}
-                          </Button>
-                        )}
+                      <div className="flex justify-end border-t border-border/70 pt-3">
+                        <RowActions
+                          primaryLabel={`Abrir detalhes de ${name}`}
+                          primaryIcon={Eye}
+                          onPrimary={() => setDetailMember(member)}
+                          menuItems={[
+                            { label: "Atribuir tarefas", icon: CheckSquare, onSelect: () => { setSelectedMember(member); setAssignDialogOpen(true); } },
+                            ...(member.user_id !== profile?.user_id && profile?.account_type === "admin" ? [{ label: "Atribuir clientes", icon: Building2, onSelect: () => { setSelectedMember(member); setClientAssignmentOpen(true); } }] : []),
+                            ...(member.user_id !== profile?.user_id && profile?.account_type === "admin" ? [{ label: "Editar colaborador", icon: Pencil, onSelect: () => openMemberEditor(member) }, { label: "Editar acesso", icon: Shield, onSelect: () => openAccessEditor(member) }] : []),
+                            ...(member.user_id !== profile?.user_id ? [{ label: member.status === "active" ? "Desativar acesso" : "Ativar acesso", icon: ShieldAlert, onSelect: () => void toggleStatus(member) }] : []),
+                          ]}
+                        />
                       </div>
                     </div>
                   );
@@ -585,33 +660,94 @@ const Staff = () => {
                   </div>
                 )}
               </div>
+              )}
             </div>
           </TabsContent>
 
           <TabsContent value="invites" className="mt-4">
-            <div className="glass rounded-2xl p-6 space-y-3">
-              {invites.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-8">Nenhum convite criado ainda.</p>
-              ) : invites.map((invite) => (
-                <div key={invite.id} className="flex flex-col gap-3 rounded-xl border border-border p-4 md:flex-row md:items-center md:justify-between">
-                  <div className="min-w-0">
-                    <p className="font-medium truncate">{invite.full_name || invite.email}</p>
-                    <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Mail className="h-3 w-3" />{invite.email}</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {roleLabel(invite.account_type)}{invite.company_id ? ` · ${clients.find((client) => client.id === invite.company_id)?.name ?? "cliente vinculado"}` : ""}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant={invite.status === "pending" ? "secondary" : "outline"}>{invite.status === "pending" ? "Pendente" : invite.status === "accepted" ? "Aceito" : "Revogado"}</Badge>
-                    {invite.status === "pending" && (
-                      <>
-                        <Button variant="outline" size="sm" className="rounded-xl gap-2" onClick={() => copyInviteLink(invite.token)}><Copy className="h-4 w-4" />Copiar link</Button>
-                        <Button variant="outline" size="sm" className="rounded-xl" onClick={() => revokeInvite(invite.id)}>Revogar</Button>
-                      </>
-                    )}
-                  </div>
+            <div className="glass page-section space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-base font-medium">Convites enviados</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">Acompanhe destinatário, vínculo, status e validade do acesso.</p>
                 </div>
-              ))}
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  <div className="relative min-w-[210px]">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+                    <Input
+                      value={inviteSearch}
+                      onChange={(event) => setInviteSearch(event.target.value)}
+                      placeholder="Buscar convite…"
+                      aria-label="Buscar convites"
+                      className="h-9 rounded-lg border-border/70 bg-card/80 pl-9 text-xs"
+                    />
+                  </div>
+                  <FilterPopover
+                    title="Filtrar convites"
+                    activeCount={inviteStatusFilters.length + inviteAccessFilters.length}
+                    onClear={() => { setInviteStatusFilters([]); setInviteAccessFilters([]); }}
+                  >
+                    <MultiSelectFilter
+                      label="Status"
+                      options={[{ value: "pending", label: "Pendentes" }, { value: "accepted", label: "Aceitos" }, { value: "revoked", label: "Revogados" }]}
+                      value={inviteStatusFilters}
+                      onChange={setInviteStatusFilters}
+                    />
+                    <MultiSelectFilter
+                      label="Tipo de acesso"
+                      options={[{ value: "collaborator", label: "Colaboradores" }, { value: "client", label: "Clientes" }]}
+                      value={inviteAccessFilters}
+                      onChange={setInviteAccessFilters}
+                    />
+                  </FilterPopover>
+                  <Badge variant="secondary">{filteredInvites.length} registros</Badge>
+                </div>
+              </div>
+              <BentoDataTable
+                rows={filteredInvites}
+                getRowKey={(invite) => invite.id}
+                empty={<span>Nenhum convite criado ainda.</span>}
+                columns={[
+                  {
+                    key: "recipient",
+                    label: "Destinatário",
+                    render: (invite) => <div className="min-w-0"><p className="max-w-[230px] truncate font-medium">{invite.full_name || invite.email}</p><p className="max-w-[230px] truncate text-xs text-muted-foreground">{invite.email}</p></div>,
+                  },
+                  {
+                    key: "access",
+                    label: "Acesso",
+                    render: (invite) => <span className="text-sm text-muted-foreground">{roleLabel(invite.account_type)}</span>,
+                  },
+                  {
+                    key: "company",
+                    label: "Vínculo",
+                    render: (invite) => <span className="block max-w-[190px] truncate text-sm text-muted-foreground">{invite.company_id ? clients.find((client) => client.id === invite.company_id)?.name ?? "Cliente vinculado" : "Workspace"}</span>,
+                  },
+                  {
+                    key: "status",
+                    label: "Status",
+                    render: (invite) => <Badge variant={invite.status === "pending" ? "secondary" : "outline"}>{invite.status === "pending" ? "Pendente" : invite.status === "accepted" ? "Aceito" : "Revogado"}</Badge>,
+                  },
+                  {
+                    key: "created",
+                    label: "Criado em",
+                    sortValue: (invite) => invite.created_at ? new Date(invite.created_at) : null,
+                    render: (invite) => <span className="whitespace-nowrap text-sm text-muted-foreground">{invite.created_at ? new Date(invite.created_at).toLocaleDateString("pt-BR") : "—"}</span>,
+                  },
+                ]}
+                actions={(invite) => (
+                  <RowActions
+                    primaryLabel={invite.status === "pending" ? "Copiar link do convite" : "Copiar referência"}
+                    primaryIcon={Copy}
+                    onPrimary={() => void copyInviteLink(invite.token)}
+                    primaryDisabled={invite.status !== "pending"}
+                    menuItems={invite.status === "pending" ? [
+                      { label: "Copiar link", icon: Copy, onSelect: () => void copyInviteLink(invite.token) },
+                      { label: "Revogar convite", icon: ShieldAlert, destructive: true, separatorBefore: true, onSelect: () => revokeInvite(invite.id) },
+                    ] : []}
+                  />
+                )}
+              />
             </div>
           </TabsContent>
 
@@ -638,9 +774,9 @@ const Staff = () => {
             <div className="glass rounded-2xl p-6 space-y-5">
               <div className="flex flex-wrap items-end justify-between gap-4">
                 <div className="space-y-2 min-w-[240px]">
-                  <Label>Colaborador</Label>
+                  <Label htmlFor="permission-member">Colaborador</Label>
                   <Select value={permissionMember?.user_id ?? ""} onValueChange={setPermissionMemberId}>
-                    <SelectTrigger className="rounded-xl"><SelectValue placeholder="Selecione um colaborador" /></SelectTrigger>
+                    <SelectTrigger id="permission-member" className="rounded-xl"><SelectValue placeholder="Selecione um colaborador" /></SelectTrigger>
                     <SelectContent>
                       {collaborators.map((member) => <SelectItem key={member.user_id} value={member.user_id}>{member.full_name || "Sem nome"}</SelectItem>)}
                     </SelectContent>
@@ -784,9 +920,9 @@ const Staff = () => {
               <DialogDescription>Atualize os dados profissionais do membro da equipe.</DialogDescription>
             </DialogHeader>
             <div className="dialog-body custom-scroll grid gap-4">
-              <div className="grid gap-2"><Label>Nome completo</Label><Input value={editForm.fullName} onChange={(event) => setEditForm({ ...editForm, fullName: event.target.value })} className="rounded-xl" /></div>
-              <div className="grid gap-2"><Label>Cargo</Label><Input value={editForm.jobTitle} onChange={(event) => setEditForm({ ...editForm, jobTitle: event.target.value })} className="rounded-xl" /></div>
-              <div className="grid gap-2"><Label>Telefone</Label><Input value={editForm.phone} onChange={(event) => setEditForm({ ...editForm, phone: event.target.value })} className="rounded-xl" /></div>
+              <div className="grid gap-2"><Label htmlFor="edit-member-name">Nome completo</Label><Input id="edit-member-name" name="full-name" autoComplete="name" value={editForm.fullName} onChange={(event) => setEditForm({ ...editForm, fullName: event.target.value })} className="rounded-xl" /></div>
+              <div className="grid gap-2"><Label htmlFor="edit-member-job">Cargo</Label><Input id="edit-member-job" name="organization-title" value={editForm.jobTitle} onChange={(event) => setEditForm({ ...editForm, jobTitle: event.target.value })} className="rounded-xl" /></div>
+              <div className="grid gap-2"><Label htmlFor="edit-member-phone">Telefone</Label><Input id="edit-member-phone" name="tel" autoComplete="tel" type="tel" value={editForm.phone} onChange={(event) => setEditForm({ ...editForm, phone: event.target.value })} className="rounded-xl" /></div>
             </div>
             <DialogFooter className="dialog-footer"><Button variant="outline" className="rounded-xl" onClick={() => setEditDialogOpen(false)}>Cancelar</Button><Button className="rounded-xl" onClick={() => void saveMemberDetails()}>Salvar dados</Button></DialogFooter>
           </DialogContent>
@@ -800,9 +936,9 @@ const Staff = () => {
             </DialogHeader>
             <div className="dialog-body custom-scroll grid gap-4">
               <div className="grid gap-2">
-                <Label>Papel</Label>
+                <Label htmlFor="access-role">Papel</Label>
                 <Select value={accessRole} onValueChange={(value: "admin" | "collaborator") => setAccessRole(value)}>
-                  <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+                  <SelectTrigger id="access-role" className="rounded-xl"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="admin">Administrador</SelectItem>
                     <SelectItem value="collaborator">Colaborador</SelectItem>
