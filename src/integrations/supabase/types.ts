@@ -1999,6 +1999,14 @@ export type Database = {
         Args: { target_conversation_id: string }
         Returns: number
       }
+      set_internal_conversation_preference: {
+        Args: {
+          next_is_archived?: boolean | null
+          next_is_pinned?: boolean | null
+          target_conversation_id: string
+        }
+        Returns: Database["public"]["Tables"]["conversations"]["Row"]
+      }
       generate_monthly_service_fee_invoices: {
         Args: { target_period?: string }
         Returns: Database["public"]["Tables"]["invoices"]["Row"][]

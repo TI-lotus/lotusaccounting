@@ -250,19 +250,18 @@ const Messages = () => {
 
   const updateConversationPreference = async (
     conversationId: string,
-    updates: Database["public"]["Tables"]["conversations"]["Update"],
+    updates: Pick<Database["public"]["Tables"]["conversations"]["Update"], "is_pinned" | "is_archived">,
   ) => {
-    const { data, error } = await supabase
-      .from("conversations")
-      .update(updates)
-      .eq("id", conversationId)
-      .select("*")
-      .maybeSingle();
+    const { data, error } = await supabase.rpc("set_internal_conversation_preference", {
+      target_conversation_id: conversationId,
+      next_is_pinned: updates.is_pinned ?? null,
+      next_is_archived: updates.is_archived ?? null,
+    });
     if (error || !data) {
       toast.error(error?.message ?? "Não foi possível atualizar a conversa.");
       return false;
     }
-    setConversationRows((current) => current.map((conversation) => conversation.id === conversationId ? data as ConversationRow : conversation));
+    setConversationRows((current) => current.map((conversation) => conversation.id === conversationId ? data : conversation));
     return true;
   };
 
