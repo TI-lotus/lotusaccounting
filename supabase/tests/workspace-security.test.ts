@@ -114,6 +114,7 @@ beforeAll(async () => {
   await db.exec(migration("20261114180000_operational_audit_triggers.sql"));
   await db.exec(migration("20261114190000_positive_financial_amounts.sql"));
   await db.exec(migration("20261114200000_task_recurrences.sql"));
+  await db.exec(migration("20261114210000_schedule_task_recurrences.sql"));
   // Seed auth identities before enabling the onboarding trigger. The initial
   // workspace fixture below owns their public profile/user records directly.
   await db.exec(`INSERT INTO auth.users(id, email) VALUES ('${admin}', 'admin@example.com'), ('${client}', 'client-owner@example.com'), ('${collaborator}', 'collaborator@example.com')`);
@@ -507,6 +508,24 @@ describe("workspace security regression", () => {
       { title: "Conferir documentos", status: "pending", due_date: "2026-03-15" },
     ]);
     expect((await db.query<{ next_due_date: string }>("SELECT next_due_date::text FROM task_recurrences WHERE source_task_id = $1", [sourceTaskId])).rows).toEqual([{ next_due_date: "2026-04-15" }]);
+  });
+  it("lets only the internal worker generate recurring tasks across workspaces", async () => {
+    await asUser(admin);
+    await expect(
+      db.query("SELECT * FROM generate_task_recurrences_for_all_workspaces('2026-08-31')"),
+    ).rejects.toThrow(/permission denied/);
+
+    await db.exec("RESET ROLE; SELECT set_config('request.jwt.claim.role', 'service_role', false)");
+    const first = await db.query<{ tasks_created: number }>(
+      "SELECT * FROM generate_task_recurrences_for_all_workspaces('2026-08-31')",
+    );
+    expect(first.rows.length).toBeGreaterThanOrEqual(2);
+    expect(first.rows.reduce((total, row) => total + row.tasks_created, 0)).toBeGreaterThan(0);
+
+    const second = await db.query<{ tasks_created: number }>(
+      "SELECT * FROM generate_task_recurrences_for_all_workspaces('2026-08-31')",
+    );
+    expect(second.rows.reduce((total, row) => total + row.tasks_created, 0)).toBe(0);
   });
   it("scopes monthly client periods to the workspace and client company", async () => {
     await asUser(admin);

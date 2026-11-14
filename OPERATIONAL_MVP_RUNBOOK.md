@@ -30,7 +30,8 @@ ambiente de staging. Integrações externas ficam fora deste roteiro.
    registrar comentário e enviar uma tarefa crítica para revisão.
 8. Criar uma tarefa mensal ou anual com prazo e confirmar que ela entra na
    série recorrente. Ao abrir `Tarefas`, conferir que as próximas ocorrências
-   são geradas sem duplicidade.
+   são geradas sem duplicidade; a rotina interna também as verifica diariamente
+   mesmo quando ninguém está na tela.
 9. Tentar atribuir uma tarefa concluída. O sistema deve bloquear a alteração e
    pedir que a tarefa seja reaberta primeiro.
 10. Aprovar ou reprovar a revisão com comentário. A aprovação conclui o item;
@@ -81,6 +82,7 @@ ambiente de staging. Integrações externas ficam fora deste roteiro.
 - [ ] Documentos recebidos, classificados e vinculados como evidência.
 - [ ] Tarefas distribuídas com prazos e responsáveis ativos.
 - [ ] Tarefas mensais e anuais recorrentes geraram as próximas ocorrências sem duplicidade.
+- [ ] A rotina diária de recorrências foi executada sem falhas no histórico do scheduler.
 - [ ] Pendências bloqueadas possuem motivo e responsável.
 - [ ] Itens críticos passaram por revisão.
 - [ ] Receitas, despesas, faturas e baixas conferidas.
