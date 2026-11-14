@@ -341,6 +341,31 @@ describe("workspace security regression", () => {
     await asUser(collaborator);
     expect((await db.query("SELECT public.has_workspace_permission('financial', 'create') AS allowed")).rows).toEqual([{ allowed: true }]);
   });
+  it("applies the financial permission to fiscal obligation updates", async () => {
+    const obligationId = id(70);
+    await asUser(admin);
+    await db.query(
+      `INSERT INTO fiscal_obligations(id, tenant_id, company_id, name, due_date)
+       VALUES ('${obligationId}', '${tenant}', '${company}', 'Obrigação de teste', '2030-01-31')`,
+    );
+
+    await asUser(collaborator);
+    expect(
+      (await db.query(`UPDATE fiscal_obligations SET status = 'in_progress' WHERE id = '${obligationId}' RETURNING id`)).rows,
+    ).toHaveLength(0);
+
+    await asUser(admin);
+    await db.query(
+      `UPDATE workspace_member_permissions
+       SET permissions = jsonb_set(permissions, '{financial,update}', 'true'::jsonb)
+       WHERE tenant_id = '${tenant}' AND user_id = '${collaborator}'`,
+    );
+
+    await asUser(collaborator);
+    expect(
+      (await db.query(`UPDATE fiscal_obligations SET status = 'in_progress' WHERE id = '${obligationId}' RETURNING id`)).rows,
+    ).toEqual([{ id: obligationId }]);
+  });
   it("keeps legacy payment permission data aligned with the financial resource", async () => {
     await asUser(admin);
     await db.query(`UPDATE workspace_member_permissions SET permissions = (permissions - 'financial') || jsonb_build_object('payments', jsonb_build_object('read', true, 'create', true, 'update', false, 'delete', false)) WHERE tenant_id = '${tenant}' AND user_id = '${collaborator}'`);
