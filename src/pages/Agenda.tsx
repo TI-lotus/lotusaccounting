@@ -89,6 +89,13 @@ const Agenda = () => {
   const { tasks, documents, payments, invoices, clients, fiscalObligations, updateTaskStatus, deleteTask } =
     useData();
   const { user, profile } = useAuth();
+  const canUpdateTasks = useWorkspacePermission({
+    tenantId: profile?.tenant_id ?? null,
+    userId: user?.id,
+    accountType: profile?.account_type,
+    resource: "tasks",
+    action: "update",
+  });
   const canDeleteTasks = useWorkspacePermission({
     tenantId: profile?.tenant_id ?? null,
     userId: user?.id,
@@ -377,7 +384,7 @@ const Agenda = () => {
                       <Button variant="outline" className="rounded-xl" onClick={() => openModule(selectedItem)}>
                         <ExternalLink className="mr-2 h-4 w-4" />Abrir módulo
                       </Button>
-                      {selectedItem.kind === "task" && (
+                      {selectedItem.kind === "task" && canUpdateTasks && (
                         <Button className="rounded-xl" onClick={() => { void updateTaskStatus(selectedItem.sourceId, "completed"); setSelectedItem(null); }}>
                           Concluir
                         </Button>
