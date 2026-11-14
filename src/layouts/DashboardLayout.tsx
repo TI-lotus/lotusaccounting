@@ -5,6 +5,7 @@ import { TopBar } from "@/components/TopBar";
 import { ChatBox, ChatPanelState } from "@/components/ChatBox";
 import { cn } from "@/lib/utils";
 import { useViewMode } from "@/contexts/ViewModeContext";
+import { WifiOff } from "lucide-react";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -23,6 +24,9 @@ export const DashboardLayout = ({ children, className }: DashboardLayoutProps) =
     const saved = window.localStorage.getItem(STORAGE_KEY) as ChatPanelState | null;
     return saved ?? "closed";
   });
+  const [isOnline, setIsOnline] = useState(() =>
+    typeof navigator === "undefined" ? true : navigator.onLine,
+  );
 
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEY, chatState);
@@ -37,6 +41,17 @@ export const DashboardLayout = ({ children, className }: DashboardLayoutProps) =
   useEffect(() => {
     if (isMessagesPage) setIsCollapsed(true);
   }, [isMessagesPage, setIsCollapsed]);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
 
   return (
     <div className={cn(
@@ -67,6 +82,16 @@ export const DashboardLayout = ({ children, className }: DashboardLayoutProps) =
           {children}
         </div>
       </main>
+      {!isOnline && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="pointer-events-none fixed bottom-4 left-1/2 z-[90] flex -translate-x-1/2 items-center gap-2 rounded-full border border-border/80 bg-card/95 px-4 py-2 text-xs font-medium text-foreground shadow-lg backdrop-blur-md"
+        >
+          <WifiOff className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+          Sem conexão. As alterações serão retomadas quando a rede voltar.
+        </div>
+      )}
       {!isMessagesPage && <ChatBox state={isLiaPage ? chatState : "closed"} onStateChange={setChatState} />}
     </div>
   );
