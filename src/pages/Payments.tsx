@@ -211,6 +211,10 @@ const Payments = () => {
     }
 
     const amount = parseFloat(newPayment.amount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      toast.error("Informe um valor maior que zero.");
+      return;
+    }
     const saved = await addPayment({
       amount,
       status: "pending",

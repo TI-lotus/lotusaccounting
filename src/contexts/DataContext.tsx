@@ -1587,6 +1587,10 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         toast.error("Clientes não podem registrar pagamentos no workspace");
         return null;
       }
+      if (!Number.isFinite(Number(payment.amount)) || Number(payment.amount) <= 0) {
+        toast.error("O valor do pagamento deve ser maior que zero.");
+        return null;
+      }
       const { data, error } = await supabase
         .from("payments")
         .insert({
@@ -1664,6 +1668,10 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       }
       if (accountType === "client") {
         toast.error("Clientes não podem criar faturas no workspace");
+        return null;
+      }
+      if (!Number.isFinite(Number(invoice.amount)) || Number(invoice.amount) <= 0) {
+        toast.error("O valor da fatura deve ser maior que zero.");
         return null;
       }
       if (invoice.status === "paid") {

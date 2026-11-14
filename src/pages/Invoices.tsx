@@ -134,13 +134,18 @@ const Invoices = () => {
       toast.error("Preencha o valor");
       return;
     }
+    const amount = Number(form.amount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      toast.error("Informe um valor de fatura maior que zero.");
+      return;
+    }
     if (form.status === "paid") {
       toast.error("Crie a fatura como pendente e registre o pagamento para marcá-la como paga.");
       return;
     }
     const saved = await addInvoice({
       number: form.number || null,
-      amount: Number(form.amount),
+      amount,
       status: form.status,
       due_date: form.due_date || null,
       company_id: form.company_id || null,

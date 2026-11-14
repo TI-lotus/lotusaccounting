@@ -108,6 +108,7 @@ beforeAll(async () => {
   await db.exec(migration("20261114160000_payment_cancellation.sql"));
   await db.exec(migration("20261114170000_document_request_integrity.sql"));
   await db.exec(migration("20261114180000_operational_audit_triggers.sql"));
+  await db.exec(migration("20261114190000_positive_financial_amounts.sql"));
   // Seed auth identities before enabling the onboarding trigger. The initial
   // workspace fixture below owns their public profile/user records directly.
   await db.exec(`INSERT INTO auth.users(id, email) VALUES ('${admin}', 'admin@example.com'), ('${client}', 'client-owner@example.com'), ('${collaborator}', 'collaborator@example.com')`);
@@ -870,6 +871,8 @@ describe("workspace security regression", () => {
     expect((await db.query("SELECT status FROM invoices WHERE id = $1", [cancellableInvoiceId])).rows).toEqual([{ status: "paid" }]);
     await db.query("UPDATE payments SET status = 'cancelled', paid_at = NULL WHERE id = $1", [cancellablePaymentId]);
     expect((await db.query("SELECT status FROM invoices WHERE id = $1", [cancellableInvoiceId])).rows).toEqual([{ status: "pending" }]);
+    await expect(db.query(`INSERT INTO invoices(id, tenant_id, company_id, amount, status) VALUES ('${id(54)}', '${tenant}', '${company}', 0, 'pending')`)).rejects.toThrow(/greater than zero/);
+    await expect(db.query(`INSERT INTO payments(id, tenant_id, company_id, amount, status, direction) VALUES ('${id(55)}', '${tenant}', '${company}', -1, 'pending', 'expense')`)).rejects.toThrow(/greater than zero/);
   });
   it("archives only read notifications older than the retention window", async () => {
     await db.exec("RESET ROLE; SELECT set_config('request.jwt.claim.role', 'service_role', false)");
