@@ -2211,6 +2211,14 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       const targetRequest = documentRequestId
         ? documentRequests.find((request) => request.id === documentRequestId)
         : null;
+      if (documentRequestId && !targetRequest) {
+        toast.error("A solicitação de documento não foi encontrada ou não está disponível para este workspace.");
+        return;
+      }
+      if (targetRequest && !["requested", "rejected"].includes(targetRequest.status)) {
+        toast.error("Esta solicitação já foi resolvida e não aceita um novo arquivo neste momento.");
+        return;
+      }
       if (targetRequest) {
         const requestClient = clients.find((client) => client.id === targetRequest.companyId);
         result.document.clientId = targetRequest.companyId;
