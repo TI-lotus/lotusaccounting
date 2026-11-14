@@ -34,6 +34,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Json } from "@/integrations/supabase/types";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { ConfirmDestructiveDialog } from "@/components/ConfirmDestructiveDialog";
 
 type ThemePreference = "light" | "dark" | "system";
 export type SettingsSection = "all" | "profile" | "organization" | "preferences" | "security";
@@ -99,6 +100,7 @@ export const SettingsContent = ({
   } | null>(null);
   const [mfaCode, setMfaCode] = useState("");
   const [mfaLoading, setMfaLoading] = useState(false);
+  const [mfaRemovalTarget, setMfaRemovalTarget] = useState<MfaFactor | null>(null);
   const isAdmin = authProfile?.account_type === "admin";
   const showSection = (target: Exclude<SettingsSection, "all">) => section === "all" || section === target;
 
@@ -168,7 +170,6 @@ export const SettingsContent = ({
   };
 
   const removeMfaFactor = async (factorId: string) => {
-    if (!window.confirm("Desativar este autenticador? O proximo acesso voltara a exigir apenas a senha.")) return;
     setMfaLoading(true);
     try {
       const { error } = await supabase.auth.mfa.unenroll({ factorId });
@@ -176,8 +177,10 @@ export const SettingsContent = ({
       await loadMfaFactors();
       await refreshMfaState();
       toast.success("Autenticacao em duas etapas desativada.");
+      return true;
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Nao foi possivel desativar o 2FA.");
+      return false;
     } finally {
       setMfaLoading(false);
     }
@@ -681,7 +684,7 @@ export const SettingsContent = ({
                           <p className="text-sm font-medium">{factor.friendly_name || "Aplicativo autenticador"}</p>
                           <p className="text-xs text-muted-foreground">{factor.status === "verified" ? "Ativo" : "Aguardando confirmacao"}</p>
                         </div>
-                        <Button variant="outline" size="sm" disabled={mfaLoading} onClick={() => void removeMfaFactor(factor.id)}>Remover</Button>
+                        <Button variant="outline" size="sm" disabled={mfaLoading} onClick={() => setMfaRemovalTarget(factor)}>Remover</Button>
                       </div>
                     ))}
                   </div>
@@ -701,6 +704,20 @@ export const SettingsContent = ({
           )}
         </DialogContent>
       </Dialog>
+
+      <ConfirmDestructiveDialog
+        open={Boolean(mfaRemovalTarget)}
+        onOpenChange={(open) => { if (!open) setMfaRemovalTarget(null); }}
+        title="Desativar autenticação em duas etapas?"
+        description="O próximo acesso voltará a exigir apenas a senha desta conta."
+        confirmLabel="Desativar 2FA"
+        onConfirm={async () => {
+          if (!mfaRemovalTarget) return false;
+          const success = await removeMfaFactor(mfaRemovalTarget.id);
+          if (success) setMfaRemovalTarget(null);
+          return success;
+        }}
+      />
     </div>
   );
 };

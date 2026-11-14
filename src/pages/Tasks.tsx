@@ -51,6 +51,7 @@ import { IconTooltipButton } from "@/components/IconTooltipButton";
 import { SortToggle } from "@/components/SortToggle";
 import { BentoDataTable } from "@/components/BentoDataTable";
 import { RowActions } from "@/components/RowActions";
+import { ConfirmDestructiveDialog } from "@/components/ConfirmDestructiveDialog";
 
 const currentMonthRange = () => {
   const now = new Date();
@@ -86,6 +87,7 @@ const Tasks = () => {
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [dragOverStatus, setDragOverStatus] = useState<TaskStatus | null>(null);
   const [selectedTask, setSelectedTask] = useState<TaskData | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<TaskData | null>(null);
   const [blockTarget, setBlockTarget] = useState<TaskData | null>(null);
   const [blockReason, setBlockReason] = useState("");
   const [activeAssignees, setActiveAssignees] = useState<Array<{ user_id: string; full_name: string | null; avatar_url: string | null }>>([]);
@@ -709,7 +711,7 @@ const Tasks = () => {
                 menuItems={[
                   ...(task.status !== "completed" ? [{ label: "Concluir", icon: CheckCircle2, onSelect: () => void updateTaskStatus(task.id, "completed") }] : []),
                   ...(task.status !== "in_progress" && task.status !== "completed" ? [{ label: "Iniciar", icon: Clock, onSelect: () => void updateTaskStatus(task.id, "in_progress") }] : []),
-                  ...(viewMode !== "client" && canDeleteTasks ? [{ label: "Remover tarefa", icon: Trash2, destructive: true, separatorBefore: true, onSelect: () => void deleteTask(task.id) }] : []),
+                  ...(viewMode !== "client" && canDeleteTasks ? [{ label: "Remover tarefa", icon: Trash2, destructive: true, separatorBefore: true, onSelect: () => setDeleteTarget(task) }] : []),
                 ]}
               />
             )}
@@ -750,9 +752,7 @@ const Tasks = () => {
                 <DialogFooter className="flex-col gap-2 sm:flex-row sm:justify-between">
                   {viewMode !== "client" && canDeleteTasks && (
                     <Button variant="destructive" className="rounded-xl" onClick={() => {
-                      void deleteTask(selectedTask.id).then((removed) => {
-                        if (removed) setSelectedTask(null);
-                      });
+                      setDeleteTarget(selectedTask);
                     }}>
                       <Trash2 className="mr-2 h-4 w-4" />Remover
                     </Button>
@@ -776,6 +776,21 @@ const Tasks = () => {
             )}
           </DialogContent>
         </Dialog>
+        <ConfirmDestructiveDialog
+          open={Boolean(deleteTarget)}
+          onOpenChange={(open) => !open && setDeleteTarget(null)}
+          title="Remover tarefa?"
+          description={deleteTarget ? `A tarefa “${deleteTarget.title}” será removida do workspace. Essa ação não pode ser desfeita.` : "A tarefa selecionada será removida do workspace."}
+          onConfirm={async () => {
+            if (!deleteTarget) return false;
+            const removed = await deleteTask(deleteTarget.id);
+            if (removed) {
+              setSelectedTask((current) => current?.id === deleteTarget.id ? null : current);
+              setDeleteTarget(null);
+            }
+            return removed;
+          }}
+        />
         <Dialog open={Boolean(blockTarget)} onOpenChange={(open) => {
           if (!open) {
             setBlockTarget(null);

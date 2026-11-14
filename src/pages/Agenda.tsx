@@ -30,6 +30,7 @@ import { useWorkspacePermission } from "@/hooks/useWorkspacePermission";
 import { FilterPopover } from "@/components/FilterPopover";
 import { largeCalendarClassNames } from "@/components/calendarStyles";
 import { CalendarMonthSelector } from "@/components/CalendarMonthSelector";
+import { ConfirmDestructiveDialog } from "@/components/ConfirmDestructiveDialog";
 
 type AgendaKind = "task" | "payment" | "document" | "obligation";
 
@@ -101,6 +102,7 @@ const Agenda = () => {
   const [visibleMonth, setVisibleMonth] = useState<Date>(startOfMonth(new Date()));
   const [activeFilter, setActiveFilter] = useState<AgendaKind | "all">("all");
   const [selectedItem, setSelectedItem] = useState<AgendaItem | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<AgendaItem | null>(null);
 
   const items = useMemo<AgendaItem[]>(() => {
     const clientNameById = new Map(
@@ -366,9 +368,7 @@ const Agenda = () => {
                   <DialogFooter className="flex-col gap-2 sm:flex-row sm:justify-between">
                     {selectedItem.kind === "task" && canDeleteTasks && (
                       <Button variant="destructive" className="rounded-xl" onClick={() => {
-                        void deleteTask(selectedItem.sourceId).then((removed) => {
-                          if (removed) setSelectedItem(null);
-                        });
+                        setDeleteTarget(selectedItem);
                       }}>
                         <Trash2 className="mr-2 h-4 w-4" />Remover
                       </Button>
@@ -389,6 +389,22 @@ const Agenda = () => {
             })()}
           </DialogContent>
         </Dialog>
+
+        <ConfirmDestructiveDialog
+          open={Boolean(deleteTarget)}
+          onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}
+          title="Remover tarefa da agenda?"
+          description={deleteTarget ? `A tarefa “${deleteTarget.title}” será removida do workspace e deixará de aparecer na agenda.` : ""}
+          onConfirm={async () => {
+            if (!deleteTarget) return false;
+            const removed = await deleteTask(deleteTarget.sourceId);
+            if (removed) {
+              setDeleteTarget(null);
+              setSelectedItem(null);
+            }
+            return removed;
+          }}
+        />
       </div>
     </DashboardLayout>
   );

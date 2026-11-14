@@ -53,6 +53,7 @@ import { IconTooltipButton } from "@/components/IconTooltipButton";
 import { SortToggle } from "@/components/SortToggle";
 import { BentoDataTable } from "@/components/BentoDataTable";
 import { RowActions } from "@/components/RowActions";
+import { ConfirmDestructiveDialog } from "@/components/ConfirmDestructiveDialog";
 
 const statusColors: Record<string, string> = {
   paid: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400",
@@ -194,6 +195,7 @@ const Documents = () => {
     end: currentMonthEnd,
   });
   const [viewerDoc, setViewerDoc] = useState<ViewableDocument | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<DocumentData | null>(null);
 
   const filteredDocuments = documents.filter((doc) => {
     const statusMatch = filterStatuses.length === 0 || filterStatuses.includes(doc.status);
@@ -267,8 +269,9 @@ const Documents = () => {
   };
 
   const handleDeleteDocument = async (id: string) => {
-    if (!await deleteDocument(id)) return;
+    if (!await deleteDocument(id)) return false;
     toast.success("Documento removido!");
+    return true;
   };
 
   const handleMarkAsPaid = async (id: string) => {
@@ -790,7 +793,7 @@ const Documents = () => {
                         { label: "Baixar arquivo", icon: Download, onSelect: () => void handleDownloadDocument(doc) },
                         ...(doc.status === "unread" ? [{ label: "Marcar como lido", icon: Eye, onSelect: () => void handleMarkAsRead(doc.id) }] : []),
                         ...(viewMode !== "client" && (doc.status === "pending" || doc.status === "overdue") ? [{ label: "Marcar como pago", icon: Check, onSelect: () => void handleMarkAsPaid(doc.id) }, { label: "Enviar lembrete", icon: Send, onSelect: () => handleSendReminder(doc) }] : []),
-                        ...(viewMode !== "client" ? [{ label: "Excluir documento", icon: Trash2, destructive: true, separatorBefore: true, onSelect: () => void handleDeleteDocument(doc.id) }] : []),
+                        ...(viewMode !== "client" ? [{ label: "Excluir documento", icon: Trash2, destructive: true, separatorBefore: true, onSelect: () => setDeleteTarget(doc) }] : []),
                       ]}
                     />
                   )}
@@ -842,7 +845,7 @@ const Documents = () => {
                           menuItems={[
                             { label: "Abrir prévia", icon: Eye, onSelect: () => { setSelectedFileId(file.id); void openDocumentInViewer(file); } },
                             { label: "Baixar arquivo", icon: Download, onSelect: () => void handleDownloadDocument(file) },
-                            { label: "Excluir arquivo", icon: Trash2, destructive: true, separatorBefore: true, onSelect: () => void handleDeleteDocument(file.id) },
+                            { label: "Excluir arquivo", icon: Trash2, destructive: true, separatorBefore: true, onSelect: () => setDeleteTarget(file) },
                           ]}
                         />
                       )}
@@ -950,6 +953,21 @@ const Documents = () => {
             </Tabs>
           )}
         </div>
+        <ConfirmDestructiveDialog
+          open={Boolean(deleteTarget)}
+          onOpenChange={(open) => !open && setDeleteTarget(null)}
+          title="Excluir documento?"
+          description={deleteTarget ? `“${deleteTarget.name}” será removido junto com seus metadados${deleteTarget.filePath ? " e arquivo armazenado" : ""}. Essa ação não pode ser desfeita.` : "O documento selecionado será removido."}
+          onConfirm={async () => {
+            if (!deleteTarget) return false;
+            const removed = await handleDeleteDocument(deleteTarget.id);
+            if (removed) {
+              setSelectedFileId((current) => current === deleteTarget.id ? null : current);
+              setDeleteTarget(null);
+            }
+            return removed;
+          }}
+        />
         <DocumentViewer
           document={viewerDoc}
           onClose={() => setViewerDoc(null)}

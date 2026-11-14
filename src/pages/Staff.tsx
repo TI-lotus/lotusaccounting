@@ -38,6 +38,7 @@ import { RowActions } from "@/components/RowActions";
 import { BentoDataTable } from "@/components/BentoDataTable";
 import { FilterPopover } from "@/components/FilterPopover";
 import { MultiSelectFilter } from "@/components/MultiSelectFilter";
+import { ConfirmDestructiveDialog } from "@/components/ConfirmDestructiveDialog";
 
 type ProfileRow = Pick<Database["public"]["Tables"]["profiles"]["Row"], "id" | "user_id" | "full_name" | "phone" | "job_title" | "avatar_url" | "account_type" | "company_id" | "status" | "created_at">;
 type InviteRow = Pick<Database["public"]["Tables"]["invites"]["Row"], "id" | "email" | "full_name" | "account_type" | "company_id" | "token" | "status" | "expires_at" | "created_at">;
@@ -128,6 +129,7 @@ const Staff = () => {
   const [detailMember, setDetailMember] = useState<ProfileRow | null>(null);
   const [accessMember, setAccessMember] = useState<ProfileRow | null>(null);
   const [editingMember, setEditingMember] = useState<ProfileRow | null>(null);
+  const [revokeTarget, setRevokeTarget] = useState<InviteRow | null>(null);
   const [accessRole, setAccessRole] = useState<"admin" | "collaborator">("collaborator");
   const [editForm, setEditForm] = useState({ fullName: "", jobTitle: "", phone: "" });
   const [inviteForm, setInviteForm] = useState<InviteForm>({
@@ -254,15 +256,16 @@ const Staff = () => {
   const revokeInvite = async (inviteId: string) => {
     if (!tenantId || profile?.account_type !== "admin") {
       toast.error("Somente administradores podem revogar convites");
-      return;
+      return false;
     }
     const { error } = await supabase.from("invites").update({ status: "revoked" }).eq("id", inviteId).eq("tenant_id", tenantId);
     if (error) {
       toast.error(error.message);
-      return;
+      return false;
     }
     setInvites((current) => current.map((invite) => invite.id === inviteId ? { ...invite, status: "revoked" } : invite));
     toast.success("Convite revogado");
+    return true;
   };
 
   const toggleStatus = async (member: ProfileRow) => {
@@ -743,7 +746,7 @@ const Staff = () => {
                     primaryDisabled={invite.status !== "pending"}
                     menuItems={invite.status === "pending" ? [
                       { label: "Copiar link", icon: Copy, onSelect: () => void copyInviteLink(invite.token) },
-                      { label: "Revogar convite", icon: ShieldAlert, destructive: true, separatorBefore: true, onSelect: () => revokeInvite(invite.id) },
+                      { label: "Revogar convite", icon: ShieldAlert, destructive: true, separatorBefore: true, onSelect: () => setRevokeTarget(invite) },
                     ] : []}
                   />
                 )}
@@ -952,6 +955,20 @@ const Staff = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <ConfirmDestructiveDialog
+          open={Boolean(revokeTarget)}
+          onOpenChange={(open) => { if (!open) setRevokeTarget(null); }}
+          title="Revogar convite?"
+          description={revokeTarget ? `O convite para ${revokeTarget.email} deixará de funcionar e não poderá mais ser aceito.` : ""}
+          confirmLabel="Revogar convite"
+          onConfirm={async () => {
+            if (!revokeTarget) return false;
+            const success = await revokeInvite(revokeTarget.id);
+            if (success) setRevokeTarget(null);
+            return success;
+          }}
+        />
       </div>
     </DashboardLayout>
   );

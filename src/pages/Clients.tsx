@@ -45,6 +45,7 @@ import { MultiSelectFilter } from "@/components/MultiSelectFilter";
 import { SortToggle } from "@/components/SortToggle";
 import { BentoDataTable } from "@/components/BentoDataTable";
 import { RowActions } from "@/components/RowActions";
+import { ConfirmDestructiveDialog } from "@/components/ConfirmDestructiveDialog";
 import { getBentoGridClass } from "@/components/dashboard/bentoGrid";
 
 const taxRegimeLabels: Record<string, string> = {
@@ -104,6 +105,7 @@ const Clients = () => {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<ClientData | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<ClientData | null>(null);
   const [cnpjLoading, setCnpjLoading] = useState(false);
   const [newClient, setNewClient] = useState({
     name: "", email: "", phone: "", cnpj: "", taxRegime: "simples_nacional" as ClientData["taxRegime"],
@@ -210,8 +212,9 @@ const Clients = () => {
   };
 
   const handleDeleteClient = async (id: string) => {
-    if (!await deleteClient(id)) return;
+    if (!await deleteClient(id)) return false;
     toast.success("Cliente arquivado com sucesso!");
+    return true;
   };
 
   const handleStatusChange = async (id: string, status: ClientData["status"]) => {
@@ -487,7 +490,7 @@ const Clients = () => {
                     menuItems={[
                       { label: "Editar cadastro", icon: Edit, onSelect: () => navigate(`/clients/${client.id}`) },
                       { label: "Enviar e-mail", icon: Mail, onSelect: () => undefined },
-                      { label: "Remover cliente", icon: Trash2, destructive: true, separatorBefore: true, onSelect: () => void handleDeleteClient(client.id) },
+                      { label: "Remover cliente", icon: Trash2, destructive: true, separatorBefore: true, onSelect: () => setDeleteTarget(client) },
                     ]}
                   />
                 )}
@@ -569,7 +572,7 @@ const Clients = () => {
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                       className="gap-2 text-destructive focus:text-destructive"
-                      onClick={() => handleDeleteClient(client.id)}
+                      onClick={() => setDeleteTarget(client)}
                     >
                       <Trash2 className="h-4 w-4" />
                       Remover
@@ -625,7 +628,7 @@ const Clients = () => {
                   </div>
                 </div>
                 <DialogFooter className="dialog-footer flex-col gap-2 sm:flex-row sm:justify-between">
-                  <Button variant="destructive" className="rounded-xl" onClick={() => { void handleDeleteClient(selectedClient.id); setSelectedClient(null); }}>
+                  <Button variant="destructive" className="rounded-xl" onClick={() => setDeleteTarget(selectedClient)}>
                     <Trash2 className="mr-2 h-4 w-4" />Remover
                   </Button>
                   <div className="flex flex-wrap gap-2">
@@ -644,6 +647,22 @@ const Clients = () => {
             )}
           </DialogContent>
         </Dialog>
+        <ConfirmDestructiveDialog
+          open={Boolean(deleteTarget)}
+          onOpenChange={(open) => !open && setDeleteTarget(null)}
+          title="Arquivar cliente?"
+          description={deleteTarget ? `O cadastro de “${deleteTarget.name}” será arquivado e deixará de aparecer como cliente ativo.` : "O cadastro selecionado será arquivado."}
+          confirmLabel="Arquivar"
+          onConfirm={async () => {
+            if (!deleteTarget) return false;
+            const removed = await handleDeleteClient(deleteTarget.id);
+            if (removed) {
+              setSelectedClient((current) => current?.id === deleteTarget.id ? null : current);
+              setDeleteTarget(null);
+            }
+            return removed;
+          }}
+        />
       </div>
     </DashboardLayout>
   );
