@@ -28,6 +28,26 @@ feito no staging liberado, antes de qualquer promoção para `main`.
 | Responsividade desktop/mobile | Todos | Pendente |  |
 | Smoke test pós-deploy | Todos | Pendente |  |
 
+## Cobertura automatizada já comprovada
+
+Os testes automatizados não substituem o roteiro manual, mas já cobrem as
+seguintes invariantes em ambiente de teste isolado:
+
+- isolamento entre workspaces e empresas, incluindo Storage e mensagens;
+- perfis de cliente, colaborador e administrador, com permissões financeiras;
+- convites válidos, convites inválidos e vínculo de cliente por e-mail;
+- CNPJ normalizado, duplicidade e limites de empresa/tenant;
+- tarefas, atribuição, conclusão, bloqueio, recorrência e revisão;
+- competências, etapas, checklists, obrigações e geração idempotente;
+- solicitações de documentos, evidências, aprovação, recusa e dispensa;
+- alertas operacionais, notificações, comentários e histórico de auditoria;
+- faturas, pagamentos, despesas, integridade de baixas e proteção de histórico;
+- workers, leases, eventos de domínio, retries e dead-letter.
+
+Resultado atual: 99 testes aprovados em 6 arquivos. A validação manual dos
+fluxos completos nos três perfis continua obrigatória antes da promoção para
+`main`.
+
 ## Casos críticos
 
 ### Administrador
