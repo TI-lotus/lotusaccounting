@@ -114,6 +114,7 @@ beforeAll(async () => {
   await db.exec(migration("20261114180000_operational_audit_triggers.sql"));
   await db.exec(migration("20261114190000_positive_financial_amounts.sql"));
   await db.exec(migration("20261114230000_linked_payment_integrity.sql"));
+  await db.exec(migration("20261114240000_payment_history_integrity.sql"));
   await db.exec(migration("20261114200000_task_recurrences.sql"));
   await db.exec(migration("20261114210000_schedule_task_recurrences.sql"));
   await db.exec(migration("20261114220000_task_recurrence_calendar_rules.sql"));
@@ -1057,6 +1058,7 @@ describe("workspace security regression", () => {
 
     await db.query(`INSERT INTO payments(id, tenant_id, company_id, invoice_id, amount, status, direction) VALUES ('${id(60)}', '${tenant}', '${company}', '${invoiceId}', 100, 'completed', 'income')`);
     await expect(db.query(`INSERT INTO payments(id, tenant_id, company_id, invoice_id, amount, status, direction) VALUES ('${id(61)}', '${tenant}', '${company}', '${invoiceId}', 1, 'completed', 'income')`)).rejects.toThrow(/Paid invoices|exceed/);
+    await expect(db.query(`DELETE FROM payments WHERE id = '${id(60)}'`)).rejects.toThrow(/cannot be deleted/);
     await expect(db.query(`UPDATE invoices SET amount = 99 WHERE id = '${invoiceId}'`)).rejects.toThrow(/lower than completed payments/);
   });
   it("archives only read notifications older than the retention window", async () => {
