@@ -1,73 +1,52 @@
-# Welcome to your Lovable project
+# Lotus Accounting
 
-## Project info
+Plataforma SaaS para operação de escritórios de contabilidade: clientes,
+competências, tarefas, documentos, mensagens e financeiro interno.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Desenvolvimento
 
-## How can I edit this code?
-
-There are several ways of editing your application.
-
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+```powershell
+npm install
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+Validações obrigatórias antes de enviar para `staging`:
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```powershell
+npm run typecheck
+npm test -- --run
+npm run lint
+npm run build
+```
 
-**Use GitHub Codespaces**
+O lint pode apresentar avisos históricos de Fast Refresh, mas não deve possuir
+erros bloqueantes.
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Fluxo de ambientes
 
-## What technologies are used for this project?
+- `dev`: desenvolvimento local.
+- `staging`: validação integrada com Supabase staging e preview do Vercel.
+- `main`: produção, promovida somente após o roteiro de staging.
 
-This project is built with:
+O deploy de migrations, configurações e Edge Functions é feito pelo pipeline
+do GitHub. Secrets e chaves nunca devem ser commitados neste repositório.
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## Documentação operacional
 
-## How can I deploy this project?
+- [Runbook do MVP](OPERATIONAL_MVP_RUNBOOK.md): QA por perfil, checklist mensal,
+  testes negativos e critério de aprovação.
+- [Plano operacional de contabilidade](OPERATIONAL_ACCOUNTING_EXECUTION_PLAN.md):
+  ciclo mensal, checklists, documentos, revisão e alertas.
+- [Checklist comercial e deploy](COMMERCIAL_MVP_RELEASE_CHECKLIST.md):
+  ambientes, secrets, smoke test e rollback.
+- [Fluxo de deploy](DEPLOYMENT_FLOW.md): pipeline local → staging → produção.
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+## Stack
 
-## Can I connect a custom domain to my Lovable project?
+- Vite, React, TypeScript e Tailwind CSS.
+- Componentes shadcn/ui e Radix.
+- Supabase Auth, Postgres, RLS, Storage e Edge Functions.
+- Vercel para o frontend.
 
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Integrações externas existentes no código são tratadas como uma etapa separada;
+o roteiro operacional atual valida a plataforma core sem depender delas.
