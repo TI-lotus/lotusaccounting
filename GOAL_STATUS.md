@@ -6,7 +6,7 @@ contabilidade, sem depender de integrações externas nesta etapa.
 ## Estado atual
 
 - Branch de trabalho: `staging`.
-- Último commit enviado: `4f88de6`.
+- Último commit enviado: `04a2c27`.
 - Última validação automatizada: 14/11/2026; typecheck, testes, lint e build
   aprovados no branch `staging`.
 - Typecheck: aprovado.
@@ -28,7 +28,7 @@ contabilidade, sem depender de integrações externas nesta etapa.
 | 4 | Tarefas, kanban, recorrência, responsáveis e revisão | Implementado; falta QA dos perfis | `src/pages/Tasks.tsx`, `src/pages/WorkQueue.tsx` |
 | 5 | Documentos, solicitações, evidências e histórico | Implementado; falta QA dos perfis | migrations `document_requests`, `checklist_evidence` e `operational_audit` |
 | 6 | Mensagens, leitura, busca, fixação e arquivamento | Implementado; falta teste autenticado | `src/pages/Messages.tsx` e migrations de mensagens |
-| 7 | Financeiro interno, faturas, baixas, cancelamentos e CSV | Implementado; falta QA financeiro | `src/pages/Payments.tsx`, `src/pages/Invoices.tsx`, `src/pages/Reports.tsx` e migration `20261114230000_linked_payment_integrity.sql` |
+| 7 | Financeiro interno, faturas, baixas, cancelamentos e CSV | Implementado; falta QA financeiro | `src/pages/Payments.tsx`, `src/pages/Invoices.tsx`, `src/pages/Reports.tsx`, migrations `linked_payment_integrity` e `payment_history_integrity` |
 | 8 | UX, responsividade, acessibilidade e estados de erro | Implementado em código; falta inspeção visual | `AppErrorBoundary`, `DashboardLayout`, `MANUAL_QA_EVIDENCE.md` |
 | 9 | Auditoria, alertas, duplicidade e recuperação | Automatizado; falta validar cron no Supabase real | migrations `operational_alert_engine`, `operational_audit`, `linked_payment_integrity`, `payment_history_integrity` e testes |
 | 10 | Onboarding, demonstração, treinamento e smoke test final | Parcialmente implementado | `OPERATIONAL_MVP_RUNBOOK.md` e `OnboardingChecklist` |
