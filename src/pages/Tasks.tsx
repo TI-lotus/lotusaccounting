@@ -136,10 +136,10 @@ const Tasks = () => {
   }, [tenantId, viewMode]);
 
   useEffect(() => {
-    if (viewMode !== "client" && canCreateTasks) {
+    if (viewMode !== "client" && canCreateTasks && tenantId) {
       void generateRecurringTasks();
     }
-  }, [canCreateTasks, generateRecurringTasks, viewMode]);
+  }, [canCreateTasks, generateRecurringTasks, tenantId, viewMode]);
 
   const assignees = activeAssignees.length
     ? activeAssignees.map((member) => [member.user_id, member.full_name || "Sem nome"] as [string, string])
