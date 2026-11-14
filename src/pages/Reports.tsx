@@ -9,6 +9,7 @@ import {
   FileText,
   Users,
   LayoutDashboard,
+  ShieldAlert,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
@@ -19,7 +20,9 @@ import { QuickStats } from "@/components/dashboard/QuickStats";
 import { BentoStatStrip } from "@/components/dashboard/BentoStatStrip";
 import { CalendarEventView } from "@/components/CalendarEventView";
 import { useData } from "@/contexts/DataContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { useViewMode } from "@/contexts/ViewModeContext";
+import { useWorkspacePermission } from "@/hooks/useWorkspacePermission";
 import { withinDateRange } from "@/lib/financialMetrics";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -87,7 +90,9 @@ const reportPeriodRange = (period: Exclude<ReportPeriod, "custom">) => {
 
 const Reports = () => {
   const { viewMode } = useViewMode();
+  const { user, profile } = useAuth();
   const {
+    tenantId,
     clients,
     documents: allDocuments,
     invoices: allInvoices,
@@ -97,6 +102,21 @@ const Reports = () => {
     generateMonthlyFiscalObligations,
     updateFiscalObligation,
   } = useData();
+  const canReadReports = useWorkspacePermission({
+    tenantId,
+    userId: user?.id,
+    accountType: profile?.account_type,
+    resource: "reports",
+    action: "read",
+  });
+  const canUpdateFiscal = useWorkspacePermission({
+    tenantId,
+    userId: user?.id,
+    accountType: profile?.account_type,
+    resource: "financial",
+    action: "update",
+  });
+  const canViewReports = viewMode === "client" || canReadReports;
   const [view, setView] = useState<"dashboard" | "calendar">("dashboard");
   const [dateRange, setDateRange] = useState(currentMonthRange);
   const [periodPreset, setPeriodPreset] = useState<ReportPeriod>("month");
@@ -450,6 +470,24 @@ const Reports = () => {
     </div>
   );
 
+  if (!canViewReports) {
+    return (
+      <DashboardLayout>
+        <section className="page-section mx-auto flex max-w-2xl flex-col items-center justify-center gap-4 py-16 text-center">
+          <span className="grid h-12 w-12 place-items-center rounded-full border border-border bg-muted/50 text-muted-foreground">
+            <ShieldAlert className="h-5 w-5" aria-hidden="true" />
+          </span>
+          <div>
+            <h1 className="text-xl font-medium">Relatórios restritos</h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Seu perfil não possui permissão para consultar os relatórios deste workspace. Solicite acesso ao administrador.
+            </p>
+          </div>
+        </section>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -598,7 +636,7 @@ const Reports = () => {
                   <CardHeader>
                     <div className="flex items-center justify-between gap-3">
                       <CardTitle>Obrigações Fiscais</CardTitle>
-                      {viewMode !== "client" && (
+                      {viewMode !== "client" && canUpdateFiscal && (
                         <Button
                           variant="outline"
                           className="rounded-xl"
@@ -645,7 +683,7 @@ const Reports = () => {
                                   ? "Atrasada"
                                   : "Pendente"}
                           </Badge>
-                          {viewMode !== "client" && (
+                          {viewMode !== "client" && canUpdateFiscal && (
                             <div className="flex gap-1">
                               {item.status === "pending" && (
                                 <Button
