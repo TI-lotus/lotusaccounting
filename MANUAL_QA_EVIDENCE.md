@@ -27,6 +27,7 @@ feito no staging liberado, antes de qualquer promoção para `main`.
 | Relatório de produtividade por responsável | Administrador | Pendente |  |
 | Responsividade desktop/mobile | Todos | Pendente |  |
 | Smoke test pós-deploy | Todos | Pendente |  |
+| Primeira rodada integrada dos três perfis | Todos | Aprovado em primeira rodada; repetir regressão | Relato do usuário: administrador, colaborador e cliente aprovados, sem falhas relatadas. |
 
 ## Cobertura automatizada já comprovada
 
