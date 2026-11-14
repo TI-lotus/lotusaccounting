@@ -25,6 +25,10 @@ export class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorB
     window.location.reload();
   };
 
+  handleRetry = () => {
+    this.setState({ hasError: false });
+  };
+
   render() {
     if (!this.state.hasError) return this.props.children;
 
@@ -37,13 +41,18 @@ export class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorB
           <div className="space-y-2">
             <h1 className="text-xl font-semibold">Não foi possível carregar esta tela</h1>
             <p className="text-sm leading-6 text-muted-foreground">
-              A sessão pode ter ficado desatualizada. Tente recarregar a plataforma; seus dados salvos não serão alterados.
+              A sessão pode ter ficado desatualizada. Tente renderizar a tela novamente; seus dados salvos não serão alterados.
             </p>
           </div>
-          <Button type="button" className="rounded-xl" onClick={this.handleReload}>
-            <RefreshCw className="mr-2 h-4 w-4" aria-hidden="true" />
-            Recarregar plataforma
-          </Button>
+          <div className="flex flex-col justify-center gap-2 sm:flex-row">
+            <Button type="button" className="rounded-xl" onClick={this.handleRetry}>
+              <RefreshCw className="mr-2 h-4 w-4" aria-hidden="true" />
+              Tentar novamente
+            </Button>
+            <Button type="button" variant="outline" className="rounded-xl" onClick={this.handleReload}>
+              Recarregar plataforma
+            </Button>
+          </div>
         </section>
       </main>
     );
