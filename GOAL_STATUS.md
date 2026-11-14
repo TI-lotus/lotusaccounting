@@ -6,9 +6,11 @@ contabilidade, sem depender de integrações externas nesta etapa.
 ## Estado atual
 
 - Branch de trabalho: `staging`.
-- Último commit enviado: `70fc85c`.
+- Última versão de código enviada: `897cb5d`.
 - Última validação automatizada: 14/11/2026; typecheck, testes, lint e build
   aprovados no branch `staging`.
+- Último deployment de staging observado: `READY`, associado ao commit
+  `1bffa73`.
 - Typecheck: aprovado.
 - Testes automatizados: 99 aprovados em 6 arquivos.
 - Lint: aprovado sem erros bloqueantes; permanecem apenas avisos históricos de
@@ -16,6 +18,8 @@ contabilidade, sem depender de integrações externas nesta etapa.
 - Build: aprovado; permanece o aviso de chunks grandes do bundle.
 - QA autenticado: pendente porque o preview do Vercel ainda redireciona para
   SSO.
+- Proteção Vercel confirmada: SSO em todos os deployments, exceto domínios
+  customizados.
 - `main`: não promovido.
 
 ## Acompanhamento dos 10 pontos
