@@ -9,8 +9,8 @@ contabilidade, sem depender de integrações externas nesta etapa.
 - Última versão de código enviada: `897cb5d`.
 - Última validação automatizada: 14/11/2026; typecheck, testes, lint e build
   aprovados no branch `staging`.
-- Último deployment de staging observado: `READY`, associado ao commit
-  `1bffa73`.
+- Staging no Vercel: deployment observado como `READY`; a proteção de acesso
+  continua ativa para o QA autenticado.
 - Typecheck: aprovado.
 - Testes automatizados: 99 aprovados em 6 arquivos.
 - Lint: aprovado sem erros bloqueantes; permanecem apenas avisos históricos de
