@@ -52,7 +52,7 @@ As credenciais específicas de cada conta Banco Inter ficam em `integration_cred
 7. Configurar cron protegido por `LOTUS_SCHEDULER_KEY`.
 8. Repetir o processo em production somente depois do smoke test em staging.
 
-## Smoke test obrigatório
+## Smoke test obrigatório — plataforma core
 
 - Criar conta admin e confirmar e-mail.
 - Ativar MFA/TOTP.
@@ -60,13 +60,13 @@ As credenciais específicas de cada conta Banco Inter ficam em `integration_cred
 - Criar acesso de cliente pela opcao "Sou cliente" usando e-mail cadastrado na empresa.
 - Validar que "Sou cliente" nao envia e-mail de confirmacao nativo do Supabase e nao cria workspace.
 - Cadastrar cliente com CNPJ normalizado.
-- Consultar CNPJ via SERPRO.
-- Criar assinatura via Asaas sandbox e validar webhook.
-- Cadastrar credenciais Banco Inter sandbox/produção controlada.
-- Enfileirar `health_check` e `statement_import`.
-- Aprovar uma sugestão de conciliação.
 - Validar que cliente não enxerga dados de outro cliente.
 - Validar que colaborador sem permissão não acessa financeiro/integrações.
+
+As integrações externas (SERPRO, Asaas, Banco Inter, WhatsApp e e-mail
+transacional) ficam fora da aprovação desta etapa. Elas só entram em um smoke
+test separado depois que a plataforma core passar os três roteiros do
+`OPERATIONAL_MVP_RUNBOOK.md`.
 
 ## Rollback
 

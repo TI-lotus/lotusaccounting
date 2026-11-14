@@ -84,6 +84,47 @@ ambiente de staging. Integrações externas ficam fora deste roteiro.
 - [ ] Competência entregue e fechada com evidências.
 - [ ] Cliente informado e notificações críticas tratadas.
 
+## Guia rápido de treinamento
+
+### Primeiro dia do administrador
+
+1. Configure o escritório e confirme o CNPJ em `Configurações`.
+2. Cadastre clientes ativos e defina o responsável de cada um.
+3. Revise os templates antes de abrir a primeira competência.
+4. Convide a equipe com o menor conjunto de permissões necessário.
+5. Crie uma competência de demonstração e percorra o fluxo inteiro antes de
+   iniciar o mês real.
+
+### Rotina do colaborador
+
+- Comece por `Minha fila` e trabalhe apenas itens atribuídos ou permitidos.
+- Use `Bloquear` somente com um motivo operacional claro.
+- Envie itens críticos para revisão antes de marcar a execução como concluída.
+- Vincule documentos e evidências à competência correta para preservar o
+  histórico.
+
+### Acompanhamento do cliente
+
+- O cliente acompanha documentos, tarefas, competência, agenda, faturas,
+  pagamentos e mensagens autorizadas.
+- O cliente não altera o planejamento interno nem acessa outros clientes.
+- Quando um documento for recusado, o motivo deve ser lido antes do reenvio.
+
+### Recuperação de problemas comuns
+
+- **Dados desatualizados:** aguarde a sincronização ou atualize a página; ao
+  recuperar a conexão, o workspace é recarregado automaticamente.
+- **Ação bloqueada:** confira o status do item, a permissão do perfil e se há
+  uma revisão ou evidência pendente.
+- **Convite não localizado:** confirme o e-mail, o workspace e o status do
+  convite na lista de convites antes de reenviar.
+- **Erro ao concluir competência:** abra o detalhe e resolva todas as etapas,
+  solicitações de documentos, obrigações e revisões pendentes.
+
+Nenhuma dessas rotinas depende de integração externa. A equipe deve registrar
+o que ocorreu no comentário operacional ou no histórico antes de solicitar
+suporte técnico.
+
 ## Testes negativos obrigatórios
 
 - [ ] Cliente tenta acessar outra empresa.
