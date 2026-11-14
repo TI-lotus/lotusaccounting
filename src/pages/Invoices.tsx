@@ -33,6 +33,7 @@ import { toast } from "sonner";
 import { BentoDataTable } from "@/components/BentoDataTable";
 import { RowActions } from "@/components/RowActions";
 import { ConfirmDestructiveDialog } from "@/components/ConfirmDestructiveDialog";
+import { NoPermissionState } from "@/components/PageStates";
 
 type Invoice = Pick<
   Database["public"]["Tables"]["invoices"]["Row"],
@@ -95,6 +96,13 @@ const Invoices = () => {
     accountType: profile?.account_type,
     resource: "financial",
     action: "create",
+  });
+  const canReadFinancial = useWorkspacePermission({
+    tenantId,
+    userId: user?.id,
+    accountType: profile?.account_type,
+    resource: "financial",
+    action: "read",
   });
   const canDeleteFinancial = useWorkspacePermission({
     tenantId,
@@ -284,6 +292,17 @@ const Invoices = () => {
     { value: "draft", label: "Rascunhos" },
     { value: "cancelled", label: "Canceladas" },
   ];
+
+  if (!isClientView && !canReadFinancial) {
+    return (
+      <PageShell title="Faturas" description="Emissão e acompanhamento de faturas">
+        <NoPermissionState
+          title="Faturas indisponíveis"
+          description="Você não tem permissão para visualizar as faturas deste workspace."
+        />
+      </PageShell>
+    );
+  }
 
   return (
     <>

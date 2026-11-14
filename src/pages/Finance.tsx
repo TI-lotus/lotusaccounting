@@ -18,6 +18,9 @@ import { BentoDataTable } from "@/components/BentoDataTable";
 import { RowActions } from "@/components/RowActions";
 import { contractedMonthlyFees } from "@/lib/financialMetrics";
 import { cn } from "@/lib/utils";
+import { NoPermissionState } from "@/components/PageStates";
+import { useAuth } from "@/contexts/AuthContext";
+import { useWorkspacePermission } from "@/hooks/useWorkspacePermission";
 
 const brl = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -25,8 +28,16 @@ const isIncome = (direction: string | null) =>
   direction === "entrada" || direction === "income";
 
 const Finance = () => {
-  const { payments, invoices, clients } = useData();
+  const { payments, invoices, clients, tenantId } = useData();
+  const { user, profile } = useAuth();
   const navigate = useNavigate();
+  const canReadFinancial = useWorkspacePermission({
+    tenantId,
+    userId: user?.id,
+    accountType: profile?.account_type,
+    resource: "financial",
+    action: "read",
+  });
 
   const kpi = useMemo(() => {
     const income = payments
@@ -123,6 +134,17 @@ const Finance = () => {
       trend: trends.overdue,
     },
   ];
+
+  if (!canReadFinancial) {
+    return (
+      <DashboardLayout>
+        <NoPermissionState
+          title="Financeiro indisponível"
+          description="Você não tem permissão para visualizar os dados financeiros deste workspace."
+        />
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>

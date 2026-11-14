@@ -52,6 +52,7 @@ import { BentoDataTable } from "@/components/BentoDataTable";
 import { RowActions } from "@/components/RowActions";
 import { MultiSelectFilter } from "@/components/MultiSelectFilter";
 import { ConfirmDestructiveDialog } from "@/components/ConfirmDestructiveDialog";
+import { NoPermissionState } from "@/components/PageStates";
 
 interface Payment {
   id: string;
@@ -109,6 +110,13 @@ const Payments = () => {
     accountType: profile?.account_type,
     resource: "financial",
     action: "create",
+  });
+  const canReadFinancial = useWorkspacePermission({
+    tenantId,
+    userId: user?.id,
+    accountType: profile?.account_type,
+    resource: "financial",
+    action: "read",
   });
   const canUpdateFinancial = useWorkspacePermission({
     tenantId,
@@ -431,6 +439,17 @@ const Payments = () => {
       />
     </div>
   );
+
+  if (viewMode !== "client" && !canReadFinancial) {
+    return (
+      <DashboardLayout>
+        <NoPermissionState
+          title="Pagamentos indisponíveis"
+          description="Você não tem permissão para visualizar os pagamentos deste workspace."
+        />
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
