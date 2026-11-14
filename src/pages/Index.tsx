@@ -5,6 +5,7 @@ import { BentoMetric } from "@/components/dashboard/KPICard";
 import { getBentoGridClass } from "@/components/dashboard/bentoGrid";
 import { PendingRisksPanel } from "@/components/dashboard/PendingRisksPanel";
 import { OperationalIndicatorsPanel } from "@/components/dashboard/OperationalIndicatorsPanel";
+import { OnboardingChecklist } from "@/components/dashboard/OnboardingChecklist";
 import { useViewMode } from "@/contexts/ViewModeContext";
 import { useData } from "@/contexts/DataContext";
 import { useUserProfile } from "@/contexts/UserProfileContext";
@@ -1100,6 +1101,7 @@ const Index = () => {
   const navigate = useNavigate();
   const { viewMode } = useViewMode();
   const profile = useUserProfile();
+  const { profile: authProfile } = useAuth();
   const {
     clients,
     tasks,
@@ -1360,6 +1362,8 @@ const Index = () => {
             </div>
           </FilterPopover>
         </div>
+
+        {authProfile?.account_type === "admin" && <OnboardingChecklist />}
 
         {clients.length === 0 && (
           <div className="glass rounded-2xl p-6 animate-fade-in">
