@@ -15,6 +15,7 @@ import {
   ArrowDown,
   Eye,
   ExternalLink,
+  XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -50,13 +51,14 @@ import { SortToggle } from "@/components/SortToggle";
 import { BentoDataTable } from "@/components/BentoDataTable";
 import { RowActions } from "@/components/RowActions";
 import { MultiSelectFilter } from "@/components/MultiSelectFilter";
+import { ConfirmDestructiveDialog } from "@/components/ConfirmDestructiveDialog";
 
 interface Payment {
   id: string;
   description: string;
   amount: number;
   type: "income" | "expense";
-  status: "completed" | "pending";
+  status: "completed" | "pending" | "cancelled";
   date: string;
   rawDate: string | null;
   category: string;
@@ -86,7 +88,7 @@ const currentQuarterRange = () => {
   };
 };
 
-type PaymentStatusFilter = "completed" | "pending";
+type PaymentStatusFilter = "completed" | "pending" | "cancelled";
 type PaymentDateFilter = "all" | "month" | "quarter" | "custom";
 
 const Payments = () => {
@@ -124,6 +126,7 @@ const Payments = () => {
   const [dateRange, setDateRange] = useState(currentMonthRange);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
+  const [paymentToCancel, setPaymentToCancel] = useState<Payment | null>(null);
   const [newPayment, setNewPayment] = useState({
     description: "",
     amount: "",
@@ -161,6 +164,8 @@ const Payments = () => {
       status:
         row.status === "completed" || row.status === "paid"
           ? "completed"
+          : row.status === "cancelled" || row.status === "canceled"
+            ? "cancelled"
           : "pending",
       date: fmt(row.paid_at ?? row.due_date ?? row.created_at),
       rawDate: row.paid_at ?? row.due_date ?? row.created_at,
@@ -241,6 +246,10 @@ const Payments = () => {
     }
     const p = payments.find((x) => x.id === id);
     if (!p) return;
+    if (p.status === "cancelled") {
+      toast.info("Pagamentos cancelados não podem ser reativados por este fluxo.");
+      return;
+    }
     if (p.reconciledAt) {
       toast.error("Pagamentos conciliados não podem ter o status alterado manualmente.");
       return;
@@ -252,6 +261,23 @@ const Payments = () => {
       paid_at: nextStatus === "completed" ? new Date().toISOString() : null,
     })) return;
     toast.success("Status atualizado!");
+  };
+
+  const handleCancelPayment = async () => {
+    if (!paymentToCancel) return false;
+    if (!canUpdateFinancial) {
+      toast.error("Seu perfil não tem permissão para cancelar pagamentos.");
+      return false;
+    }
+    if (paymentToCancel.reconciledAt) {
+      toast.error("Pagamentos conciliados não podem ser cancelados.");
+      return false;
+    }
+    const updated = await updatePayment(paymentToCancel.id, { status: "cancelled", paid_at: null });
+    if (!updated) return false;
+    setSelectedPayment((current) => current?.id === paymentToCancel.id ? { ...current, status: "cancelled" } : current);
+    toast.success("Pagamento cancelado");
+    return true;
   };
 
   const handleExportCsv = () => {
@@ -329,6 +355,7 @@ const Payments = () => {
           options={[
             { value: "completed", label: "Concluídos" },
             { value: "pending", label: "Pendentes" },
+            { value: "cancelled", label: "Cancelados" },
           ]}
           value={statusFilters}
           onChange={(value) => setStatusFilters(value as PaymentStatusFilter[])}
@@ -589,7 +616,7 @@ const Payments = () => {
               subtitle: payment.category,
               time: `${9 + (index % 8)}:00`,
               amount: `${payment.type === "income" ? "+" : "-"}R$ ${payment.amount.toLocaleString("pt-BR")}`,
-              status: payment.status === "completed" ? "Concluído" : "Pendente",
+              status: payment.status === "completed" ? "Concluído" : payment.status === "cancelled" ? "Cancelado" : "Pendente",
             }))}
           />
         )}
@@ -607,7 +634,7 @@ const Payments = () => {
               subtitle: payment.category,
               time: "09:00",
               amount: `${payment.type === "income" ? "+" : "-"}R$ ${payment.amount.toLocaleString("pt-BR")}`,
-              status: payment.status === "completed" ? "Concluído" : "Pendente",
+              status: payment.status === "completed" ? "Concluído" : payment.status === "cancelled" ? "Cancelado" : "Pendente",
             }))}
           />
         )}
@@ -661,18 +688,19 @@ const Payments = () => {
                 {
                   key: "status",
                   label: "Status",
-                  render: (payment) => <Badge variant={payment.status === "completed" ? "default" : "secondary"}>{payment.status === "completed" ? "Concluído" : "Pendente"}</Badge>,
+                  render: (payment) => <Badge variant={payment.status === "completed" ? "default" : payment.status === "cancelled" ? "outline" : "secondary"}>{payment.status === "completed" ? "Concluído" : payment.status === "cancelled" ? "Cancelado" : "Pendente"}</Badge>,
                 },
               ]}
               actions={(payment) => (
                 <RowActions
-                  primaryLabel={viewMode === "client" ? "Ver detalhes" : !canUpdateFinancial ? "Sem permissão para atualizar" : payment.reconciledAt ? "Já conciliado" : payment.status === "completed" ? "Reabrir pagamento" : "Confirmar pagamento"}
-                  primaryIcon={viewMode === "client" ? Eye : payment.status === "completed" ? RotateCcw : CheckCircle2}
-                  primaryDisabled={viewMode !== "client" && (!canUpdateFinancial || Boolean(payment.reconciledAt))}
-                  onPrimary={() => { if (viewMode === "client") setSelectedPayment(payment); else void handleToggleStatus(payment.id); }}
+                  primaryLabel={viewMode === "client" || payment.status === "cancelled" ? "Ver detalhes" : !canUpdateFinancial ? "Sem permissão para atualizar" : payment.reconciledAt ? "Já conciliado" : payment.status === "completed" ? "Reabrir pagamento" : "Confirmar pagamento"}
+                  primaryIcon={viewMode === "client" || payment.status === "cancelled" ? Eye : payment.status === "completed" ? RotateCcw : CheckCircle2}
+                  primaryDisabled={viewMode !== "client" && (payment.status === "cancelled" || !canUpdateFinancial || Boolean(payment.reconciledAt))}
+                  onPrimary={() => { if (viewMode === "client" || payment.status === "cancelled") setSelectedPayment(payment); else void handleToggleStatus(payment.id); }}
                   menuItems={[
                     { label: "Ver detalhes", icon: Eye, onSelect: () => setSelectedPayment(payment) },
                     { label: "Abrir conciliação", icon: ExternalLink, onSelect: () => navigate("/reconciliation") },
+                    ...(viewMode !== "client" && canUpdateFinancial && !payment.reconciledAt && payment.status !== "cancelled" ? [{ label: "Cancelar pagamento", icon: XCircle, separatorBefore: true, onSelect: () => setPaymentToCancel(payment) }] : []),
                   ]}
                 />
               )}
@@ -694,11 +722,20 @@ const Payments = () => {
               <div><dt className="text-xs text-muted-foreground">Tipo</dt><dd className="mt-1">{selectedPayment.type === "income" ? "Receita" : "Despesa"}</dd></div>
               <div><dt className="text-xs text-muted-foreground">Categoria</dt><dd className="mt-1">{selectedPayment.category}</dd></div>
               <div><dt className="text-xs text-muted-foreground">Cliente</dt><dd className="mt-1 break-words">{selectedPayment.clientName}</dd></div>
+              <div><dt className="text-xs text-muted-foreground">Status</dt><dd className="mt-1">{selectedPayment.status === "completed" ? "Concluído" : selectedPayment.status === "cancelled" ? "Cancelado" : "Pendente"}</dd></div>
             </dl>
           )}
           <DialogFooter><Button variant="ghost" className="border-0" onClick={() => setSelectedPayment(null)}>Fechar</Button></DialogFooter>
         </DialogContent>
       </Dialog>
+      <ConfirmDestructiveDialog
+        open={Boolean(paymentToCancel)}
+        onOpenChange={(open) => !open && setPaymentToCancel(null)}
+        title="Cancelar este pagamento?"
+        description="O lançamento permanecerá no histórico como cancelado. Se estiver vinculado a uma fatura, ela voltará a ficar pendente, salvo se houver outro pagamento concluído."
+        confirmLabel="Cancelar pagamento"
+        onConfirm={handleCancelPayment}
+      />
     </DashboardLayout>
   );
 };

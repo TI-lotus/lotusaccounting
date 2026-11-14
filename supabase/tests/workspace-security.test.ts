@@ -105,6 +105,7 @@ beforeAll(async () => {
   await db.exec(migration("20261114100000_normalize_financial_permission_key.sql"));
   await db.exec(migration("20261114140000_period_close_requirements.sql"));
   await db.exec(migration("20261114150000_financial_integrity_guards.sql"));
+  await db.exec(migration("20261114160000_payment_cancellation.sql"));
   // Seed auth identities before enabling the onboarding trigger. The initial
   // workspace fixture below owns their public profile/user records directly.
   await db.exec(`INSERT INTO auth.users(id, email) VALUES ('${admin}', 'admin@example.com'), ('${client}', 'client-owner@example.com'), ('${collaborator}', 'collaborator@example.com')`);
@@ -828,6 +829,15 @@ describe("workspace security regression", () => {
     await expect(db.query("DELETE FROM payments WHERE id = $1", [paymentId])).rejects.toThrow(/Reconciled payments cannot be deleted/);
     await expect(db.query("UPDATE invoices SET status = 'pending' WHERE id = $1", [invoiceId])).rejects.toThrow(/cannot be reopened/);
     await expect(db.query("UPDATE invoices SET status = 'cancelled' WHERE id = $1", [invoiceId])).rejects.toThrow(/cannot be cancelled/);
+
+    const cancellableInvoiceId = id(48);
+    const cancellablePaymentId = id(49);
+    await db.query(`INSERT INTO invoices(id, tenant_id, company_id, amount, status) VALUES ('${cancellableInvoiceId}', '${tenant}', '${company}', 75, 'pending')`);
+    await db.query(`INSERT INTO payments(id, tenant_id, company_id, invoice_id, amount, status, direction) VALUES ('${cancellablePaymentId}', '${tenant}', '${company}', '${cancellableInvoiceId}', 75, 'pending', 'income')`);
+    await db.query("UPDATE payments SET status = 'completed', paid_at = now() WHERE id = $1", [cancellablePaymentId]);
+    expect((await db.query("SELECT status FROM invoices WHERE id = $1", [cancellableInvoiceId])).rows).toEqual([{ status: "paid" }]);
+    await db.query("UPDATE payments SET status = 'cancelled', paid_at = NULL WHERE id = $1", [cancellablePaymentId]);
+    expect((await db.query("SELECT status FROM invoices WHERE id = $1", [cancellableInvoiceId])).rows).toEqual([{ status: "pending" }]);
   });
   it("archives only read notifications older than the retention window", async () => {
     await db.exec("RESET ROLE; SELECT set_config('request.jwt.claim.role', 'service_role', false)");
