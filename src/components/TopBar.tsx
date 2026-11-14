@@ -44,7 +44,7 @@ import {
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useViewMode } from "@/contexts/ViewModeContext";
 import { useUserProfile } from "@/contexts/UserProfileContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -151,6 +151,8 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [subscription, setSubscription] = useState<TenantSubscription | null>(null);
   const navigate = useNavigate();
+  const location = useLocation();
+  const isMessagesPage = location.pathname === "/messages";
   const { viewMode, role, isCollapsed, setIsCollapsed } = useViewMode();
   const { theme } = useTheme();
   const profile = useUserProfile();
@@ -476,10 +478,11 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
           <button
             type="button"
             aria-label={isCollapsed ? "Expandir menu lateral" : "Recolher menu lateral"}
-            title={isCollapsed ? "Expandir menu" : "Recolher menu"}
-            onClick={() => setIsCollapsed(!isCollapsed)}
+            title={isMessagesPage ? "Menu lateral fixo nesta tela" : isCollapsed ? "Expandir menu" : "Recolher menu"}
+            onClick={() => !isMessagesPage && setIsCollapsed(!isCollapsed)}
+            disabled={isMessagesPage}
             className={cn(
-              "rounded-full p-2 transition-[background-color,color]",
+              "rounded-full p-2 transition-[background-color,color] disabled:cursor-default disabled:opacity-60",
               theme === "dark" ? "text-white/60 hover:bg-white/10 hover:text-white" : "text-muted-foreground hover:bg-black/5 hover:text-foreground",
             )}
           >

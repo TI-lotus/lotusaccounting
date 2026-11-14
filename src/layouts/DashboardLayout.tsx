@@ -15,7 +15,7 @@ const STORAGE_KEY = "lia-chat-panel-state";
 
 export const DashboardLayout = ({ children, className }: DashboardLayoutProps) => {
   const location = useLocation();
-  const { isCollapsed } = useViewMode();
+  const { isCollapsed, setIsCollapsed } = useViewMode();
   const isMessagesPage = location.pathname === "/messages";
   const isLiaPage = location.pathname === "/lia";
   const [chatState, setChatState] = useState<ChatPanelState>(() => {
@@ -33,6 +33,10 @@ export const DashboardLayout = ({ children, className }: DashboardLayoutProps) =
     // persisted open state from covering the fixed workspace messaging panes.
     setChatState(isLiaPage ? "open" : "closed");
   }, [isLiaPage]);
+
+  useEffect(() => {
+    if (isMessagesPage) setIsCollapsed(true);
+  }, [isMessagesPage, setIsCollapsed]);
 
   return (
     <div className="min-h-screen flex flex-col w-full bg-background">
