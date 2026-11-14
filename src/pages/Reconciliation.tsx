@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useData } from "@/contexts/DataContext";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { useWorkspacePermission } from "@/hooks/useWorkspacePermission";
 import {
   applyReconciliationMatch,
   enqueueStatementImport,
@@ -33,9 +34,11 @@ const isIncome = (direction: string | null) =>
 
 const Reconciliation = () => {
   const navigate = useNavigate();
-  const { payments, updatePayment } = useData();
+  const { payments, updatePayment, tenantId } = useData();
   const { integrationConnections } = useData();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
+  const canReadFinancial = useWorkspacePermission({ tenantId, userId: user?.id, accountType: profile?.account_type, resource: "financial", action: "read" });
+  const canUpdateFinancial = useWorkspacePermission({ tenantId, userId: user?.id, accountType: profile?.account_type, resource: "financial", action: "update" });
   const [accounts, setAccounts] = useState<BankAccount[]>([]);
   const [transactions, setTransactions] = useState<BankTransaction[]>([]);
   const [matches, setMatches] = useState<ReconciliationMatch[]>([]);
@@ -48,7 +51,13 @@ const Reconciliation = () => {
     [integrationConnections],
   );
 
-  const refreshBankData = async () => {
+  const refreshBankData = useCallback(async () => {
+    if (!canReadFinancial) {
+      setAccounts([]);
+      setTransactions([]);
+      setMatches([]);
+      return;
+    }
     try {
       const [accountRows, transactionRows, matchRows] = await Promise.all([
         listBankAccounts(),
@@ -61,11 +70,11 @@ const Reconciliation = () => {
     } catch (error) {
       toast.error("Não foi possível carregar os extratos importados.");
     }
-  };
+  }, [canReadFinancial]);
 
   useEffect(() => {
     void refreshBankData();
-  }, []);
+  }, [refreshBankData]);
 
   useEffect(() => {
     if (!selectedConnection && interConnections[0]?.id) {
@@ -85,6 +94,10 @@ const Reconciliation = () => {
   }, [payments]);
 
   const toggle = async (id: string) => {
+    if (!canUpdateFinancial) {
+      toast.error("Seu perfil não tem permissão para atualizar a conciliação.");
+      return;
+    }
     const payment = payments.find((p) => p.id === id);
     if (!payment) return;
     const isReconciled = !!payment.reconciled_at;
@@ -98,6 +111,10 @@ const Reconciliation = () => {
   };
 
   const importInterStatement = async () => {
+    if (!canUpdateFinancial) {
+      toast.error("Seu perfil não tem permissão para importar extratos.");
+      return;
+    }
     if (!selectedConnection) {
       toast.error("Configure uma integração Banco Inter antes de importar.");
       return;
@@ -117,6 +134,10 @@ const Reconciliation = () => {
   };
 
   const reviewMatch = async (matchId: string, approve: boolean) => {
+    if (!canUpdateFinancial) {
+      toast.error("Seu perfil não tem permissão para revisar conciliações.");
+      return;
+    }
     try {
       await applyReconciliationMatch(matchId, approve);
       toast.success(approve ? "Conciliação aprovada" : "Sugestão rejeitada");
@@ -138,6 +159,12 @@ const Reconciliation = () => {
           </p>
         </div>
 
+        {!canReadFinancial && (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
+            Seu perfil não possui acesso ao módulo de conciliação financeira. Solicite a permissão de leitura ao administrador do workspace.
+          </div>
+        )}
+
         <BentoStatStrip
           className="sm:grid-cols-2"
           items={[
@@ -146,7 +173,7 @@ const Reconciliation = () => {
           ]}
         />
 
-        <Card>
+        {canReadFinancial && <Card>
           <CardHeader>
             <CardTitle className="text-base">Banco Inter</CardTitle>
           </CardHeader>
@@ -175,9 +202,9 @@ const Reconciliation = () => {
                   <RefreshCw className="mr-2 h-4 w-4" />
                   Atualizar
                 </Button>
-                <Button size="sm" onClick={() => void importInterStatement()} disabled={loadingBank}>
+                {canUpdateFinancial && <Button size="sm" onClick={() => void importInterStatement()} disabled={loadingBank}>
                   {loadingBank ? "Enfileirando..." : "Importar 30 dias"}
-                </Button>
+                </Button>}
               </div>
             </div>
 
@@ -206,14 +233,16 @@ const Reconciliation = () => {
                       </div>
                       <div className="flex items-center gap-2">
                         <Badge variant="secondary">{Number(match.confidence).toFixed(0)}%</Badge>
-                        <Button size="sm" onClick={() => void reviewMatch(match.id, true)}>
-                          <CheckCircle2 className="mr-2 h-4 w-4" />
-                          Aprovar
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={() => void reviewMatch(match.id, false)}>
-                          <XCircle className="mr-2 h-4 w-4" />
-                          Rejeitar
-                        </Button>
+                        {canUpdateFinancial && <>
+                          <Button size="sm" onClick={() => void reviewMatch(match.id, true)}>
+                            <CheckCircle2 className="mr-2 h-4 w-4" />
+                            Aprovar
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => void reviewMatch(match.id, false)}>
+                            <XCircle className="mr-2 h-4 w-4" />
+                            Rejeitar
+                          </Button>
+                        </>}
                       </div>
                     </div>
                   );
@@ -221,9 +250,9 @@ const Reconciliation = () => {
               </div>
             )}
           </CardContent>
-        </Card>
+        </Card>}
 
-        <section className="page-section animate-fade-in space-y-4">
+        {canReadFinancial && <section className="page-section animate-fade-in space-y-4">
           <div>
             <h2 className="text-base font-medium">Lançamentos</h2>
             <p className="mt-1 text-sm text-muted-foreground">Compare recebimentos com as transações importadas.</p>
@@ -272,6 +301,7 @@ const Reconciliation = () => {
                 <RowActions
                   primaryLabel={reconciled ? "Desfazer conciliação" : "Conciliar lançamento"}
                   primaryIcon={reconciled ? RotateCcw : CheckCircle2}
+                  primaryDisabled={!canUpdateFinancial}
                   onPrimary={() => void toggle(payment.id)}
                   menuItems={[
                     { label: "Ver detalhes", icon: Eye, onSelect: () => setSelectedPayment(payment) },
@@ -281,7 +311,7 @@ const Reconciliation = () => {
               );
             }}
           />
-        </section>
+        </section>}
       </div>
       <Dialog open={Boolean(selectedPayment)} onOpenChange={(open) => !open && setSelectedPayment(null)}>
         <DialogContent className="sm:max-w-lg">
