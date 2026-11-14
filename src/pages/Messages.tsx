@@ -112,17 +112,23 @@ const Messages = () => {
       config: { presence: { key: user.id } },
     });
     const syncPresence = () => {
-      setOnlineUserIds(new Set(Object.keys(presenceChannel.presenceState())));
+      try {
+        setOnlineUserIds(new Set(Object.keys(presenceChannel.presenceState())));
+      } catch {
+        setOnlineUserIds(new Set());
+      }
     };
 
     presenceChannel
       .on("presence", { event: "sync" }, syncPresence)
       .on("presence", { event: "join" }, syncPresence)
       .on("presence", { event: "leave" }, syncPresence)
-      .subscribe(async (status) => {
+      .subscribe((status) => {
         if (status !== "SUBSCRIBED") return;
-        await presenceChannel.track({ online_at: new Date().toISOString() });
-        syncPresence();
+        void presenceChannel
+          .track({ online_at: new Date().toISOString() })
+          .then(syncPresence)
+          .catch(() => setOnlineUserIds(new Set()));
       });
 
     return () => {
