@@ -748,6 +748,15 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [fetchAll, profile?.status, profile?.tenant_id, user]);
 
+  useEffect(() => {
+    if (!user || !profile?.tenant_id || profile.status !== "active") return;
+    const refreshWhenOnline = () => {
+      void fetchAll();
+    };
+    window.addEventListener("online", refreshWhenOnline);
+    return () => window.removeEventListener("online", refreshWhenOnline);
+  }, [fetchAll, profile?.status, profile?.tenant_id, user]);
+
   // -------- Clients --------
   const addClient = useCallback(
     async (client: Omit<ClientData, "id" | "createdAt">) => {
