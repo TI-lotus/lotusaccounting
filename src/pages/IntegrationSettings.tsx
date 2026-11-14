@@ -542,10 +542,13 @@ const IntegrationSettings = () => {
                   style={{ left: `${node.x}%`, top: `${node.y}%` }}
                 >
                   <button
+                    type="button"
+                    aria-label={`Remover etapa ${node.label}`}
+                    title={`Remover etapa ${node.label}`}
                     className="absolute right-1 top-1 rounded-lg p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                     onClick={() => deleteWorkflowNode(node.id)}
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
                   </button>
                   <button
                     className="text-left"
