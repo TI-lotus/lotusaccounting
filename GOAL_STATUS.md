@@ -11,6 +11,8 @@ contabilidade, sem depender de integrações externas nesta etapa.
   aprovados no branch `staging`.
 - Staging no Vercel: deployment observado como `READY`; SSO da Vercel foi
   desativado temporariamente para liberar o QA autenticado.
+- Smoke test público: aprovado; o deployment mais recente abre diretamente a
+  tela `/auth` da Lotus.
 - Typecheck: aprovado.
 - Testes automatizados: 99 aprovados em 6 arquivos.
 - Lint: aprovado sem erros bloqueantes; permanecem apenas avisos históricos de

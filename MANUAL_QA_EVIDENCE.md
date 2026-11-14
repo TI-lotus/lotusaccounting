@@ -5,7 +5,7 @@ feito no staging liberado, antes de qualquer promoção para `main`.
 
 ## Pré-condições
 
-- [ ] Staging acessível sem bloqueio de SSO da Vercel ou com uma URL de QA autorizada.
+- [x] Staging acessível sem bloqueio de SSO da Vercel; smoke test público abriu a tela `/auth`.
 - [ ] Conta de administrador ativa.
 - [ ] Conta de colaborador convidada pelo administrador.
 - [ ] Conta de cliente convidada ou criada pelo fluxo `Sou cliente`.
