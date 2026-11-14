@@ -20,6 +20,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import type { Database } from "@/integrations/supabase/types";
 import { BentoStatStrip } from "@/components/dashboard/BentoStatStrip";
 import { FilterPopover } from "@/components/FilterPopover";
+import { toast } from "sonner";
 
 type UserNotificationRow = Database["public"]["Tables"]["user_notifications"]["Row"];
 
@@ -57,16 +58,30 @@ const Notifications = () => {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<"all" | "unread" | "read">("all");
   const [category, setCategory] = useState("all");
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [savingIds, setSavingIds] = useState<Set<string>>(() => new Set());
 
   const loadNotifications = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      setNotifications([]);
+      setLoadError(null);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
-    const { data } = await supabase
+    setLoadError(null);
+    const { data, error } = await supabase
       .from("user_notifications")
       .select("*")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(200);
+    if (error) {
+      setNotifications([]);
+      setLoadError(error.message);
+      setLoading(false);
+      return;
+    }
     setNotifications((data ?? []) as UserNotificationRow[]);
     setLoading(false);
   }, [user]);
@@ -121,18 +136,46 @@ const Notifications = () => {
   const readAt = () => new Date().toISOString();
 
   const markOneRead = async (notification: UserNotificationRow) => {
-    if (notification.read_at) return;
+    if (notification.read_at || savingIds.has(notification.id)) return true;
+    if (!user) return false;
     const value = readAt();
+    setSavingIds((current) => new Set(current).add(notification.id));
     setNotifications((current) => current.map((item) => item.id === notification.id ? { ...item, read_at: value } : item));
-    await supabase.from("user_notifications").update({ read_at: value }).eq("id", notification.id);
+    const { error } = await supabase
+      .from("user_notifications")
+      .update({ read_at: value })
+      .eq("id", notification.id)
+      .eq("user_id", user.id);
+    setSavingIds((current) => {
+      const next = new Set(current);
+      next.delete(notification.id);
+      return next;
+    });
+    if (error) {
+      setNotifications((current) => current.map((item) => item.id === notification.id ? { ...item, read_at: null } : item));
+      toast.error("Não foi possível marcar a notificação como lida.");
+      return false;
+    }
+    return true;
   };
 
   const markAllRead = async () => {
     const unreadIds = notifications.filter((notification) => !notification.read_at).map((notification) => notification.id);
-    if (!unreadIds.length) return;
+    if (!unreadIds.length || !user) return;
     const value = readAt();
+    const previous = notifications;
     setNotifications((current) => current.map((item) => unreadIds.includes(item.id) ? { ...item, read_at: value } : item));
-    await supabase.from("user_notifications").update({ read_at: value }).in("id", unreadIds);
+    const { error } = await supabase
+      .from("user_notifications")
+      .update({ read_at: value })
+      .in("id", unreadIds)
+      .eq("user_id", user.id);
+    if (error) {
+      setNotifications(previous);
+      toast.error("Não foi possível marcar todas as notificações como lidas.");
+      return;
+    }
+    toast.success("Todas as notificações foram marcadas como lidas.");
   };
 
   return (
@@ -206,7 +249,19 @@ const Notifications = () => {
             </Card>
           )}
 
-          {!loading && filteredNotifications.length === 0 && (
+          {!loading && loadError && (
+            <Card className="rounded-2xl border-destructive/30">
+              <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
+                <p className="text-sm font-medium">Não foi possível carregar as notificações.</p>
+                <p className="max-w-md text-sm text-muted-foreground">Verifique sua conexão e tente novamente. Se o problema continuar, recarregue a sessão.</p>
+                <Button type="button" variant="outline" className="rounded-xl" onClick={() => void loadNotifications()}>
+                  Tentar novamente
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {!loading && !loadError && filteredNotifications.length === 0 && (
             <Card className="rounded-2xl">
               <CardContent className="py-10 text-center text-sm text-muted-foreground">
                 Nenhuma notificação encontrada.
@@ -232,8 +287,7 @@ const Notifications = () => {
                   <button
                     className="min-w-0 flex-1 text-left"
                     onClick={async () => {
-                      await markOneRead(notification);
-                      navigate(notification.href || "/");
+                      if (await markOneRead(notification)) navigate(notification.href || "/");
                     }}
                   >
                     <div className="flex flex-wrap items-center gap-2">
@@ -255,11 +309,11 @@ const Notifications = () => {
                   </button>
                   <div className="flex gap-2 md:justify-end">
                     {!notification.read_at && (
-                      <Button variant="outline" size="sm" className="rounded-xl" onClick={() => void markOneRead(notification)}>
+                      <Button variant="outline" size="sm" className="rounded-xl" disabled={savingIds.has(notification.id)} onClick={() => void markOneRead(notification)}>
                         Marcar lida
                       </Button>
                     )}
-                    <Button size="sm" className="rounded-xl" onClick={() => void markOneRead(notification).then(() => navigate(notification.href || "/"))}>
+                    <Button size="sm" className="rounded-xl" disabled={savingIds.has(notification.id)} onClick={() => void markOneRead(notification).then((marked) => { if (marked) navigate(notification.href || "/"); })}>
                       Abrir
                     </Button>
                   </div>
