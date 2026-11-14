@@ -109,6 +109,7 @@ const Tasks = () => {
   const [blockTarget, setBlockTarget] = useState<TaskData | null>(null);
   const [blockReason, setBlockReason] = useState("");
   const [generatingRecurrences, setGeneratingRecurrences] = useState(false);
+  const [savingTask, setSavingTask] = useState(false);
   const [activeAssignees, setActiveAssignees] = useState<Array<{ user_id: string; full_name: string | null; avatar_url: string | null }>>([]);
   const [newTask, setNewTask] = useState({
     title: "",
@@ -219,6 +220,7 @@ const Tasks = () => {
   };
 
   const handleSaveTask = async () => {
+    if (savingTask) return;
     if (!newTask.title.trim()) {
       toast.error("Informe o título da tarefa");
       return;
@@ -230,50 +232,55 @@ const Tasks = () => {
       (editingTaskId ? tasks.find((task) => task.id === editingTaskId)?.assignedToName : null) ||
       "Sem responsável";
 
-    if (editingTaskId) {
-      const saved = await updateTask(editingTaskId, {
-        title: newTask.title.trim(),
-        description: newTask.description,
-        type: newTask.type,
-        priority: newTask.priority,
-        dueDate: newTask.dueDate,
-        category: newTask.category || "Geral",
-        clientId: newTask.clientId || null,
-        clientName: selectedClient?.name ?? null,
-        assignedToId: selectedAssigneeId ?? "",
-        assignedToName: assigneeName,
-      });
-      if (!saved) return;
-      toast.success("Tarefa atualizada");
-    } else {
-      const saved = await addTask({
-        title: newTask.title.trim(),
-        description: newTask.description,
-        status: "pending",
-        priority: newTask.priority,
-        type: newTask.type,
-        dueDate: newTask.dueDate,
-        category: newTask.category || "Geral",
-        clientId: newTask.clientId || null,
-        clientName: selectedClient?.name ?? null,
-        assignedToId: newTask.assignedToId,
-        assignedToName: assigneeName,
-      });
-      if (!saved) return;
-    }
+    setSavingTask(true);
+    try {
+      if (editingTaskId) {
+        const saved = await updateTask(editingTaskId, {
+          title: newTask.title.trim(),
+          description: newTask.description,
+          type: newTask.type,
+          priority: newTask.priority,
+          dueDate: newTask.dueDate,
+          category: newTask.category || "Geral",
+          clientId: newTask.clientId || null,
+          clientName: selectedClient?.name ?? null,
+          assignedToId: selectedAssigneeId ?? "",
+          assignedToName: assigneeName,
+        });
+        if (!saved) return;
+        toast.success("Tarefa atualizada");
+      } else {
+        const saved = await addTask({
+          title: newTask.title.trim(),
+          description: newTask.description,
+          status: "pending",
+          priority: newTask.priority,
+          type: newTask.type,
+          dueDate: newTask.dueDate,
+          category: newTask.category || "Geral",
+          clientId: newTask.clientId || null,
+          clientName: selectedClient?.name ?? null,
+          assignedToId: newTask.assignedToId,
+          assignedToName: assigneeName,
+        });
+        if (!saved) return;
+      }
 
-    setEditingTaskId(null);
-    setDialogOpen(false);
-    setNewTask({
-      title: "",
-      description: "",
-      priority: "medium",
-      dueDate: "",
-      category: "",
-      clientId: "",
-      assignedToId: user?.id ?? "",
-      type: "monthly",
-    });
+      setEditingTaskId(null);
+      setDialogOpen(false);
+      setNewTask({
+        title: "",
+        description: "",
+        priority: "medium",
+        dueDate: "",
+        category: "",
+        clientId: "",
+        assignedToId: user?.id ?? "",
+        type: "monthly",
+      });
+    } finally {
+      setSavingTask(false);
+    }
   };
 
   const handleGenerateRecurringTasks = async () => {
@@ -656,8 +663,8 @@ const Tasks = () => {
                         Colaboradores podem criar e editar tarefas próprias; a distribuição para outra pessoa fica com o administrador.
                       </p>
                     )}
-                    <Button onClick={() => void handleSaveTask()} className="w-full">
-                      {editingTaskId ? "Salvar alterações" : "Criar tarefa"}
+                    <Button onClick={() => void handleSaveTask()} className="w-full" disabled={savingTask}>
+                      {savingTask ? "Salvando…" : editingTaskId ? "Salvar alterações" : "Criar tarefa"}
                     </Button>
                   </div>
                 </DialogContent>
