@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { Archive, ArchiveRestore, CheckCheck, MessageSquare, Mic, MoreHorizontal, Paperclip, Pin, Plus, Search, Send, Smile, Users } from "lucide-react";
@@ -69,6 +69,7 @@ const Messages = () => {
   const [messages, setMessages] = useState<MessageRow[]>([]);
   const [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+  const lastMessageRefreshAt = useRef(0);
   const { members } = useWorkspaceMembers();
 
   const isClient = profile?.account_type === "client";
@@ -78,8 +79,8 @@ const Messages = () => {
     if (!tenantId) return;
     setLoading(true);
     const [conversationRes, messageRes] = await Promise.all([
-      supabase.from("conversations").select("*").eq("channel", "internal").order("created_at", { ascending: false }),
-      supabase.from("messages").select("*").order("created_at", { ascending: true }),
+      supabase.from("conversations").select("*").eq("tenant_id", tenantId).eq("channel", "internal").order("created_at", { ascending: false }),
+      supabase.from("messages").select("*").eq("tenant_id", tenantId).order("created_at", { ascending: true }),
     ]);
     if (conversationRes.error) toast.error("Erro ao carregar conversas: " + conversationRes.error.message);
     if (messageRes.error) toast.error("Erro ao carregar mensagens: " + messageRes.error.message);
@@ -107,8 +108,31 @@ const Messages = () => {
         if (payload.eventType === "INSERT" && message.sender_id !== user.id) toast.info("Nova mensagem recebida");
         void loadMessages();
       })
+      .on("postgres_changes", { event: "*", schema: "public", table: "conversations", filter: `tenant_id=eq.${tenantId}` }, () => {
+        void loadMessages();
+      })
       .subscribe();
     return () => { void supabase.removeChannel(channel); };
+  }, [loadMessages, tenantId, user]);
+
+  useEffect(() => {
+    if (!tenantId || !user) return;
+    const refreshWhenActive = () => {
+      if (document.visibilityState !== "visible") return;
+      const now = Date.now();
+      if (now - lastMessageRefreshAt.current < 10_000) return;
+      lastMessageRefreshAt.current = now;
+      void loadMessages();
+    };
+
+    window.addEventListener("online", refreshWhenActive);
+    window.addEventListener("focus", refreshWhenActive);
+    document.addEventListener("visibilitychange", refreshWhenActive);
+    return () => {
+      window.removeEventListener("online", refreshWhenActive);
+      window.removeEventListener("focus", refreshWhenActive);
+      document.removeEventListener("visibilitychange", refreshWhenActive);
+    };
   }, [loadMessages, tenantId, user]);
 
   useEffect(() => {
