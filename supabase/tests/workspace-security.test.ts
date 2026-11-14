@@ -115,6 +115,7 @@ beforeAll(async () => {
   await db.exec(migration("20261114190000_positive_financial_amounts.sql"));
   await db.exec(migration("20261114200000_task_recurrences.sql"));
   await db.exec(migration("20261114210000_schedule_task_recurrences.sql"));
+  await db.exec(migration("20261114220000_task_recurrence_calendar_rules.sql"));
   // Seed auth identities before enabling the onboarding trigger. The initial
   // workspace fixture below owns their public profile/user records directly.
   await db.exec(`INSERT INTO auth.users(id, email) VALUES ('${admin}', 'admin@example.com'), ('${client}', 'client-owner@example.com'), ('${collaborator}', 'collaborator@example.com')`);
@@ -526,6 +527,18 @@ describe("workspace security regression", () => {
       "SELECT * FROM generate_task_recurrences_for_all_workspaces('2026-08-31')",
     );
     expect(second.rows.reduce((total, row) => total + row.tasks_created, 0)).toBe(0);
+  });
+  it("keeps month-end task recurrences aligned to the end of each month", async () => {
+    await asUser(admin);
+    expect(
+      (await db.query<{ next_date: string }>("SELECT public.task_recurrence_next_date('2026-01-31', 'monthly')::text AS next_date")).rows,
+    ).toEqual([{ next_date: "2026-02-28" }]);
+    expect(
+      (await db.query<{ next_date: string }>("SELECT public.task_recurrence_next_date('2026-02-28', 'monthly')::text AS next_date")).rows,
+    ).toEqual([{ next_date: "2026-03-31" }]);
+    expect(
+      (await db.query<{ next_date: string }>("SELECT public.task_recurrence_next_date('2026-01-15', 'monthly')::text AS next_date")).rows,
+    ).toEqual([{ next_date: "2026-02-15" }]);
   });
   it("scopes monthly client periods to the workspace and client company", async () => {
     await asUser(admin);
