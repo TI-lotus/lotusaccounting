@@ -28,6 +28,7 @@ import { toast } from "sonner";
 import { useData } from "@/contexts/DataContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspaceMembers } from "@/hooks/useWorkspaceMembers";
+import { useWorkspacePermission } from "@/hooks/useWorkspacePermission";
 import {
   ClientPeriodChecklistItemData,
   ClientPeriodChecklistStatus,
@@ -206,6 +207,7 @@ const statusIcon = (status: ClientPeriodStatus) => {
 const Periods = () => {
   const [searchParams] = useSearchParams();
   const {
+    tenantId,
     clients,
     clientPeriods,
     clientPeriodSteps,
@@ -228,7 +230,17 @@ const Periods = () => {
     updateFiscalObligation,
     createOperationalComment,
   } = useData();
-  const { profile } = useAuth();
+  const { user, profile } = useAuth();
+  const canCreateClients = useWorkspacePermission({ tenantId, userId: user?.id, accountType: profile?.account_type, resource: "clients", action: "create" });
+  const canUpdateClients = useWorkspacePermission({ tenantId, userId: user?.id, accountType: profile?.account_type, resource: "clients", action: "update" });
+  const canCreateTasks = useWorkspacePermission({ tenantId, userId: user?.id, accountType: profile?.account_type, resource: "tasks", action: "create" });
+  const canUpdateTasks = useWorkspacePermission({ tenantId, userId: user?.id, accountType: profile?.account_type, resource: "tasks", action: "update" });
+  const canCreateDocuments = useWorkspacePermission({ tenantId, userId: user?.id, accountType: profile?.account_type, resource: "documents", action: "create" });
+  const canUpdateDocuments = useWorkspacePermission({ tenantId, userId: user?.id, accountType: profile?.account_type, resource: "documents", action: "update" });
+  const canUpdateFinancial = useWorkspacePermission({ tenantId, userId: user?.id, accountType: profile?.account_type, resource: "financial", action: "update" });
+  const canCreatePeriod = canCreateClients || canCreateTasks;
+  const canUpdatePeriod = canUpdateClients || canUpdateTasks;
+  const canComment = canUpdateClients || canUpdateTasks;
   const { members: workspaceMembers } = useWorkspaceMembers();
   const internalMembers = useMemo(
     () => workspaceMembers.filter((member) => member.accountType !== "client"),
@@ -393,26 +405,34 @@ const Periods = () => {
   }, [rows]);
 
   const handleGenerate = async () => {
+    if (!canCreatePeriod) {
+      toast.error("Seu perfil não tem permissão para gerar competências.");
+      return;
+    }
     const created = await generateClientPeriodsForMonth(periodMonth, periodYear);
     if (created) toast.success(`${created} competência(s) criada(s)`);
   };
 
   const handleStart = async (companyId: string) => {
+    if (!canCreatePeriod) return;
     const period = await createClientPeriod(companyId, periodMonth, periodYear);
     if (period) toast.success("Competência iniciada");
   };
 
   const handleStatusChange = async (period: ClientPeriodData, status: ClientPeriodStatus) => {
+    if (!canUpdatePeriod) return;
     const ok = await updateClientPeriodStatus(period.id, status, status === "blocked" ? "Bloqueada por pendência crítica" : null);
     if (ok) toast.success("Status da competência atualizado");
   };
 
   const handleStepChange = async (step: ClientPeriodStepData, status: ClientPeriodStepStatus) => {
+    if (!canUpdatePeriod) return;
     const ok = await updateClientPeriodStep(step.id, status, status === "blocked" ? "Etapa bloqueada por pendência operacional" : null);
     if (ok) toast.success("Etapa atualizada");
   };
 
   const handleChecklistChange = async (item: ClientPeriodChecklistItemData, status: ClientPeriodChecklistStatus) => {
+    if (!canUpdatePeriod) return;
     const ok = await updateClientPeriodChecklistItem(item.id, status, status === "blocked" ? "Item bloqueado por pendência operacional" : null);
     if (ok) toast.success("Checklist atualizado");
   };
@@ -437,6 +457,7 @@ const Periods = () => {
   };
 
   const handleChecklistEvidenceChange = async (item: ClientPeriodChecklistItemData, value: string) => {
+    if (!canUpdatePeriod) return;
     const documentId = value === "__none__" ? null : value;
     const ok = await linkClientPeriodChecklistEvidence(item.id, documentId);
     if (ok) toast.success(documentId ? "Evidência vinculada ao checklist" : "Evidência removida do checklist");
@@ -446,11 +467,13 @@ const Periods = () => {
     item: ClientPeriodChecklistItemData,
     updates: { assignedToId?: string | null; dueDate?: string | null },
   ) => {
+    if (!canUpdatePeriod) return;
     const ok = await updateClientPeriodChecklistPlanning(item.id, updates);
     if (ok) toast.success("Planejamento do checklist atualizado");
   };
 
   const handleObligationEvidenceChange = async (obligationId: string, value: string) => {
+    if (!canUpdateFinancial) return;
     const documentId = value === "__none__" ? null : value;
     const ok = await updateFiscalObligation(obligationId, { document_id: documentId });
     if (ok) toast.success(documentId ? "Evidência vinculada à obrigação" : "Evidência removida da obrigação");
@@ -467,6 +490,10 @@ const Periods = () => {
   };
 
   const handleCreateDocumentRequest = async () => {
+    if (!canCreateDocuments) {
+      toast.error("Seu perfil não tem permissão para solicitar documentos.");
+      return;
+    }
     if (!requestTarget || !newRequest.title.trim()) {
       toast.error("Informe o título do documento solicitado");
       return;
@@ -495,7 +522,7 @@ const Periods = () => {
   };
 
   const handleDocumentRequestAction = async () => {
-    if (!requestActionTarget) return;
+    if (!requestActionTarget || !canUpdateDocuments) return;
     const reason = requestActionReason.trim();
     if (!reason) {
       toast.error("Informe o motivo para registrar a decisão");
@@ -527,7 +554,7 @@ const Periods = () => {
   };
 
   const handleCreateComment = async () => {
-    if (!commentTarget) return;
+    if (!commentTarget || !canComment) return;
     const saved = await createOperationalComment(
       "checklist_item",
       commentTarget.id,
@@ -544,7 +571,7 @@ const Periods = () => {
   };
 
   const handleCreateObligationComment = async () => {
-    if (!obligationCommentTarget) return;
+    if (!obligationCommentTarget || !canComment) return;
     const saved = await createOperationalComment(
       "fiscal_obligation",
       obligationCommentTarget.id,
@@ -565,10 +592,10 @@ const Periods = () => {
               Acompanhe a competência contábil de cada cliente, do início ao fechamento.
             </p>
           </div>
-          <Button className="rounded-xl gap-2" onClick={() => void handleGenerate()}>
+          {canCreatePeriod && <Button className="rounded-xl gap-2" onClick={() => void handleGenerate()}>
             <CalendarClock className="h-4 w-4" />
             Gerar competências
-          </Button>
+          </Button>}
         </div>
 
         <BentoStatStrip
@@ -675,10 +702,10 @@ const Periods = () => {
                           </Button>
                         ) : (
                           <>
-                            <Button variant="outline" size="sm" className="rounded-xl" onClick={() => openDocumentRequestDialog(period, client)} disabled={profile?.account_type === "client"}>
+                            {canCreateDocuments && <Button variant="outline" size="sm" className="rounded-xl" onClick={() => openDocumentRequestDialog(period, client)}>
                               Solicitar documento
-                            </Button>
-                            <Select disabled={profile?.account_type === "client"} value={period.status} onValueChange={(value: ClientPeriodStatus) => void handleStatusChange(period, value)}>
+                            </Button>}
+                            <Select disabled={!canUpdatePeriod} value={period.status} onValueChange={(value: ClientPeriodStatus) => void handleStatusChange(period, value)}>
                               <SelectTrigger className="h-9 w-[190px] rounded-xl"><SelectValue /></SelectTrigger>
                               <SelectContent>
                                 {statusOptions.map((option) => (
@@ -723,7 +750,7 @@ const Periods = () => {
                               )}
                               {request.rejectionReason && <p className="mt-2 text-xs text-red-600">{request.rejectionReason}</p>}
                               {request.waivedReason && <p className="mt-2 text-xs text-muted-foreground">{request.waivedReason}</p>}
-                              {profile?.account_type !== "client" && (
+                              {canUpdateDocuments && (
                                 <div className="mt-3 flex flex-wrap gap-2">
                                   <Button size="sm" variant="outline" className="h-8 rounded-lg" disabled={request.status !== "uploaded"} onClick={() => void updateDocumentRequest(request.id, { status: "approved" })}>
                                     Aprovar
@@ -816,7 +843,7 @@ const Periods = () => {
                                     {obligationComments[0].body}
                                   </div>
                                 )}
-                                {profile?.account_type !== "client" && (
+                                {canComment && (
                                   <Button
                                     type="button"
                                     variant="ghost"
@@ -828,7 +855,7 @@ const Periods = () => {
                                     Comentar
                                   </Button>
                                 )}
-                                {obligation.requires_evidence && profile?.account_type !== "client" && (
+                                {obligation.requires_evidence && canUpdateFinancial && (
                                   <div className="mt-3 grid gap-1.5">
                                     <Label className="text-[11px] text-muted-foreground">Evidência da obrigação</Label>
                                     <Select
@@ -865,7 +892,7 @@ const Periods = () => {
                               <p className="min-w-0 truncate text-xs font-medium">{step.title}</p>
                               <Badge variant="outline" className="shrink-0 text-[10px]">{stepStatusLabels[step.status]}</Badge>
                             </div>
-                            <Select disabled={profile?.account_type === "client"} value={step.status} onValueChange={(value: ClientPeriodStepStatus) => void handleStepChange(step, value)}>
+                            <Select disabled={!canUpdatePeriod} value={step.status} onValueChange={(value: ClientPeriodStepStatus) => void handleStepChange(step, value)}>
                               <SelectTrigger className="h-8 rounded-lg bg-background/80 text-xs"><SelectValue /></SelectTrigger>
                               <SelectContent>
                                 {stepStatusOptions.map((option) => (
@@ -919,7 +946,7 @@ const Periods = () => {
                                   </Badge>
                                 </div>
                                 <div className="mt-3 flex flex-wrap items-center gap-2">
-                                  <Select disabled={profile?.account_type === "client"} value={item.status} onValueChange={(value: ClientPeriodChecklistStatus) => void handleChecklistChange(item, value)}>
+                                  <Select disabled={!canUpdatePeriod} value={item.status} onValueChange={(value: ClientPeriodChecklistStatus) => void handleChecklistChange(item, value)}>
                                     <SelectTrigger className="h-8 w-[160px] rounded-lg text-xs"><SelectValue /></SelectTrigger>
                                     <SelectContent>
                                       {checklistStatusOptions.map((option) => (
@@ -949,7 +976,7 @@ const Periods = () => {
                                     {itemComments[0].body}
                                   </div>
                                 )}
-                                {profile?.account_type !== "client" && (
+                                {canUpdatePeriod && (
                                   <div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_150px]">
                                     <div className="grid gap-1.5">
                                       <Label className="text-[11px] text-muted-foreground">Responsável do item</Label>
@@ -979,7 +1006,7 @@ const Periods = () => {
                                     </div>
                                   </div>
                                 )}
-                                {profile?.account_type !== "client" && (
+                                {canComment && (
                                   <Button
                                     type="button"
                                     variant="ghost"
@@ -1005,7 +1032,7 @@ const Periods = () => {
                                           ? `Há evidência aprovada disponível: ${approvedEvidenceRequests.slice(0, 2).map((request) => request.title).join(", ")}${approvedEvidenceRequests.length > 2 ? ` +${approvedEvidenceRequests.length - 2}` : ""}`
                                           : "Sem evidência aprovada na competência"}
                                     </div>
-                                    {profile?.account_type !== "client" && (
+                                    {canUpdatePeriod && (
                                       <div className="grid gap-1.5">
                                         <Label className="text-[11px] text-muted-foreground">Evidência do checklist</Label>
                                         <Select
