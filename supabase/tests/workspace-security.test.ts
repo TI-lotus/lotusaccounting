@@ -106,6 +106,7 @@ beforeAll(async () => {
   await db.exec(migration("20261114140000_period_close_requirements.sql"));
   await db.exec(migration("20261114150000_financial_integrity_guards.sql"));
   await db.exec(migration("20261114160000_payment_cancellation.sql"));
+  await db.exec(migration("20261114170000_document_request_integrity.sql"));
   // Seed auth identities before enabling the onboarding trigger. The initial
   // workspace fixture below owns their public profile/user records directly.
   await db.exec(`INSERT INTO auth.users(id, email) VALUES ('${admin}', 'admin@example.com'), ('${client}', 'client-owner@example.com'), ('${collaborator}', 'collaborator@example.com')`);
@@ -651,6 +652,9 @@ describe("workspace security regression", () => {
     const request = await db.query<{ id: string }>(`INSERT INTO document_requests(tenant_id, company_id, client_period_id, requested_by, title) VALUES ('${tenant}', '${company}', '${period.rows[0].id}', '${admin}', 'Enviar notas fiscais') RETURNING id`);
     await db.query("UPDATE document_requests SET status = 'rejected', rejection_reason = 'Arquivo ilegivel' WHERE id = $1", [request.rows[0].id]);
     expect((await db.query<{ status: string; blocked_reason: string | null }>("SELECT status, blocked_reason FROM client_period_steps WHERE client_period_id = $1 AND step_key = 'documents'", [period.rows[0].id])).rows[0]).toMatchObject({ status: "blocked", blocked_reason: "Ha documentos recusados nesta competencia." });
+    const docId = id(52);
+    await db.query(`INSERT INTO documents(id, tenant_id, company_id, file_path) VALUES ('${docId}', '${tenant}', '${company}', '${tenant}/${company}/${admin}/notas-fiscais.pdf')`);
+    await db.query("UPDATE document_requests SET status = 'uploaded', document_id = $1 WHERE id = $2", [docId, request.rows[0].id]);
     await db.query("UPDATE document_requests SET status = 'approved' WHERE id = $1", [request.rows[0].id]);
     expect((await db.query<{ status: string }>("SELECT status FROM client_period_steps WHERE client_period_id = $1 AND step_key = 'documents'", [period.rows[0].id])).rows[0]).toEqual({ status: "completed" });
   });
@@ -667,7 +671,9 @@ describe("workspace security regression", () => {
     expect(alert.rows).toEqual([{ user_id: collaborator, read_at: null, href: "/documents" }]);
 
     await asUser(admin);
-    await db.query("UPDATE document_requests SET status = 'uploaded' WHERE id = $1", [request.rows[0].id]);
+    const docId = id(53);
+    await db.query(`INSERT INTO documents(id, tenant_id, company_id, file_path) VALUES ('${docId}', '${tenant}', '${company}', '${tenant}/${company}/${admin}/extrato-vencido.pdf')`);
+    await db.query("UPDATE document_requests SET status = 'uploaded', document_id = $1 WHERE id = $2", [docId, request.rows[0].id]);
     await asUser(collaborator);
     expect((await db.query<{ read_at: string | null }>(
       "SELECT read_at FROM user_notifications WHERE kind = 'document_request_overdue' AND metadata ->> 'document_request_id' = $1",
@@ -719,6 +725,21 @@ describe("workspace security regression", () => {
       "SELECT read_at FROM user_notifications WHERE kind = 'document_request_rejected' AND metadata ->> 'document_request_id' = $1",
       [request.rows[0].id],
     )).rows[0].read_at).not.toBeNull();
+  });
+  it("requires evidence and reasons for document request decisions", async () => {
+    await asUser(admin);
+    const requestId = id(50);
+    const documentId = id(51);
+    await db.query(`INSERT INTO document_requests(id, tenant_id, company_id, title, status) VALUES ('${requestId}', '${tenant}', '${company}', 'Extrato mensal', 'requested')`);
+    await expect(db.query("UPDATE document_requests SET status = 'uploaded' WHERE id = $1", [requestId])).rejects.toThrow(/requires an attached document/);
+    await expect(db.query("UPDATE document_requests SET status = 'approved' WHERE id = $1", [requestId])).rejects.toThrow(/requires an attached document/);
+    await expect(db.query("UPDATE document_requests SET status = 'rejected' WHERE id = $1", [requestId])).rejects.toThrow(/require a reason/);
+    await expect(db.query("UPDATE document_requests SET status = 'waived' WHERE id = $1", [requestId])).rejects.toThrow(/require a reason/);
+
+    await db.query(`INSERT INTO documents(id, tenant_id, company_id, name, status) VALUES ('${documentId}', '${tenant}', '${company}', 'Extrato mensal.pdf', 'pending')`);
+    await db.query("UPDATE document_requests SET status = 'uploaded', document_id = $1 WHERE id = $2", [documentId, requestId]);
+    await db.query("UPDATE document_requests SET status = 'approved' WHERE id = $1", [requestId]);
+    expect((await db.query("SELECT status, document_id FROM document_requests WHERE id = $1", [requestId])).rows).toEqual([{ status: "approved", document_id: documentId }]);
   });
   it("creates and clears task overdue alerts", async () => {
     await asUser(admin);
