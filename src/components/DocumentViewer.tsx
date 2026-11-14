@@ -46,7 +46,7 @@ export const DocumentViewer = ({ document, onClose }: DocumentViewerProps) => {
   return (
     <div
       className={cn(
-        "border-l border-border bg-card flex flex-col transition-all duration-300",
+        "border-l border-border bg-card flex flex-col transition-[width,transform,opacity] duration-300",
         isFullScreen ? "fixed inset-0 z-50" : "w-1/2 min-w-[400px]",
       )}
     >

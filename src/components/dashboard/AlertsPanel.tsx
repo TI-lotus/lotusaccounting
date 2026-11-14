@@ -146,7 +146,7 @@ export const AlertsPanel = ({ className }: AlertsPanelProps) => {
                 style={{ animationDelay: `${index * 50}ms` }}
                 onClick={() => navigate(alert.href)}
               >
-                <Icon className={cn("mt-0.5 h-5 w-5 shrink-0", style.iconColor)} />
+                <Icon className={cn("mt-0.5 h-5 w-5 shrink-0", style.iconColor)} aria-hidden="true" />
                 <span className="min-w-0 flex-1">
                   <span className="block text-sm font-medium">{alert.title}</span>
                   <span className="mt-0.5 block truncate text-xs text-muted-foreground">

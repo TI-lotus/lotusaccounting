@@ -80,9 +80,9 @@ export const RecentTransactions = ({ className }: RecentTransactionsProps) => {
                   )}
                 >
                   {transaction.type === "income" ? (
-                    <ArrowDownLeft className="h-4 w-4" />
+                    <ArrowDownLeft className="h-4 w-4" aria-hidden="true" />
                   ) : (
-                    <ArrowUpRight className="h-4 w-4" />
+                    <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
                   )}
                 </AvatarFallback>
               </Avatar>

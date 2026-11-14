@@ -191,7 +191,7 @@ export const AppSidebar = () => {
             : "text-white/65 hover:bg-white/10 hover:text-white",
         )}
       >
-        <Icon className="h-4 w-4 shrink-0" />
+        <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
         <span>{item.title}</span>
       </Link>
     );
@@ -239,7 +239,7 @@ export const AppSidebar = () => {
                       : "text-white/65 hover:bg-white/10 hover:text-white",
                   )}
                 >
-                  <GroupIcon className="h-4 w-4 shrink-0" />
+                  <GroupIcon className="h-4 w-4 shrink-0" aria-hidden="true" />
                   <span className={cn(isCollapsed && "lg:hidden")}>{group.label}</span>
                 </Link>
               </SidebarHint>
@@ -258,9 +258,9 @@ export const AppSidebar = () => {
                         isActive ? "bg-white/12 text-white" : "text-white/65 hover:bg-white/10 hover:text-white",
                       )}
                     >
-                      <GroupIcon className="h-4 w-4 shrink-0" />
+                      <GroupIcon className="h-4 w-4 shrink-0" aria-hidden="true" />
                       <span className="lg:hidden">{group.label}</span>
-                      <ChevronDown className="h-3.5 w-3.5 opacity-70 lg:hidden" />
+                      <ChevronDown className="h-3.5 w-3.5 opacity-70 lg:hidden" aria-hidden="true" />
                     </button>
                   </DropdownMenuTrigger>
                 </SidebarHint>
@@ -274,7 +274,7 @@ export const AppSidebar = () => {
                         onSelect={() => navigate(item.href)}
                         className={cn("cursor-pointer gap-2", active && "bg-accent font-medium text-accent-foreground")}
                       >
-                        <Icon className="h-4 w-4" />
+                        <Icon className="h-4 w-4" aria-hidden="true" />
                         <span>{item.title}</span>
                       </DropdownMenuItem>
                     );
@@ -295,9 +295,9 @@ export const AppSidebar = () => {
                   isActive ? "bg-white/12 text-white" : "text-white/65 hover:bg-white/10 hover:text-white",
                 )}
               >
-                <GroupIcon className="h-4 w-4 shrink-0" />
+                <GroupIcon className="h-4 w-4 shrink-0" aria-hidden="true" />
                 <span>{group.label}</span>
-                <ChevronDown className={cn("ml-auto h-3.5 w-3.5 opacity-70 transition-transform", isOpen && "rotate-180")} />
+                <ChevronDown className={cn("ml-auto h-3.5 w-3.5 opacity-70 transition-transform", isOpen && "rotate-180")} aria-hidden="true" />
               </button>
               <div className={cn("grid transition-[grid-template-rows,opacity] duration-200", isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0")}>
                 <div className="min-h-0 overflow-hidden pl-3 pt-1">
@@ -321,9 +321,9 @@ export const AppSidebar = () => {
               isCollapsed && "lg:mx-auto lg:h-10 lg:w-10 lg:justify-center lg:rounded-full lg:px-0",
             )}
           >
-            <CircleHelp className="h-4 w-4 shrink-0" />
+            <CircleHelp className="h-4 w-4 shrink-0" aria-hidden="true" />
             <span className={cn(isCollapsed && "lg:hidden")}>Ajuda e atalhos</span>
-            <ArrowUpRight className={cn("ml-auto h-3.5 w-3.5", isCollapsed && "lg:hidden")} />
+            <ArrowUpRight className={cn("ml-auto h-3.5 w-3.5", isCollapsed && "lg:hidden")} aria-hidden="true" />
           </button>
         </SidebarHint>
       </div>

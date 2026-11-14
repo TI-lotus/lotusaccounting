@@ -403,7 +403,7 @@ const Documents = () => {
       <div className="flex h-full">
         <div
           className={cn(
-            "space-y-6 transition-all",
+            "space-y-6 transition-[width,flex]",
             viewerDoc ? "flex-1 min-w-0" : "w-full",
           )}
         >

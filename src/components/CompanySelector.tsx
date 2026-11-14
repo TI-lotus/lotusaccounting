@@ -31,12 +31,12 @@ export const CompanySelector = () => {
             "bg-muted/50 transition-colors hover:bg-muted",
           )}
         >
-          <Building2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          <Building2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium">{selected.name}</p>
             <p className="text-muted-foreground">{selected.cnpj || "CNPJ não informado"}</p>
           </div>
-          <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-[232px]">
@@ -50,7 +50,7 @@ export const CompanySelector = () => {
               <p className="truncate text-sm font-medium">{client.name}</p>
               <p className="text-xs text-muted-foreground">{client.cnpj || "CNPJ não informado"}</p>
             </div>
-            {selected.id === client.id && <Check className="h-4 w-4 shrink-0 text-primary" />}
+            {selected.id === client.id && <Check className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />}
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>
