@@ -423,6 +423,7 @@ const DataContext = createContext<DataContextType | undefined>(undefined);
 export const DataProvider = ({ children }: { children: ReactNode }) => {
   const { session, user, profile, loading: authLoading } = useAuth();
   const fetchRevision = useRef(0);
+  const lastRevalidationAt = useRef(0);
 
   const [tenantId, setTenantId] = useState<string | null>(null);
   const [profileCompanyId, setProfileCompanyId] = useState<string | null>(null);
@@ -777,11 +778,27 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (!user || !profile?.tenant_id || profile.status !== "active") return;
-    const refreshWhenOnline = () => {
+    const refreshWhenEnvironmentChanges = () => {
+      const now = Date.now();
+      if (now - lastRevalidationAt.current < 10_000) return;
+      lastRevalidationAt.current = now;
       void fetchAll();
     };
-    window.addEventListener("online", refreshWhenOnline);
-    return () => window.removeEventListener("online", refreshWhenOnline);
+
+    const refreshWhenVisible = () => {
+      if (document.visibilityState !== "visible") return;
+      refreshWhenEnvironmentChanges();
+    };
+
+    window.addEventListener("online", refreshWhenEnvironmentChanges);
+    window.addEventListener("focus", refreshWhenVisible);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+
+    return () => {
+      window.removeEventListener("online", refreshWhenEnvironmentChanges);
+      window.removeEventListener("focus", refreshWhenVisible);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
   }, [fetchAll, profile?.status, profile?.tenant_id, user]);
 
   // -------- Clients --------
