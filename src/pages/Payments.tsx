@@ -223,6 +223,21 @@ const Payments = () => {
       toast.error("Informe um valor maior que zero.");
       return;
     }
+    const linkedInvoice = newPayment.invoiceId
+      ? invoices.find((invoice) => invoice.id === newPayment.invoiceId)
+      : null;
+    if (newPayment.type === "expense" && linkedInvoice) {
+      toast.error("Despesas não podem ser vinculadas a faturas de clientes.");
+      return;
+    }
+    if (newPayment.invoiceId && !linkedInvoice) {
+      toast.error("A fatura selecionada não está mais disponível.");
+      return;
+    }
+    if (linkedInvoice?.company_id && newPayment.companyId && linkedInvoice.company_id !== newPayment.companyId) {
+      toast.error("A fatura selecionada pertence a outro cliente.");
+      return;
+    }
     const saved = await addPayment({
       amount,
       status: "pending",
@@ -230,10 +245,8 @@ const Payments = () => {
       description: newPayment.description,
       category: newPayment.category || "Outros",
       company_id: newPayment.companyId || null,
-      due_date:
-        invoices.find((invoice) => invoice.id === newPayment.invoiceId)
-          ?.due_date ?? null,
-      invoice_id: newPayment.invoiceId || null,
+      due_date: linkedInvoice?.due_date ?? null,
+      invoice_id: newPayment.type === "income" ? newPayment.invoiceId || null : null,
       method: null,
       paid_at: null,
     });
@@ -484,7 +497,11 @@ const Payments = () => {
                     <Select
                       value={newPayment.type}
                       onValueChange={(value: "income" | "expense") =>
-                        setNewPayment({ ...newPayment, type: value })
+                        setNewPayment({
+                          ...newPayment,
+                          type: value,
+                          invoiceId: value === "expense" ? "" : newPayment.invoiceId,
+                        })
                       }
                     >
                       <SelectTrigger className="rounded-xl">
@@ -535,15 +552,19 @@ const Payments = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="grid gap-2">
-                    <Label>Fatura vinculada</Label>
+                  {newPayment.type === "income" && <div className="grid gap-2">
+                    <Label htmlFor="payment-invoice">Fatura vinculada</Label>
                     <Select
                       value={newPayment.invoiceId}
                       onValueChange={(value) =>
-                        setNewPayment({ ...newPayment, invoiceId: value })
+                        setNewPayment({
+                          ...newPayment,
+                          invoiceId: value,
+                          companyId: invoices.find((invoice) => invoice.id === value)?.company_id ?? newPayment.companyId,
+                        })
                       }
                     >
-                      <SelectTrigger className="rounded-xl">
+                      <SelectTrigger id="payment-invoice" className="rounded-xl">
                         <SelectValue placeholder="Opcional" />
                       </SelectTrigger>
                       <SelectContent>
@@ -563,7 +584,7 @@ const Payments = () => {
                           ))}
                       </SelectContent>
                     </Select>
-                  </div>
+                  </div>}
                   <div className="grid gap-2">
                     <Label htmlFor="amount">Valor (R$)</Label>
                     <Input
