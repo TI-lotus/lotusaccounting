@@ -13,9 +13,18 @@ import {
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useData } from "@/contexts/DataContext";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 type OnboardingStep = {
   id: string;
@@ -47,8 +56,11 @@ export const OnboardingChecklist = () => {
     invoices,
     payments,
     workspaceSettings,
+    createDemoWorkspaceData,
   } = useData();
   const [dismissed, setDismissed] = useState(false);
+  const [demoDialogOpen, setDemoDialogOpen] = useState(false);
+  const [creatingDemo, setCreatingDemo] = useState(false);
 
   useEffect(() => {
     const key = getDismissedKey(user?.id);
@@ -218,6 +230,51 @@ export const OnboardingChecklist = () => {
           );
         })}
       </div>
+
+      <div className="mt-5 flex flex-col gap-3 border-t border-border/70 pt-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-sm font-medium">Quer explorar o fluxo antes de cadastrar tudo?</p>
+          <p className="text-xs text-muted-foreground">Cria um cenário marcado como demonstração, sem integrações ou envio de arquivos.</p>
+        </div>
+        <Button type="button" variant="outline" className="shrink-0 rounded-xl" onClick={() => setDemoDialogOpen(true)}>
+          Criar cenário de demonstração
+        </Button>
+      </div>
+
+      <Dialog open={demoDialogOpen} onOpenChange={setDemoDialogOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Criar cenário de demonstração?</DialogTitle>
+            <DialogDescription>
+              A Lotus criará uma empresa, competência, tarefa, solicitação de documento, fatura e recebimento claramente identificados como demonstração. A ação não usa integrações externas e pode ser repetida sem duplicar esses registros.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="rounded-xl border border-amber-300/70 bg-amber-50/70 p-4 text-sm text-amber-900 dark:border-amber-900/70 dark:bg-amber-950/30 dark:text-amber-100">
+            Use esta opção apenas em um workspace de teste ou apresentação. Para um workspace real, prefira seguir o cadastro normal.
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" className="rounded-xl" onClick={() => setDemoDialogOpen(false)} disabled={creatingDemo}>
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              className="rounded-xl"
+              disabled={creatingDemo}
+              onClick={async () => {
+                setCreatingDemo(true);
+                const created = await createDemoWorkspaceData();
+                setCreatingDemo(false);
+                if (created) {
+                  setDemoDialogOpen(false);
+                  toast.success("Cenário de demonstração criado");
+                }
+              }}
+            >
+              {creatingDemo ? "Criando…" : "Criar cenário"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 };

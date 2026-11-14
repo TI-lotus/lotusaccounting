@@ -407,6 +407,7 @@ interface DataContextType {
   ) => Promise<IntegrationConnectionData | null>;
 
   processFileUpload: (file: File, documentRequestId?: string) => Promise<void>;
+  createDemoWorkspaceData: () => Promise<boolean>;
 
   notifications: Notification[];
   markNotificationRead: (id: string) => void;
@@ -1751,6 +1752,164 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     return created.length;
   }, [accountType, fetchAll, tenantId]);
 
+  const createDemoWorkspaceData = useCallback(async () => {
+    if (!tenantId) {
+      toast.error("Tenant não encontrado");
+      return false;
+    }
+    if (accountType !== "admin") {
+      toast.error("Somente administradores podem criar dados de demonstração");
+      return false;
+    }
+
+    const demoCnpj = "11222333000181";
+    const demoName = "Empresa Demonstração Lotus";
+    const now = new Date();
+    const periodMonth = now.getMonth() + 1;
+    const periodYear = now.getFullYear();
+    const periodKey = `${periodMonth}/${periodYear}`;
+    const dueDate = new Date(periodYear, periodMonth - 1, Math.min(20, new Date(periodYear, periodMonth, 0).getDate()));
+    const dueDateIso = dueDate.toISOString().slice(0, 10);
+    const taskTitle = `Demonstração · Conferir documentos da competência ${periodKey}`;
+    const requestTitle = `Demonstração · Extrato bancário ${periodKey}`;
+    const invoiceNumber = `DEMO-${periodYear}${String(periodMonth).padStart(2, "0")}`;
+    const paymentDescription = `Demonstração · Recebimento de honorários ${periodKey}`;
+
+    try {
+      let company = clients.find((client) => normalizeCnpj(client.cnpj) === demoCnpj);
+      if (!company) {
+        const { data, error } = await supabase
+          .from("companies")
+          .insert({
+            tenant_id: tenantId,
+            name: demoName,
+            cnpj: demoCnpj,
+            email: "demonstracao@lotus.local",
+            phone: null,
+            tax_regime: "simples_nacional",
+            service_areas: ["fiscal", "contabil"],
+            service_fee: 1250,
+            city: "São Paulo",
+            state: "SP",
+            status: "active",
+            responsible_user_id: asUuid(user?.id),
+            responsible_user_name: profile?.full_name || user?.email || "Administrador",
+          })
+          .select("*")
+          .maybeSingle();
+        if (error || !data) throw error ?? new Error("empresa_demo_nao_criada");
+        company = mapClient(data);
+      }
+
+      let period = clientPeriods.find((item) =>
+        item.companyId === company.id &&
+        item.periodMonth === periodMonth &&
+        item.periodYear === periodYear,
+      );
+      if (!period) {
+        const { data, error } = await operationalDb
+          .from<Row>("client_periods")
+          .insert({
+            tenant_id: tenantId,
+            company_id: company.id,
+            period_month: periodMonth,
+            period_year: periodYear,
+            status: "waiting_documents",
+            responsible_user_id: asUuid(user?.id),
+            created_by: user?.id ?? null,
+          })
+          .select("*")
+          .maybeSingle();
+        if (error?.code === "23505") {
+          const current = await operationalDb
+            .from<Row>("client_periods")
+            .select("*")
+            .eq("tenant_id", tenantId)
+            .eq("company_id", company.id)
+            .eq("period_month", periodMonth)
+            .eq("period_year", periodYear)
+            .maybeSingle();
+          if (current.error || !current.data) throw current.error ?? new Error("competencia_demo_nao_carregada");
+          period = mapClientPeriod(current.data);
+        } else if (error || !data) {
+          throw error ?? new Error("competencia_demo_nao_criada");
+        } else {
+          period = mapClientPeriod(data);
+        }
+      }
+
+      const existingTask = tasks.find((task) => task.title === taskTitle && task.clientId === company.id);
+      if (!existingTask) {
+        const created = await addTask({
+          title: taskTitle,
+          description: "Registro de demonstração para validar atribuição, prazo e conclusão de tarefas.",
+          type: "monthly",
+          status: "pending",
+          priority: "medium",
+          dueDate: dueDate.toISOString(),
+          category: "Demonstração",
+          clientId: company.id,
+          clientName: company.name,
+          assignedToId: user?.id ?? "",
+          assignedToName: profile?.full_name || user?.email || "Administrador",
+        });
+        if (!created) throw new Error("tarefa_demo_nao_criada");
+      }
+
+      const existingRequest = documentRequests.find((request) => request.title === requestTitle && request.companyId === company.id);
+      if (!existingRequest) {
+        const created = await createDocumentRequest({
+          companyId: company.id,
+          clientPeriodId: period?.id ?? null,
+          assignedTo: asUuid(user?.id),
+          title: requestTitle,
+          description: "Solicitação de demonstração. Nenhum arquivo externo é enviado automaticamente.",
+          documentType: "extrato",
+          dueDate: dueDateIso,
+        });
+        if (!created) throw new Error("solicitacao_demo_nao_criada");
+      }
+
+      let invoice: InvoiceRow | null = invoices.find((item) => item.number === invoiceNumber && item.company_id === company.id) ?? null;
+      if (!invoice) {
+        invoice = await addInvoice({
+          company_id: company.id,
+          amount: 1250,
+          billing_period: `${periodYear}-${String(periodMonth).padStart(2, "0")}-01`,
+          due_date: dueDateIso,
+          issued_at: now.toISOString(),
+          invoice_kind: "service_fee",
+          number: invoiceNumber,
+          status: "pending",
+        });
+        if (!invoice) throw new Error("fatura_demo_nao_criada");
+      }
+
+      const existingPayment = payments.find((payment) => payment.description === paymentDescription && payment.company_id === company.id);
+      if (!existingPayment) {
+        const created = await addPayment({
+          company_id: company.id,
+          invoice_id: invoice.id,
+          amount: 1250,
+          direction: "income",
+          description: paymentDescription,
+          category: "Honorários",
+          method: "transfer",
+          status: "completed",
+          due_date: dueDateIso,
+          paid_at: now.toISOString(),
+        });
+        if (!created) throw new Error("pagamento_demo_nao_criado");
+      }
+
+      await fetchAll();
+      return true;
+    } catch (error) {
+      toast.error(`Não foi possível criar o cenário de demonstração: ${error instanceof Error ? error.message : "tente novamente"}`);
+      return false;
+    }
+  }, [accountType, addInvoice, addPayment, addTask, clients, clientPeriods, createDocumentRequest, documentRequests, fetchAll, invoices, payments, profile?.full_name, tasks, tenantId, user]);
+
   // -------- Fiscal obligations --------
   const addFiscalObligation = useCallback(
     async (obligation: FiscalObligationInsert) => {
@@ -2120,6 +2279,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         updateWorkspaceSettings,
         upsertIntegrationConnection,
         processFileUpload,
+        createDemoWorkspaceData,
         notifications,
         markNotificationRead,
         pipelineHistory,
