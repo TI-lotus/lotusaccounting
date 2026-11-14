@@ -110,6 +110,7 @@ const initials = (name: string) =>
 const Staff = () => {
   const { tasks, updateTask, updateClient, tenantId, clients } = useData();
   const { user, profile } = useAuth();
+  const isAdmin = profile?.account_type === "admin";
   const [profiles, setProfiles] = useState<ProfileRow[]>([]);
   const [invites, setInvites] = useState<InviteRow[]>([]);
   const [memberPermissions, setMemberPermissions] = useState<PermissionRow[]>([]);
@@ -429,11 +430,12 @@ const Staff = () => {
             <h1 className="text-[28px] font-normal tracking-[-0.035em]">Equipe e acessos</h1>
             <p className="text-muted-foreground">Convide usuários, acompanhe papéis e controle vínculos por cliente</p>
           </div>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="rounded-xl gap-2"><Plus className="h-4 w-4" />Novo convite</Button>
-            </DialogTrigger>
-            <DialogContent className="dialog-window staff-dialog sm:max-w-[460px]">
+          {isAdmin ? (
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="rounded-xl gap-2"><Plus className="h-4 w-4" />Novo convite</Button>
+              </DialogTrigger>
+              <DialogContent className="dialog-window staff-dialog sm:max-w-[460px]">
               <DialogHeader className="dialog-header">
                 <DialogTitle>Criar convite</DialogTitle>
                 <DialogDescription>O link criado pode ser enviado ao colaborador ou cliente.</DialogDescription>
@@ -473,8 +475,11 @@ const Staff = () => {
                 <Button variant="outline" onClick={() => setDialogOpen(false)} className="rounded-xl">Cancelar</Button>
                 <Button onClick={handleInvite} className="rounded-xl">Criar convite</Button>
               </DialogFooter>
-            </DialogContent>
-          </Dialog>
+              </DialogContent>
+            </Dialog>
+          ) : (
+            <Badge variant="outline" className="h-9 rounded-xl px-3">Consulta da equipe</Badge>
+          )}
         </div>
 
         <BentoStatStrip
@@ -492,7 +497,7 @@ const Staff = () => {
             <TabsTrigger value="people">Equipe</TabsTrigger>
             <TabsTrigger value="invites">Convites</TabsTrigger>
             <TabsTrigger value="capacity">Capacidade</TabsTrigger>
-            <TabsTrigger value="perms">Permissões</TabsTrigger>
+            {isAdmin && <TabsTrigger value="perms">Permissões</TabsTrigger>}
           </TabsList>
 
           <TabsContent value="people" className="mt-4">
@@ -583,10 +588,10 @@ const Staff = () => {
                         primaryIcon={Eye}
                         onPrimary={() => setDetailMember(member)}
                         menuItems={[
-                          { label: "Atribuir tarefas", icon: CheckSquare, onSelect: () => { setSelectedMember(member); setAssignDialogOpen(true); } },
-                          ...(member.user_id !== profile?.user_id && profile?.account_type === "admin" ? [{ label: "Atribuir clientes", icon: Building2, onSelect: () => { setSelectedMember(member); setClientAssignmentOpen(true); } }] : []),
-                          ...(member.user_id !== profile?.user_id && profile?.account_type === "admin" ? [{ label: "Editar colaborador", icon: Pencil, onSelect: () => openMemberEditor(member) }, { label: "Editar acesso", icon: Shield, onSelect: () => openAccessEditor(member) }] : []),
-                          ...(member.user_id !== profile?.user_id ? [{ label: member.status === "active" ? "Desativar acesso" : "Ativar acesso", icon: ShieldAlert, onSelect: () => void toggleStatus(member) }] : []),
+                          ...(isAdmin ? [{ label: "Atribuir tarefas", icon: CheckSquare, onSelect: () => { setSelectedMember(member); setAssignDialogOpen(true); } }] : []),
+                          ...(member.user_id !== profile?.user_id && isAdmin ? [{ label: "Atribuir clientes", icon: Building2, onSelect: () => { setSelectedMember(member); setClientAssignmentOpen(true); } }] : []),
+                          ...(member.user_id !== profile?.user_id && isAdmin ? [{ label: "Editar colaborador", icon: Pencil, onSelect: () => openMemberEditor(member) }, { label: "Editar acesso", icon: Shield, onSelect: () => openAccessEditor(member) }] : []),
+                          ...(member.user_id !== profile?.user_id && isAdmin ? [{ label: member.status === "active" ? "Desativar acesso" : "Ativar acesso", icon: ShieldAlert, onSelect: () => void toggleStatus(member) }] : []),
                         ]}
                       />
                     );
@@ -645,10 +650,10 @@ const Staff = () => {
                           primaryIcon={Eye}
                           onPrimary={() => setDetailMember(member)}
                           menuItems={[
-                            { label: "Atribuir tarefas", icon: CheckSquare, onSelect: () => { setSelectedMember(member); setAssignDialogOpen(true); } },
-                            ...(member.user_id !== profile?.user_id && profile?.account_type === "admin" ? [{ label: "Atribuir clientes", icon: Building2, onSelect: () => { setSelectedMember(member); setClientAssignmentOpen(true); } }] : []),
-                            ...(member.user_id !== profile?.user_id && profile?.account_type === "admin" ? [{ label: "Editar colaborador", icon: Pencil, onSelect: () => openMemberEditor(member) }, { label: "Editar acesso", icon: Shield, onSelect: () => openAccessEditor(member) }] : []),
-                            ...(member.user_id !== profile?.user_id ? [{ label: member.status === "active" ? "Desativar acesso" : "Ativar acesso", icon: ShieldAlert, onSelect: () => void toggleStatus(member) }] : []),
+                            ...(isAdmin ? [{ label: "Atribuir tarefas", icon: CheckSquare, onSelect: () => { setSelectedMember(member); setAssignDialogOpen(true); } }] : []),
+                            ...(member.user_id !== profile?.user_id && isAdmin ? [{ label: "Atribuir clientes", icon: Building2, onSelect: () => { setSelectedMember(member); setClientAssignmentOpen(true); } }] : []),
+                            ...(member.user_id !== profile?.user_id && isAdmin ? [{ label: "Editar colaborador", icon: Pencil, onSelect: () => openMemberEditor(member) }, { label: "Editar acesso", icon: Shield, onSelect: () => openAccessEditor(member) }] : []),
+                            ...(member.user_id !== profile?.user_id && isAdmin ? [{ label: member.status === "active" ? "Desativar acesso" : "Ativar acesso", icon: ShieldAlert, onSelect: () => void toggleStatus(member) }] : []),
                           ]}
                         />
                       </div>
@@ -793,7 +798,7 @@ const Staff = () => {
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[620px] text-sm">
                     <thead><tr className="border-b border-border text-left text-xs text-muted-foreground"><th className="py-2 pr-4">Módulo</th>{permissionActions.map((action) => <th key={action.key} className="px-3 py-2 text-center">{action.label}</th>)}</tr></thead>
-                    <tbody>{(Object.entries(permissionLabels) as [PermissionKey, string][]).map(([resource, label]) => <tr key={resource} className="border-b border-border/50"><td className="py-3 pr-4 font-medium">{label}</td>{permissionActions.map((action) => <td key={action.key} className="px-3 py-3 text-center"><Checkbox checked={selectedPermissions[resource][action.key]} onCheckedChange={(checked) => setPermission(resource, action.key, checked === true)} aria-label={`${action.label} ${label}`} /></td>)}</tr>)}</tbody>
+                    <tbody>{(Object.entries(permissionLabels) as [PermissionKey, string][]).map(([resource, label]) => <tr key={resource} className="border-b border-border/50"><td className="py-3 pr-4 font-medium">{label}</td>{permissionActions.map((action) => <td key={action.key} className="px-3 py-3 text-center"><Checkbox disabled={!isAdmin} checked={selectedPermissions[resource][action.key]} onCheckedChange={(checked) => setPermission(resource, action.key, checked === true)} aria-label={`${action.label} ${label}`} /></td>)}</tr>)}</tbody>
                   </table>
                 </div>
               )}

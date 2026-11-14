@@ -10,6 +10,7 @@ import { useViewMode } from "@/contexts/ViewModeContext";
 import { useData } from "@/contexts/DataContext";
 import { useUserProfile } from "@/contexts/UserProfileContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useWorkspacePermission } from "@/hooks/useWorkspacePermission";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -1101,7 +1102,7 @@ const Index = () => {
   const navigate = useNavigate();
   const { viewMode } = useViewMode();
   const profile = useUserProfile();
-  const { profile: authProfile } = useAuth();
+  const { profile: authProfile, user } = useAuth();
   const {
     clients,
     tasks,
@@ -1112,6 +1113,13 @@ const Index = () => {
     clientPeriodSteps,
     updateTaskStatus,
   } = useData();
+  const canUpdateTasks = useWorkspacePermission({
+    tenantId: authProfile?.tenant_id ?? null,
+    userId: user?.id,
+    accountType: authProfile?.account_type,
+    resource: "tasks",
+    action: "update",
+  });
   const [selectedMetric, setSelectedMetric] = useState<MetricInsight | null>(
     null,
   );
@@ -1557,13 +1565,12 @@ const Index = () => {
                 >
                   <Checkbox
                     checked={task.status === "completed"}
+                    disabled={!canUpdateTasks}
                     aria-label={`Marcar tarefa ${task.title} como ${task.status === "completed" ? "pendente" : "concluída"}`}
-                    onCheckedChange={(checked) =>
-                      updateTaskStatus(
-                        task.id,
-                        checked ? "completed" : "pending",
-                      )
-                    }
+                    onCheckedChange={(checked) => {
+                      if (!canUpdateTasks) return;
+                      void updateTaskStatus(task.id, checked ? "completed" : "pending");
+                    }}
                     className="mt-0.5"
                   />
                   <div className="min-w-0 flex-1">
