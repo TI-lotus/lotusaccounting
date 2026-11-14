@@ -6,7 +6,7 @@ contabilidade, sem depender de integrações externas nesta etapa.
 ## Estado atual
 
 - Branch de trabalho: `staging`.
-- Último commit enviado: `897cb5d`.
+- Último commit enviado: `70fc85c`.
 - Última validação automatizada: 14/11/2026; typecheck, testes, lint e build
   aprovados no branch `staging`.
 - Typecheck: aprovado.
