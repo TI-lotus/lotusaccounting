@@ -347,6 +347,39 @@ const Reports = () => {
     .sort((a, b) => b.value - a.value)
     .slice(0, 5);
 
+  const teamProductivity = useMemo(() => {
+    const grouped = new Map<string, {
+      name: string;
+      total: number;
+      completed: number;
+      inProgress: number;
+      overdue: number;
+    }>();
+
+    tasks.forEach((task) => {
+      const name = task.assignedToName || "Sem responsável";
+      const current = grouped.get(name) ?? {
+        name,
+        total: 0,
+        completed: 0,
+        inProgress: 0,
+        overdue: 0,
+      };
+      current.total += 1;
+      if (task.status === "completed") current.completed += 1;
+      if (task.status === "in_progress") current.inProgress += 1;
+      if (task.status === "overdue") current.overdue += 1;
+      grouped.set(name, current);
+    });
+
+    return Array.from(grouped.values())
+      .map((item) => ({
+        ...item,
+        completionRate: item.total ? Math.round((item.completed / item.total) * 100) : 0,
+      }))
+      .sort((a, b) => b.completed - a.completed || a.overdue - b.overdue || a.name.localeCompare(b.name));
+  }, [tasks]);
+
   const handleExportCsv = (reportName = "relatorio-lotus") => {
     const rows = [
       ["Indicador", "Valor"],
@@ -825,6 +858,55 @@ const Reports = () => {
                       </div>
                     </CardContent>
                   </Card>
+                  {viewMode !== "client" && (
+                    <Card className="md:col-span-2">
+                      <CardHeader>
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div>
+                            <CardTitle>Produtividade da equipe</CardTitle>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                              Execução de tarefas no período e escopo selecionados.
+                            </p>
+                          </div>
+                          <Badge variant="outline">{teamProductivity.length} responsáveis</Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        {teamProductivity.length === 0 ? (
+                          <p className="py-8 text-center text-sm text-muted-foreground">
+                            Nenhuma tarefa encontrada para este período.
+                          </p>
+                        ) : (
+                          <div className="overflow-x-auto">
+                            <table className="w-full min-w-[640px] text-sm">
+                              <thead>
+                                <tr className="border-b border-border text-left text-xs uppercase tracking-[0.12em] text-muted-foreground">
+                                  <th className="pb-3 pr-4 font-medium">Responsável</th>
+                                  <th className="pb-3 px-3 text-right font-medium">Total</th>
+                                  <th className="pb-3 px-3 text-right font-medium">Concluídas</th>
+                                  <th className="pb-3 px-3 text-right font-medium">Em andamento</th>
+                                  <th className="pb-3 px-3 text-right font-medium">Atrasadas</th>
+                                  <th className="pb-3 pl-3 text-right font-medium">Conclusão</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {teamProductivity.map((item) => (
+                                  <tr key={item.name} className="border-b border-border/60 last:border-0">
+                                    <td className="py-3 pr-4 font-medium">{item.name}</td>
+                                    <td className="px-3 py-3 text-right tabular-nums">{item.total}</td>
+                                    <td className="px-3 py-3 text-right tabular-nums text-emerald-600 dark:text-emerald-400">{item.completed}</td>
+                                    <td className="px-3 py-3 text-right tabular-nums">{item.inProgress}</td>
+                                    <td className="px-3 py-3 text-right tabular-nums text-destructive">{item.overdue}</td>
+                                    <td className="py-3 pl-3 text-right font-medium tabular-nums">{item.completionRate}%</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
                 </div>
               </TabsContent>
             </Tabs>

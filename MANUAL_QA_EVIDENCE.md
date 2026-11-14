@@ -24,6 +24,7 @@ feito no staging liberado, antes de qualquer promoção para `main`.
 | Documentos e solicitações | Cliente | Pendente |  |
 | Mensagens, leitura, fixação e arquivamento | Todos | Pendente |  |
 | Faturas, pagamentos, baixa e CSV | Administrador | Pendente |  |
+| Relatório de produtividade por responsável | Administrador | Pendente |  |
 | Responsividade desktop/mobile | Todos | Pendente |  |
 | Smoke test pós-deploy | Todos | Pendente |  |
 

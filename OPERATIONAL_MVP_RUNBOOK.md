@@ -43,7 +43,8 @@ ambiente de staging. Integrações externas ficam fora deste roteiro.
     filtrado em CSV.
 13. Fechar a competência somente depois que pendências, evidências e revisões
     estiverem resolvidas. Confirmar o status `Fechada` e o histórico do cliente.
-14. Verificar `Notificações`, `Agenda`, `Relatórios` e os registros de atividade.
+14. Verificar `Notificações`, `Agenda`, `Relatórios`, produtividade por responsável
+    e os registros de atividade.
 
 ## Roteiro do colaborador
 
