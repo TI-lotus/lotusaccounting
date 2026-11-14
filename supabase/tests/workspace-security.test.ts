@@ -102,6 +102,7 @@ beforeAll(async () => {
   await db.exec(migration("20260924100000_client_email_claim_access.sql"));
   await db.exec(migration("20261109150000_task_delete_permission_fix.sql"));
   await db.exec(migration("20261114100000_normalize_financial_permission_key.sql"));
+  await db.exec(migration("20261114140000_period_close_requirements.sql"));
   // Seed auth identities before enabling the onboarding trigger. The initial
   // workspace fixture below owns their public profile/user records directly.
   await db.exec(`INSERT INTO auth.users(id, email) VALUES ('${admin}', 'admin@example.com'), ('${client}', 'client-owner@example.com'), ('${collaborator}', 'collaborator@example.com')`);
@@ -384,7 +385,7 @@ describe("workspace security regression", () => {
     await db.query("UPDATE client_period_steps SET status = 'completed' WHERE client_period_id = $1 AND step_key = 'documents'", [periodId]);
     expect((await db.query<{ progress_percent: number; status: string }>("SELECT progress_percent, status FROM client_periods WHERE id = $1", [periodId])).rows[0]).toMatchObject({ progress_percent: 17, status: "in_progress" });
     await db.query("UPDATE client_period_steps SET status = 'completed' WHERE client_period_id = $1", [periodId]);
-    expect((await db.query<{ progress_percent: number; status: string; closed_at: string | null }>("SELECT progress_percent, status, closed_at FROM client_periods WHERE id = $1", [periodId])).rows[0]).toMatchObject({ progress_percent: 100, status: "closed" });
+    expect((await db.query<{ progress_percent: number; status: string; closed_at: string | null }>("SELECT progress_percent, status, closed_at FROM client_periods WHERE id = $1", [periodId])).rows[0]).toMatchObject({ progress_percent: 100, status: "in_progress", closed_at: null });
   });
   it("generates checklist tasks by tax regime and keeps generation idempotent", async () => {
     await asUser(admin);
@@ -788,7 +789,7 @@ describe("workspace security regression", () => {
     )).rows).toEqual([{ user_id: collaborator, href: "/periods", body: expect.stringContaining("sem atualização") }]);
 
     await asUser(admin);
-    await db.query("UPDATE client_periods SET status = 'closed' WHERE id = $1", [period.rows[0].id]);
+    await db.query("UPDATE client_periods SET status = 'delivered' WHERE id = $1", [period.rows[0].id]);
     await asUser(collaborator);
     expect((await db.query<{ read_at: string | null }>(
       "SELECT read_at FROM user_notifications WHERE kind = 'client_period_stale' AND metadata ->> 'client_period_id' = $1",
@@ -848,6 +849,27 @@ describe("workspace security regression", () => {
     expect((await db.query("UPDATE client_periods SET status = 'closed' WHERE company_id = $1 AND period_month = 1 AND period_year = 2030 RETURNING id", [company])).rows).toHaveLength(0);
     await asUser(admin);
     await db.query(`UPDATE workspace_member_permissions SET permissions = jsonb_set(jsonb_set(permissions, '{clients,update}', 'true'::jsonb), '{tasks,update}', 'true'::jsonb) WHERE tenant_id = '${tenant}' AND user_id = '${collaborator}'`);
+  });
+  it("does not close a period with unresolved operational requirements", async () => {
+    await asUser(admin);
+    await db.query(`UPDATE companies SET tax_regime = 'simples_nacional', status = 'active' WHERE id = '${company}'`);
+    const period = await db.query<{ id: string }>(`INSERT INTO client_periods(tenant_id, company_id, period_month, period_year, responsible_user_id, created_by) VALUES ('${tenant}', '${company}', 4, 2043, '${collaborator}', '${admin}') RETURNING id`);
+    const periodId = period.rows[0].id;
+
+    await expect(db.query("UPDATE client_periods SET status = 'closed' WHERE id = $1", [periodId])).rejects.toThrow(/pending steps/);
+
+    await db.query("UPDATE client_period_steps SET status = 'completed' WHERE client_period_id = $1", [periodId]);
+    await expect(db.query("UPDATE client_periods SET status = 'closed' WHERE id = $1", [periodId])).rejects.toThrow(/pending checklist items/);
+
+    await db.query("UPDATE client_period_checklist_items SET status = 'completed' WHERE client_period_id = $1", [periodId]);
+    await expect(db.query("UPDATE client_periods SET status = 'closed' WHERE id = $1", [periodId])).rejects.toThrow(/pending fiscal obligations/);
+
+    await db.query("UPDATE fiscal_obligations SET status = 'cancelled' WHERE client_period_id = $1", [periodId]);
+    await expect(db.query("UPDATE client_periods SET status = 'closed' WHERE id = $1", [periodId])).resolves.toBeDefined();
+    expect((await db.query<{ status: string; progress_percent: number }>("SELECT status, progress_percent FROM client_periods WHERE id = $1", [periodId])).rows[0]).toMatchObject({ status: "closed", progress_percent: 100 });
+
+    await db.query("UPDATE client_period_steps SET status = 'pending' WHERE client_period_id = $1 AND step_key = 'documents'", [periodId]);
+    expect((await db.query<{ status: string }>("SELECT status FROM client_periods WHERE id = $1", [periodId])).rows[0]).toEqual({ status: "in_progress" });
   });
   it("rejects assigning a client to another company's task or an inactive user", async () => {
     await db.exec("RESET ROLE; SELECT set_config('request.jwt.claim.role', 'service_role', false)");
