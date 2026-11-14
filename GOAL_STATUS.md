@@ -27,6 +27,8 @@ contabilidade, sem depender de integrações externas nesta etapa.
   ou bloqueio público no staging.
 - Gate repetível disponível com `npm run verify`: typecheck, testes, lint e
   build em sequência; execução atual aprovada.
+- CI e deploy do Supabase agora reutilizam esse mesmo gate, evitando divergência
+  entre a validação local e a promoção de ambiente.
 - `main`: não promovido.
 
 ## Acompanhamento dos 10 pontos
