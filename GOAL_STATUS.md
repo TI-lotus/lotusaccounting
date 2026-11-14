@@ -6,7 +6,7 @@ contabilidade, sem depender de integrações externas nesta etapa.
 ## Estado atual
 
 - Branch de trabalho: `staging`.
-- Última versão de código enviada: `897cb5d`.
+- Última versão de código enviada: `9de1890`.
 - Última validação automatizada: 14/11/2026; typecheck, testes, lint e build
   aprovados no branch `staging`.
 - Staging no Vercel: deployment observado como `READY`; a proteção de acesso
@@ -33,7 +33,7 @@ contabilidade, sem depender de integrações externas nesta etapa.
 | 5 | Documentos, solicitações, evidências e histórico | Implementado; falta QA dos perfis | migrations `document_requests`, `checklist_evidence` e `operational_audit` |
 | 6 | Mensagens, leitura, busca, fixação e arquivamento | Implementado; falta teste autenticado | `src/pages/Messages.tsx` e migrations de mensagens |
 | 7 | Financeiro interno, faturas, baixas, cancelamentos e CSV | Implementado; falta QA financeiro | `src/pages/Payments.tsx`, `src/pages/Invoices.tsx`, `src/pages/Reports.tsx`, migrations `linked_payment_integrity` e `payment_history_integrity` |
-| 8 | UX, responsividade, acessibilidade e estados de erro | Implementado em código; falta inspeção visual | `AppErrorBoundary`, `DashboardLayout`, `MANUAL_QA_EVIDENCE.md` |
+| 8 | UX, responsividade, acessibilidade e estados de erro | Implementado em código; falta inspeção visual | `AppErrorBoundary`, `DashboardLayout`, `MANUAL_QA_EVIDENCE.md`; sparklines de KPI sem dependência pesada no componente compartilhado |
 | 9 | Auditoria, alertas, duplicidade e recuperação | Automatizado; falta validar cron no Supabase real | migrations `operational_alert_engine`, `operational_audit`, `linked_payment_integrity`, `payment_history_integrity` e testes |
 | 10 | Onboarding, demonstração, treinamento e smoke test final | Parcialmente implementado | `OPERATIONAL_MVP_RUNBOOK.md` e `OnboardingChecklist` |
 
