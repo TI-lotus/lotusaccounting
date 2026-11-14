@@ -26,7 +26,7 @@ import { useData } from "@/contexts/DataContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
-import { formatDistanceToNow } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { useWorkspaceMembers } from "@/hooks/useWorkspaceMembers";
@@ -39,6 +39,10 @@ type Recipient = { userId: string; name: string; role: "Administrador" | "Colabo
 const relativeTime = (value?: string | null) => value
   ? formatDistanceToNow(new Date(value), { addSuffix: true, locale: ptBR })
   : "Sem data";
+
+const messageTime = (value?: string | null) => value
+  ? format(new Date(value), "HH:mm")
+  : "";
 
 const initials = (value: string) => value.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase() || "LT";
 
@@ -231,12 +235,12 @@ const Messages = () => {
             </div>
           </aside>
 
-          <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background">
+          <section className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background">
             {!currentConversation ? <div className="grid flex-1 place-items-center text-center text-muted-foreground"><div><MessageSquare className="mx-auto mb-3 h-10 w-10 opacity-60" /><p className="text-sm font-medium text-foreground">Selecione uma conversa</p></div></div> : <>
               <div className="flex shrink-0 items-center gap-3 border-b border-border bg-card px-4 py-3 sm:px-6"><Avatar className="h-9 w-9"><AvatarImage src={currentConversation.avatarUrl ?? undefined} /><AvatarFallback className="bg-gilver/20 font-medium text-gilver">{initials(currentConversation.name)}</AvatarFallback></Avatar><div className="min-w-0"><p className="truncate text-sm font-medium">{currentConversation.name}</p><Badge variant="outline" className="mt-1 h-4 px-1.5 text-[10px]">{currentConversation.role}</Badge></div></div>
-              <div className="sidebar-scroll min-h-0 flex-1 space-y-4 overflow-y-auto bg-background px-4 py-4 sm:px-6 sm:py-6">{currentMessages.length === 0 && <div className="grid h-full place-items-center text-center text-muted-foreground"><div><Users className="mx-auto mb-3 h-8 w-8 opacity-60" /><p className="text-sm">Envie a primeira mensagem.</p></div></div>}{currentMessages.map((message) => { const isMe = message.sender_id === user?.id; const isRead = Boolean(message.read_at); return <div key={message.id} className={cn("flex", isMe ? "justify-end" : "justify-start")}><div className={cn("max-w-[82%] break-words rounded-2xl px-4 py-2.5", isMe ? "rounded-tr-md bg-primary text-primary-foreground" : "rounded-tl-md bg-gilver text-white")}><p className="text-sm">{message.message}</p><div className={cn("mt-1 flex items-center justify-end gap-1 text-[10px]", isMe ? "text-primary-foreground/65" : "text-white/70")}><span>{relativeTime(message.created_at)}</span>{isMe && <CheckCheck className={cn("h-3.5 w-3.5", isRead ? "text-sky-300" : "text-primary-foreground/70")} aria-label={isRead ? "Lida" : "Entregue"} />}</div></div></div>; })}</div>
-              <div className="shrink-0 border-t border-border bg-card px-3 py-3 sm:px-5">
-                <div className="flex items-center gap-2 rounded-full border border-border bg-muted/80 px-3 py-1.5 transition-colors focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20">
+              <div className="sidebar-scroll min-h-0 flex-1 space-y-1 overflow-y-auto bg-background px-4 py-4 pb-28 sm:px-6 sm:py-6 sm:pb-32">{currentMessages.length === 0 && <div className="grid h-full place-items-center text-center text-muted-foreground"><div><Users className="mx-auto mb-3 h-8 w-8 opacity-60" /><p className="text-sm">Envie a primeira mensagem.</p></div></div>}{currentMessages.map((message, index) => { const isMe = message.sender_id === user?.id; const isRead = Boolean(message.read_at); const previous = currentMessages[index - 1]; const next = currentMessages[index + 1]; const sameAsPrevious = previous?.sender_id === message.sender_id; const sameAsNext = next?.sender_id === message.sender_id; return <div key={message.id} className={cn("flex", isMe ? "justify-end" : "justify-start", index > 0 && !sameAsPrevious && "pt-3")}><div className={cn("max-w-[82%] break-words rounded-2xl px-4 py-2.5", isMe ? "bg-primary text-primary-foreground" : "bg-gilver text-white", isMe ? (sameAsPrevious ? "rounded-t-md" : "rounded-tr-md") : (sameAsPrevious ? "rounded-t-md" : "rounded-tl-md"), sameAsNext && "rounded-b-md")}><p className="text-sm">{message.message}</p><div className={cn("mt-1 flex items-center justify-end gap-1 text-[10px]", isMe ? "text-primary-foreground/65" : "text-white/70")}><span>{messageTime(message.created_at)}</span>{isMe && <CheckCheck className={cn("h-3.5 w-3.5", isRead ? "text-sky-300" : "text-primary-foreground/70")} aria-label={isRead ? "Lida" : "Entregue"} />}</div></div></div>; })}</div>
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 px-3 pb-3 sm:px-5 sm:pb-5">
+                <div className="pointer-events-auto flex items-center gap-2 rounded-full border border-border/80 bg-card/95 px-3 py-1.5 shadow-[0_10px_30px_hsl(var(--foreground)/0.12)] backdrop-blur-xl transition-colors focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20">
                   <Paperclip className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />
                   <Input placeholder="Digite uma mensagem" className="h-9 min-w-0 flex-1 rounded-none border-0 bg-transparent p-0 text-sm shadow-none focus-visible:ring-0" value={newMessage} onChange={(event) => setNewMessage(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void handleSendMessage(); } }} />
                   <Smile className="hidden h-5 w-5 shrink-0 text-muted-foreground sm:block" aria-hidden="true" />
