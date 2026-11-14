@@ -445,6 +445,12 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
   }, [settingsOpen, upgradeOpen]);
 
   useEffect(() => {
+    if (role !== "admin" && settingsSection === "billing") {
+      setSettingsSection("profile");
+    }
+  }, [role, settingsSection]);
+
+  useEffect(() => {
     if (!upgradeOpen) return;
     void getTenantSubscription()
       .then(setSubscription)
@@ -819,16 +825,18 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
                 <Settings className="h-4 w-4 mr-2" />
                 Configurações
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onSelect={(e) => {
-                  e.preventDefault();
-                  setProfileMenuOpen(false);
-                  setUpgradeOpen(true);
-                }}
-              >
-                <Crown className="h-4 w-4 mr-2" />
-                Upgrade
-              </DropdownMenuItem>
+              {role === "admin" && (
+                <DropdownMenuItem
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    setProfileMenuOpen(false);
+                    setUpgradeOpen(true);
+                  }}
+                >
+                  <Crown className="h-4 w-4 mr-2" />
+                  Upgrade
+                </DropdownMenuItem>
+              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 className="text-destructive focus:text-destructive"
@@ -851,7 +859,7 @@ export const TopBar = ({ className, onOpenAI }: TopBarProps) => {
           <div className="dialog-body account-settings-body settings-modal-body">
             <div className="settings-modal-layout">
               <nav className="settings-modal-nav" aria-label="Seções das configurações">
-                {settingsSections.map((item) => {
+                {settingsSections.filter((item) => role === "admin" || item.id !== "billing").map((item) => {
                   const Icon = item.icon;
                   const active = settingsSection === item.id;
                   return (

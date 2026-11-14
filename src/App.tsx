@@ -47,9 +47,11 @@ const WorkspaceData = ({ children }: { children: React.ReactNode }) => {
 const ProtectedRoute = ({
   children,
   allowClient = true,
+  adminOnly = false,
 }: {
   children: React.ReactNode;
   allowClient?: boolean;
+  adminOnly?: boolean;
 }) => {
   const { session, loading, mfaRequired, profile, profileError, signOut } = useAuth();
 
@@ -79,14 +81,18 @@ const ProtectedRoute = ({
     return <Navigate to="/" replace />;
   }
 
+  if (adminOnly && profile.account_type !== "admin") {
+    return <Navigate to="/" replace />;
+  }
+
   return children;
 };
 
 const protectedPage = (
   children: React.ReactNode,
-  options?: { allowClient?: boolean },
+  options?: { allowClient?: boolean; adminOnly?: boolean },
 ) => (
-  <ProtectedRoute allowClient={options?.allowClient}>{children}</ProtectedRoute>
+  <ProtectedRoute allowClient={options?.allowClient} adminOnly={options?.adminOnly}>{children}</ProtectedRoute>
 );
 
 const App = () => (
@@ -167,7 +173,7 @@ const App = () => (
                       allowClient: false,
                     })}
                   />
-                  <Route path="/upgrade" element={protectedPage(<Upgrade />)} />
+                  <Route path="/upgrade" element={protectedPage(<Upgrade />, { adminOnly: true })} />
                   <Route path="/tasks" element={protectedPage(<Tasks />)} />
                   <Route
                     path="/work-queue"
